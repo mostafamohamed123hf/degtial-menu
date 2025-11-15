@@ -2,7 +2,11 @@
 (function () {
   "use strict";
 
-  const API_BASE_URL = "http://localhost:5000/api";
+  const API_BASE_URL = (function () {
+    const { hostname, origin } = window.location;
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    return isLocal ? "http://localhost:5000/api" : `${origin}/api`;
+  })();
   let currentSettings = {};
 
   // Initialize global settings when DOM is loaded
