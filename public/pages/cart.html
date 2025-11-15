@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="cartPageTitle">سلة التسوق | Digital Menu</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/cart.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
+    <meta
+      name="description"
+      content="سلة التسوق - عرض المنتجات المضافة والسعر النهائي" />
+    <!-- Load auth.js before other scripts -->
+    <script src="../js/auth.js"></script>
+    <!-- Load i18n.js before other scripts -->
+    <script src="../js/i18n.js"></script>
+    <!-- Load global settings loader -->
+    <script src="../js/global-settings-loader.js"></script>
+    <style>
+      /* Language switcher styles */
+      .language-switcher {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .language-switcher:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      /* RTL specific adjustments */
+      html[dir="rtl"] .language-switcher {
+        left: auto;
+        right: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-container">
+        <div class="back-button">
+          <a href="index.html"><i class="fas fa-arrow-right"></i></a>
+        </div>
+        <h1 class="page-title" data-i18n="cartTitle">سلة التسوق</h1>
+        <div class="empty-cart-button">
+          <button id="clear-cart"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="cart-content">
+      <div class="cart-items-container" id="cart-items">
+        <!-- Cart items will be loaded here dynamically -->
+        <div class="cart-empty-message" id="cart-empty">
+          <i class="fas fa-shopping-cart"></i>
+          <p data-i18n="emptyCart">سلة التسوق فارغة</p>
+          <a href="index.html" class="browse-menu-btn" data-i18n="returnToMenu"
+            >العودة إلى القائمة</a
+          >
+        </div>
+      </div>
+
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span data-i18n="subtotal">المجموع الفرعي:</span>
+          <span id="subtotal">0.00 جنية</span>
+        </div>
+        <div class="summary-row tax-row">
+          <span data-i18n="tax"
+            >ضريبة القيمة المضافة:<small id="tax-info"> (15%)</small></span
+          >
+          <span id="tax">0.00 جنية</span>
+        </div>
+
+        <!-- Service Tax Row (Initially hidden) -->
+        <div
+          class="summary-row service-tax-row"
+          id="service-tax-row"
+          style="display: none">
+          <span data-i18n="serviceTax"
+            >ضريبة الخدمة:<small id="service-tax-info"> (10%)</small></span
+          >
+          <span id="service-tax">0.00 جنية</span>
+        </div>
+
+        <!-- Discount Row (Initially hidden) -->
+        <div
+          class="summary-row discount-row"
+          id="discount-row"
+          style="display: none">
+          <span data-i18n="discount">الخصم:</span>
+          <span id="discount-amount">0.00 جنية</span>
+        </div>
+
+        <!-- Loyalty Discount Row (Initially hidden) -->
+        <div
+          class="summary-row loyalty-discount-row"
+          id="loyalty-discount-row"
+          style="display: none">
+          <span data-i18n="loyaltyDiscount">خصم نقاط الولاء:</span>
+          <span id="loyalty-discount-amount">0.00 جنية</span>
+        </div>
+
+        <div class="summary-row total">
+          <span data-i18n="total">المجموع النهائي:</span>
+          <span id="total">0.00 جنية</span>
+        </div>
+
+        <!-- Voucher Section - Enhanced -->
+        <div class="voucher-container">
+          <div class="voucher-header">
+            <i class="fas fa-ticket-alt"></i>
+            <h3 class="voucher-title" data-i18n="voucherTitle">كوبون الخصم</h3>
+          </div>
+          <div class="voucher-content">
+            <p class="voucher-description" data-i18n="voucherDescription">
+              أدخل كود الخصم للحصول على سعر أفضل
+            </p>
+            <div class="voucher-input-group">
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  id="voucher-code"
+                  data-i18n-placeholder="voucherPlaceholder"
+                  placeholder="أدخل كود الخصم"
+                  maxlength="20" />
+                <i class="fas fa-tag"></i>
+              </div>
+              <button id="apply-voucher">
+                <i class="fas fa-check"></i>
+                <span data-i18n="applyVoucher">تطبيق</span>
+              </button>
+            </div>
+            <div id="voucher-message" class="voucher-message"></div>
+          </div>
+        </div>
+
+        <!-- Loyalty Points Section - Enhanced Version -->
+        <div
+          class="loyalty-points-container"
+          id="loyalty-points-container"
+          style="display: none">
+          <div class="loyalty-header">
+            <i class="fas fa-crown"></i>
+            <h3 class="loyalty-title" data-i18n="loyaltyPointsTitle">
+              نقاط الولاء الخاصة بك
+            </h3>
+          </div>
+          <div class="loyalty-card">
+            <div class="loyalty-user-points">
+              <div class="points-circle">
+                <span id="available-points">0</span>
+                <small data-i18n="availablePoints">نقطة</small>
+              </div>
+              <div class="points-info">
+                <h4 data-i18n="pointsBalance">رصيد النقاط المتاح</h4>
+                <p data-i18n="pointsDescription">
+                  استخدم نقاطك للحصول على خصم فوري
+                </p>
+              </div>
+            </div>
+
+            <div class="loyalty-benefit">
+              <div class="benefit-header">
+                <i class="fas fa-percentage"></i>
+                <span data-i18n="appliedDiscount">الخصم المطبق:</span>
+                <span id="points-discount-value" class="highlight-value"
+                  >0.00 جنية</span
+                >
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="discount-progress-fill"></div>
+              </div>
+              <div class="progress-labels">
+                <span>0%</span>
+                <span class="max-discount"
+                  ><span data-i18n="maxDiscount">الحد الأقصى:</span>
+                  <span class="max-value">50%</span></span
+                >
+              </div>
+            </div>
+
+            <div class="loyalty-message">
+              <i class="fas fa-lightbulb"></i>
+              <span data-i18n="loyaltyTip"
+                >استخدم كل نقاطك للحصول على أقصى خصم ممكن، وكسب المزيد مع كل
+                طلب!</span
+              >
+            </div>
+
+            <div class="loyalty-actions">
+              <button id="apply-points" class="apply-points-btn">
+                <i class="fas fa-check-circle"></i>
+                <span data-i18n="useAllPoints">استخدام كل النقاط</span>
+              </button>
+              <button
+                id="reset-points"
+                class="reset-points-btn"
+                style="display: none">
+                <i class="fas fa-undo"></i>
+                <span data-i18n="cancelPoints">إلغاء تطبيق</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="checkout-actions">
+          <button class="checkout-button" id="checkout-btn">
+            <span data-i18n="checkout">إتمام الطلب</span>
+            <i class="fas fa-check"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkout-complete" id="checkout-complete">
+      <div class="checkout-message">
+        <i class="fas fa-check-circle"></i>
+        <h2 data-i18n="orderConfirmed">تم تأكيد طلبك بنجاح!</h2>
+        <p data-i18n="orderConfirmedMessage">
+          شكراً لك! سيتم توصيل طلبك في أقرب وقت
+        </p>
+        <a href="index.html" class="return-home" data-i18n="returnToHome"
+          >العودة للقائمة الرئيسية</a
+        >
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/cart.js"></script>
+    <script src="../js/voucher-integration.js"></script>
+    <script>
+      // Initialize i18n when DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        // Explicitly initialize i18n
+        initI18n();
+
+        // Force apply translations after a short delay
+        setTimeout(function () {
+          if (typeof applyTranslations === "function") {
+            applyTranslations();
+          }
+        }, 300);
+      });
+    </script>
+  </body>
+</html>

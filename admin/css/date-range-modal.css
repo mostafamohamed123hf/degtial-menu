@@ -1,0 +1,429 @@
+/* Date Range Modal Styles for Admin Dashboard */
+:root {
+  --modal-border-radius: 20px;
+  --date-input-height: 42px;
+  --date-input-border-radius: 12px;
+  --date-range-primary: var(--admin-accent-color, #42d158);
+  --date-range-secondary: #34b3b3;
+  --date-range-gradient: linear-gradient(
+    90deg,
+    var(--date-range-primary),
+    var(--date-range-secondary)
+  );
+}
+
+/* Date Range Modal Container */
+.date-range-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--admin-modal-overlay, rgba(0, 0, 0, 0.5));
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  backdrop-filter: blur(5px);
+  overflow-y: auto;
+}
+
+.date-range-modal.show {
+  opacity: 1 !important;
+  display: flex !important;
+}
+
+/* Modal Content */
+.date-range-modal-content {
+  background-color: var(--admin-card-bg, #1e1e1e);
+  border-radius: var(--modal-border-radius);
+  padding: 30px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  color: var(--admin-text-color, #fff);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(30px);
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Top accent bar */
+.date-range-modal-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 6px;
+  background: var(--date-range-gradient);
+  border-radius: var(--modal-border-radius) var(--modal-border-radius) 0 0;
+}
+
+.date-range-modal.show .date-range-modal-content {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Modal Header */
+.date-range-modal-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--admin-border-color, rgba(255, 255, 255, 0.1));
+}
+
+.date-range-modal-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.close-date-range-modal {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 36px;
+  height: 36px;
+  background-color: var(--date-range-primary);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.close-date-range-modal:hover {
+  background-color: rgba(66, 209, 88, 0.8);
+  transform: rotate(90deg);
+}
+
+/* Date Range Form */
+.date-range-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.date-range-form .form-group {
+  margin-bottom: 5px;
+}
+
+.date-range-form .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--admin-text-color, #fff);
+  font-size: 0.95rem;
+}
+
+.date-range-form .form-group label i {
+  margin-right: 6px;
+  color: var(--date-range-primary);
+}
+
+.date-inputs-container {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.date-inputs-container .form-group {
+  flex: 1;
+}
+
+.date-range-form input[type="date"] {
+  width: 100%;
+  height: var(--date-input-height);
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border-color, rgba(255, 255, 255, 0.1));
+  border-radius: var(--date-input-border-radius);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--admin-text-color, #fff);
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.date-range-form input[type="date"]:focus {
+  outline: none;
+  border-color: var(--date-range-primary);
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15);
+}
+
+/* Date Range Presets */
+.date-range-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.preset-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  padding: 8px 15px;
+  border-radius: 30px;
+  color: var(--admin-text-color, #fff);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0.7;
+  position: relative;
+  overflow: hidden;
+}
+
+.preset-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--date-range-gradient);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.preset-btn:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.preset-btn:hover::before {
+  opacity: 0.2;
+}
+
+.preset-btn.active {
+  background: var(--date-range-primary);
+  opacity: 1;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(66, 209, 88, 0.25);
+}
+
+.preset-btn.active::before {
+  opacity: 0;
+}
+
+/* Form Actions */
+.date-range-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.cancel-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--admin-text-color, #fff);
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.apply-btn {
+  background-color: var(--date-range-primary);
+  border: none;
+  color: white;
+  padding: 10px 25px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.apply-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0)
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.apply-btn:hover {
+  background-color: var(--admin-accent-hover, #38b64c);
+  box-shadow: 0 5px 15px rgba(66, 209, 88, 0.3);
+  transform: translateY(-2px);
+}
+
+.apply-btn:hover::after {
+  transform: translateX(100%);
+}
+
+.apply-btn:active {
+  transform: translateY(0);
+}
+
+/* Custom Range Message */
+.custom-range-message {
+  display: none;
+  margin: 15px 0;
+  padding: 10px;
+  background-color: rgba(66, 209, 88, 0.1);
+  border-left: 3px solid var(--date-range-primary);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.custom-range-message.show {
+  display: block;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* Light Mode Overrides */
+body.light-mode .date-range-modal {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .date-range-modal-content {
+  background-color: var(--admin-bg-light, #ffffff);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  color: var(--admin-text-dark, #333);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .date-range-form .form-group label {
+  color: var(--admin-text-dark, #333);
+}
+
+body.light-mode .date-range-form input[type="date"] {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--admin-text-dark, #333);
+}
+
+body.light-mode .date-range-form input[type="date"]:focus {
+  background-color: rgba(0, 0, 0, 0.01);
+  border-color: var(--date-range-primary);
+}
+
+body.light-mode .preset-btn {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--admin-text-dark, #333);
+}
+
+body.light-mode .preset-btn.active {
+  background-color: var(--date-range-primary);
+  color: white;
+}
+
+body.light-mode .cancel-btn {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--admin-text-dark, #333);
+}
+
+body.light-mode .custom-range-message {
+  background-color: rgba(66, 209, 88, 0.1);
+  color: var(--admin-text-dark, #333);
+}
+
+/* Animation for Modal Content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Styles */
+@media (max-width: 576px) {
+  .date-range-modal-content {
+    padding: 20px;
+  }
+
+  .date-inputs-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .date-range-presets {
+    justify-content: center;
+  }
+
+  .date-range-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .apply-btn,
+  .cancel-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .date-range-modal-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* Custom date picker icon styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+body.light-mode input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  opacity: 0.7;
+}
+
+/* RTL Support */
+[dir="rtl"] .date-range-form .form-group label i {
+  margin-right: 0;
+  margin-left: 6px;
+}
+
+[dir="rtl"] .custom-range-message {
+  border-left: none;
+  border-right: 3px solid var(--date-range-primary);
+}
+
+[dir="rtl"] .close-date-range-modal {
+  right: auto;
+  left: -10px;
+}

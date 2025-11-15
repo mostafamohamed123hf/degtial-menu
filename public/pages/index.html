@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ديجيتال منيو | Digital Menu</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/addons-modal.css" />
+    <link rel="stylesheet" href="../css/rating.css" />
+    <link rel="stylesheet" href="../css/reservation-settings.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>" />
+    <meta
+      name="description"
+      content="Digital menu for ordering food online - pizza, burgers, and sandwiches" />
+    
+    <!-- Inline script to prevent language flash -->
+    <script>
+      (function() {
+        var savedLang = localStorage.getItem('public-language') || 'ar';
+        var html = document.documentElement;
+        
+        if (savedLang === 'en') {
+          html.setAttribute('lang', 'en');
+          html.setAttribute('dir', 'ltr');
+        } else {
+          html.setAttribute('lang', 'ar');
+          html.setAttribute('dir', 'rtl');
+        }
+      })();
+    </script>
+    
+    <!-- Hide content until translations are applied -->
+    <style>
+      body:not(.i18n-ready) {
+        opacity: 0;
+      }
+      body.i18n-ready {
+        opacity: 1;
+        transition: opacity 0.15s ease-in;
+      }
+    </style>
+    
+    <!-- Load auth.js before other scripts -->
+    <script src="../js/auth.js"></script>
+    <!-- Load user-permissions.js for permission checks -->
+    <script src="../js/user-permissions.js"></script>
+    <!-- Load theme.js as early as possible -->
+    <script src="../js/theme.js"></script>
+    <!-- Load i18n.js for internationalization -->
+    <script src="../js/i18n.js"></script>
+    <!-- Load global settings loader -->
+    <script src="../js/global-settings-loader.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="header-container">
+        <div class="menu-icon" id="sidebar-toggle">
+          <i class="fas fa-bars"></i>
+        </div>
+        <div id="table-number-display" class="table-number-display"></div>
+        <button id="language-switcher" class="language-switcher">
+          English
+        </button>
+        <div class="toggle-switch">
+          <span class="toggle-label" data-i18n="themeToggle">الوضع</span>
+          <div class="toggle-switch-container">
+            <input
+              type="checkbox"
+              id="switch"
+              class="theme-toggle"
+              data-theme-switch="true" />
+            <label for="switch"></label>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar" id="sidebar-menu">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i class="fas fa-hamburger"></i>
+          <span>ديجيتال منيو</span>
+        </div>
+        <div class="sidebar-close" id="sidebar-close">
+          <i class="fas fa-times"></i>
+        </div>
+      </div>
+      <div class="sidebar-content">
+        <ul class="sidebar-nav">
+          <li class="sidebar-item active" id="menu-item">
+            <a href="#" class="sidebar-link menu-section-link">
+              <i class="fas fa-utensils"></i>
+              <span data-i18n="sidebarMenu">القائمة</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="#" class="sidebar-link previous-orders-section-link">
+              <i class="fas fa-history"></i>
+              <span data-i18n="sidebarPreviousOrders">طلباتي السابقة</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="#" class="sidebar-link offers-section-link">
+              <i class="fas fa-tag"></i>
+              <span data-i18n="sidebarOffers">العروض</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="#" class="sidebar-link reservation-section-link">
+              <i class="fas fa-calendar-alt"></i>
+              <span data-i18n="sidebarReservation">احجز طاولة</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="#" class="sidebar-link">
+              <i class="fas fa-phone"></i>
+              <span data-i18n="sidebarContactUs">اتصل بنا</span>
+            </a>
+          </li>
+          <!-- Cashier Panel Link (Hidden by default, shown only for cashier users) -->
+          <li class="sidebar-item cashier-only-item" style="display: none">
+            <a href="/public/pages/cashier.html" class="sidebar-link">
+              <i class="fas fa-cash-register"></i>
+              <span data-i18n="sidebarCashierPanel">نظام الكاشير</span>
+            </a>
+          </li>
+          <!-- Admin Panel Link (Hidden by default, shown only for admin users) -->
+          <li class="sidebar-item admin-only-item" style="display: none">
+            <a href="/admin/admin-login.html" class="sidebar-link">
+              <i class="fas fa-cog"></i>
+              <span data-i18n="sidebarAdminPanel">لوحة الإدارة</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-divider"></div>
+
+        <ul class="sidebar-nav">
+          <li class="sidebar-item auth-dependent" style="display: none">
+            <a href="profile.html" class="sidebar-link">
+              <i class="fas fa-user"></i>
+              <span data-i18n="sidebarProfile">الملف الشخصي</span>
+            </a>
+          </li>
+          <li class="sidebar-item non-auth-dependent">
+            <a href="register.html" class="sidebar-link">
+              <i class="fas fa-sign-in-alt"></i>
+              <span data-i18n="sidebarLoginRegister"
+                >تسجيل الدخول / إنشاء حساب</span
+              >
+            </a>
+          </li>
+          <li class="sidebar-item auth-dependent" style="display: none">
+            <a href="#" class="sidebar-link logout-btn">
+              <i class="fas fa-sign-out-alt"></i>
+              <span data-i18n="sidebarLogout">تسجيل الخروج</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="sidebar-footer" data-i18n="sidebarFooter">
+        جميع الحقوق محفوظة © ديجيتال منيو 2025
+      </div>
+    </div>
+    <!-- Overlay for sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main Content Sections -->
+    <div id="main-content">
+      <!-- Menu Section (Default View) -->
+      <div id="menu-section" class="content-section active">
+        <section class="user-info">
+          <div class="welcome">
+            <span class="welcome-text" data-i18n="welcomeMessage"
+              >مرحبا بك 👋</span
+            >
+          </div>
+          <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              placeholder="بحث"
+              id="search-input"
+              data-i18n-placeholder="searchPlaceholder" />
+          </div>
+        </section>
+
+        <section class="hero-banner">
+          <div class="new-banner">
+            <div class="banner-image"></div>
+            <div class="banner-content">
+              <h2 data-i18n="bannerTitle">Delicious Burger</h2>
+              <p data-i18n="bannerDescription">
+                Fresh ingredients, amazing taste
+              </p>
+              <div class="banner-price">
+                <span class="original-price">75 EGP</span>
+                <span class="discounted-price">55 EGP</span>
+              </div>
+              <button class="order-now-btn" data-category="burger">
+                <span data-i18n="orderNow">اطلب الآن</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="category-filters" id="category-filters">
+          <!-- Category filters will be dynamically loaded here -->
+          <div class="filter active" data-category="all">
+            <span data-i18n="allCategories">الكل</span>
+          </div>
+        </section>
+
+        <section class="product-grid">
+          <!-- Products will be dynamically loaded here -->
+          <div class="loading-spinner" id="products-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p data-i18n="loadingProducts">جاري تحميل المنتجات...</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Offers Section -->
+      <div id="offers-section" class="content-section">
+        <section class="user-info">
+          <div class="welcome">
+            <div class="floating-circle floating-circle-1"></div>
+            <div class="floating-circle floating-circle-2"></div>
+            <div class="floating-circle floating-circle-3"></div>
+            <span class="welcome-text" data-specific-content="true" data-i18n="ourSpecialOffers"
+              >عروضنا المميزة 🔥</span
+            >
+          </div>
+          <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              placeholder="بحث عن عروض"
+              id="offers-search-input"
+              data-i18n-placeholder="searchOffers" />
+          </div>
+        </section>
+
+        <!-- Featured Offer Banner -->
+        <section class="offers-hero-banner" style="display: none;">
+          <div class="main-offer-banner">
+            <div class="offer-banner-image">
+              <div class="offer-timer">
+                <i class="fas fa-clock"></i>
+                <span data-i18n="endsIn">ينتهي في</span>
+                <span class="timer-countdown"></span>
+              </div>
+            </div>
+            <div class="offer-banner-content">
+              <div class="offer-label">
+                <i class="fas fa-fire"></i>
+                <span data-i18n="exclusiveOffer">عرض حصري</span>
+              </div>
+              <h2></h2>
+              <p></p>
+              <div class="offer-price">
+                <span class="offer-original-price"></span>
+                <span class="offer-discounted-price"></span>
+                <div class="discount-percentage"></div>
+              </div>
+              <button class="offer-btn">
+                <span data-i18n="getItNow">احصل عليه الآن</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Offers Categories -->
+        <section class="offers-categories">
+          <div class="offer-category active" data-offer-category="all">
+            <span data-i18n="allOffers">كل العروض</span>
+          </div>
+          <div class="offer-category" data-offer-category="new">
+            <i class="fas fa-certificate"></i>
+            <span data-i18n="new">جديد</span>
+          </div>
+          <div class="offer-category" data-offer-category="weekly">
+            <i class="fas fa-calendar-week"></i>
+            <span data-i18n="weeklyOffers">عروض أسبوعية</span>
+          </div>
+          <div class="offer-category" data-offer-category="special">
+            <i class="fas fa-star"></i>
+            <span data-i18n="specialOffers">عروض خاصة</span>
+          </div>
+        </section>
+
+        <!-- Offers Grid -->
+        <section class="offers-grid">
+          <!-- Additional floating circles for grid -->
+          <div
+            class="floating-circle floating-circle-2"
+            style="left: auto; right: -100px; bottom: 40%"></div>
+          <div
+            class="floating-circle floating-circle-3"
+            style="right: auto; left: 10%; top: 20%"></div>
+
+          <!-- Offers will be dynamically loaded here -->
+        </section>
+      </div>
+
+      <!-- Reservation Section -->
+      <div id="reservation-section" class="content-section">
+        <section class="user-info">
+          <div class="welcome">
+            <div class="floating-circle floating-circle-1"></div>
+            <div class="floating-circle floating-circle-2"></div>
+            <div class="floating-circle floating-circle-3"></div>
+            <span class="welcome-text" data-i18n="bookTableNow"
+              >احجز طاولتك الآن 🍽️</span
+            >
+          </div>
+        </section>
+
+        <section class="reservation-container">
+          <div class="reservation-form-card">
+            <h2 data-i18n="reserveTable">احجز طاولتك</h2>
+            <p data-i18n="reserveTableDescription">
+              احجز طاولتك مسبقاً لتجنب الانتظار
+            </p>
+
+            <form id="reservation-form" class="reservation-form">
+              <div class="form-group">
+                <label for="name" data-i18n="name">الاسم</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  autocomplete="name"
+                  placeholder="أدخل اسمك"
+                  data-i18n-placeholder="enterYourName"
+                  required />
+              </div>
+
+              <div class="form-group">
+                <label for="phone" data-i18n="phoneNumber">رقم الهاتف</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  autocomplete="tel"
+                  placeholder="أدخل رقم هاتفك"
+                  data-i18n-placeholder="enterYourPhone"
+                  required />
+              </div>
+
+              <div class="form-group">
+                <label for="guests" data-i18n="guestsCount">عدد الضيوف</label>
+                <select id="guests" name="guests" required>
+                  <option
+                    value=""
+                    disabled
+                    selected
+                    data-i18n="selectGuestsCount">
+                    اختر عدد الضيوف
+                  </option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9+">9+</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="date" data-i18n="date">التاريخ</label>
+                <input type="date" id="date" name="date" required />
+              </div>
+
+              <div class="form-group">
+                <label for="time" data-i18n="time">الوقت</label>
+                <select id="time" name="time" required>
+                  <option value="" disabled selected data-i18n="selectTime">
+                    اختر الوقت
+                  </option>
+                  <option value="10:00" data-i18n="time10am">
+                    10:00 صباحاً
+                  </option>
+                  <option value="11:00" data-i18n="time11am">
+                    11:00 صباحاً
+                  </option>
+                  <option value="12:00" data-i18n="time12pm">
+                    12:00 ظهراً
+                  </option>
+                  <option value="13:00" data-i18n="time1pm">01:00 مساءً</option>
+                  <option value="14:00" data-i18n="time2pm">02:00 مساءً</option>
+                  <option value="15:00" data-i18n="time3pm">03:00 مساءً</option>
+                  <option value="16:00" data-i18n="time4pm">04:00 مساءً</option>
+                  <option value="17:00" data-i18n="time5pm">05:00 مساءً</option>
+                  <option value="18:00" data-i18n="time6pm">06:00 مساءً</option>
+                  <option value="19:00" data-i18n="time7pm">07:00 مساءً</option>
+                  <option value="20:00" data-i18n="time8pm">08:00 مساءً</option>
+                  <option value="21:00" data-i18n="time9pm">09:00 مساءً</option>
+                  <option value="22:00" data-i18n="time10pm">
+                    10:00 مساءً
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="idCardPhoto" data-i18n="idCardPhoto"
+                  >صورة الهوية (مطلوبة للحجز)</label
+                >
+                <div class="id-card-upload">
+                  <input
+                    type="file"
+                    id="idCardPhoto"
+                    name="idCardPhoto"
+                    accept="image/*"
+                    required />
+                  <div class="preview-container" id="idCardPreview">
+                    <p data-i18n="clickToUploadID">اضغط لتحميل صورة الهوية</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="notes" data-i18n="additionalNotes"
+                  >ملاحظات إضافية</label
+                >
+                <textarea
+                  id="notes"
+                  name="notes"
+                  placeholder="أي متطلبات خاصة؟"
+                  data-i18n-placeholder="anySpecialRequirements"></textarea>
+              </div>
+
+              <button type="submit" class="reservation-submit-btn">
+                <span data-i18n="confirmReservation">تأكيد الحجز</span>
+                <i class="fas fa-check-circle"></i>
+              </button>
+            </form>
+          </div>
+
+          <div class="reservation-info">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <h3 data-i18n="workingHours">ساعات العمل</h3>
+              <p data-i18n="sundayToThursday">
+                الأحد - الخميس: 10 صباحًا - 11 مساءً
+              </p>
+              <p data-i18n="fridayToSaturday">
+                الجمعة - السبت: 10 صباحًا - 12 مساءً
+              </p>
+            </div>
+
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="fas fa-phone-alt"></i>
+              </div>
+              <h3 data-i18n="contactUs">اتصل بنا</h3>
+              <p data-i18n="forUrgentInquiries">للاستفسارات العاجلة</p>
+              <p class="phone-number">+20 123 456 7890</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Previous Orders Section -->
+      <div id="previous-orders-section" class="content-section">
+        <section class="user-info">
+          <div class="welcome">
+            <div class="floating-circle floating-circle-1"></div>
+            <div class="floating-circle floating-circle-2"></div>
+            <div class="floating-circle floating-circle-3"></div>
+            <span class="welcome-text" data-i18n="previousOrdersTitle"
+              >طلباتي السابقة 📋</span
+            >
+          </div>
+          <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              placeholder="بحث في الطلبات"
+              id="orders-search-input"
+              data-i18n-placeholder="searchOrders" />
+          </div>
+        </section>
+
+        <section class="previous-orders-container">
+          <div class="orders-status-filter">
+            <div class="status-filter active" data-status="all">
+              <span data-i18n="allOrders">جميع الطلبات</span>
+            </div>
+            <div class="status-filter" data-status="completed">
+              <i class="fas fa-check-circle"></i>
+              <span data-i18n="ordersCompleted">مكتملة</span>
+            </div>
+            <div class="status-filter" data-status="processing">
+              <i class="fas fa-spinner"></i>
+              <span data-i18n="ordersProcessing">قيد التنفيذ</span>
+            </div>
+            <div class="status-filter" data-status="cancelled">
+              <i class="fas fa-times-circle"></i>
+              <span data-i18n="ordersCancelled">ملغية</span>
+            </div>
+          </div>
+
+          <div class="previous-orders-list">
+            <!-- Loading spinner -->
+            <div class="loading-spinner" id="orders-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p data-i18n="loadingOrders">جاري تحميل الطلبات...</p>
+            </div>
+
+            <!-- Empty orders message (initially hidden) -->
+            <div class="empty-orders-message" style="display: none">
+              <i class="fas fa-receipt"></i>
+              <h3 data-i18n="noPreviousOrders">لا توجد طلبات سابقة</h3>
+              <p data-i18n="noOrdersMessage">لم تقم بإجراء أي طلبات حتى الآن</p>
+              <button class="browse-menu-btn">
+                <i class="fas fa-utensils"></i>
+                <span data-i18n="browseMenu">تصفح القائمة</span>
+              </button>
+            </div>
+
+            <!-- Orders will be dynamically loaded here -->
+            <div class="orders-grid"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav">
+      <a href="cart.html" class="nav-item" id="cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-count">0</span>
+      </a>
+      <a href="#" class="nav-item active">
+        <i class="fas fa-home"></i>
+      </a>
+    </nav>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script src="../js/reservation-settings.js"></script>
+    <script src="../js/script.js"></script>
+
+    <!-- Add-ons Modal -->
+    <div class="addons-overlay" id="addons-overlay">
+      <div class="addons-modal" id="addons-modal">
+        <div class="addons-modal-header">
+          <button class="close-addons-modal" id="close-addons-modal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="product-image-preview" id="product-image-preview">
+          <!-- Product image will be set as background image -->
+          <!-- Wave element and badge will be added via JavaScript -->
+        </div>
+
+        <div class="product-info-preview">
+          <h3 id="product-name-preview"></h3>
+          <p id="product-description-preview"></p>
+          <div id="product-price-preview" class="product-price-preview"></div>
+        </div>
+
+        <div class="addons-content" id="addons-content">
+          <!-- Add-on sections will be dynamically inserted here -->
+        </div>
+
+        <div class="addons-modal-footer">
+          <div class="quantity-selector">
+            <button id="decrease-quantity" class="quantity-btn">-</button>
+            <span id="quantity-value">1</span>
+            <button id="increase-quantity" class="quantity-btn">+</button>
+          </div>
+
+          <div class="addon-total">
+            <span data-i18n="addonTotal">المجموع:</span>
+            <span id="addon-total-price">0.00</span>
+          </div>
+
+          <button id="add-to-cart-with-addons" class="add-to-cart-with-addons">
+            <i class="fas fa-shopping-cart"></i>
+            <span data-i18n="addToCart">إضافة للسلة</span>
+          </button>
+
+          <div id="addons-error-message" class="addons-error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span data-i18n="selectAllRequiredAddons"
+              >يرجى اختيار جميع الإضافات المطلوبة</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Link to add-ons modal CSS -->
+    <link rel="stylesheet" href="../css/addons-modal.css" />
+
+    <script>
+      // Update the sidebar login/logout link based on authentication state
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initial setup will happen through updateUIBasedOnAuth() in auth.js
+
+        // Also listen for auth state changes
+        window.addEventListener("auth_state_changed", function () {
+          // Update welcome text if user is logged in
+          if (isLoggedIn()) {
+            getCurrentUser()
+              .then((user) => {
+                const welcomeTextElements =
+                  document.querySelectorAll(".welcome-text");
+                welcomeTextElements.forEach((el) => {
+                  // Only update if the element doesn't have specific content
+                  if (!el.hasAttribute("data-specific-content")) {
+                    el.textContent = `مرحبا ${user.name} 👋`;
+                  }
+                });
+              })
+              .catch((error) =>
+                console.error("Error updating welcome text:", error)
+              );
+          }
+        });
+
+        // Override the default logout button handler that was set up in auth.js
+        document.addEventListener("click", function (e) {
+          // Use event delegation to catch all logout button clicks, even for elements added later
+          if (e.target.closest(".logout-btn")) {
+            e.preventDefault();
+            e.stopPropagation(); // Stop event bubbling
+
+            // Call the logout function from auth.js
+            logout()
+              .then(() => {
+                // Refresh the page after logout is complete
+                window.location.reload();
+              })
+              .catch((error) => {
+                console.error("Error during logout:", error);
+                // Refresh anyway
+                window.location.reload();
+              });
+          }
+        });
+      });
+
+      // Initialize theme toggle immediately
+      document.addEventListener("DOMContentLoaded", function () {
+        // Make sure the theme toggle is initialized
+        if (
+          typeof window.themeJs !== "undefined" &&
+          typeof window.themeJs.initThemeToggle === "function"
+        ) {
+          window.themeJs.initThemeToggle();
+        } else {
+          console.warn(
+            "Theme.js not loaded yet, will initialize on script load"
+          );
+        }
+      });
+
+      // Initialize i18n
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize i18n if available
+        if (
+          typeof window.i18n !== "undefined" &&
+          typeof window.i18n.applyTranslations === "function"
+        ) {
+          window.i18n.applyTranslations();
+        } else {
+          console.warn(
+            "i18n.js not loaded yet, will initialize on script load"
+          );
+        }
+      });
+
+      // Initialize language switcher
+      document.addEventListener("DOMContentLoaded", function () {
+        const languageSwitcher = document.getElementById("language-switcher");
+        if (languageSwitcher) {
+          languageSwitcher.addEventListener("click", function () {
+            // Call the switchLanguage function from i18n.js
+            if (typeof window.switchLanguage === "function") {
+              window.switchLanguage();
+            } else {
+              console.warn("switchLanguage function not available");
+            }
+          });
+        }
+      });
+    </script>
+
+    <!-- Rating Modal -->
+    <div class="rating-modal" id="rating-modal">
+      <div class="rating-modal-content">
+        <div class="rating-form" id="rating-form">
+          <div class="rating-modal-header">
+            <h2 class="rating-modal-title" data-i18n="rateOrder">
+              تقييم الطلب
+            </h2>
+            <span class="close-rating-modal" id="close-rating-modal"
+              >&times;</span
+            >
+          </div>
+
+          <div class="rating-product">
+            <img
+              src=""
+              alt="Product Image"
+              class="rating-product-image"
+              id="rating-product-image" />
+            <div class="rating-product-info">
+              <div class="rating-product-name" id="rating-product-name"></div>
+              <div class="rating-product-price" id="rating-product-price"></div>
+            </div>
+          </div>
+
+          <div class="rating-stars">
+            <label class="rating-stars-label" data-i18n="howWouldYouRateProduct"
+              >كيف تقيم تجربتك مع هذا المنتج؟</label
+            >
+            <div class="stars-container" id="stars-container">
+              <i class="fas fa-star star" data-rating="5"></i>
+              <i class="fas fa-star star" data-rating="4"></i>
+              <i class="fas fa-star star" data-rating="3"></i>
+              <i class="fas fa-star star" data-rating="2"></i>
+              <i class="fas fa-star star" data-rating="1"></i>
+            </div>
+          </div>
+
+          <div class="rating-comment">
+            <label
+              for="rating-comment-input"
+              class="rating-comment-label"
+              data-i18n="yourCommentOptional"
+              >تعليقك (اختياري)</label
+            >
+            <textarea
+              id="rating-comment-input"
+              class="rating-comment-input"
+              data-i18n-placeholder="tellUsYourOpinion"
+              placeholder="أخبرنا برأيك حول هذا المنتج..."></textarea>
+          </div>
+
+          <button class="submit-rating-btn" id="submit-rating-btn" disabled>
+            <span data-i18n="submitRating">إرسال التقييم</span>
+          </button>
+          <a class="skip-rating-btn" id="skip-rating-btn" data-i18n="skipRating"
+            >تخطي التقييم</a
+          >
+        </div>
+
+        <div class="rating-success" id="rating-success">
+          <i class="fas fa-check-circle rating-success-icon"></i>
+          <h3
+            class="rating-success-title"
+            data-i18n="ratingSubmittedSuccessfully">
+            تم إرسال تقييمك بنجاح!
+          </h3>
+          <p class="rating-success-message" data-i18n="thankYouForSharing">
+            شكراً على مشاركة رأيك، تقييمك يساعدنا على التحسين المستمر.
+          </p>
+          <button class="rating-done-btn" id="rating-done-btn" data-i18n="done">
+            تم
+          </button>
+        </div>
+
+        <!-- Existing Ratings Display -->
+        <div
+          class="existing-ratings"
+          id="existing-ratings"
+          style="display: none">
+          <div class="existing-ratings-header">
+            <h3 class="existing-ratings-title" data-i18n="yourPreviousRating">
+              تقييمك السابق
+            </h3>
+            <span class="close-rating-modal" id="close-existing-ratings"
+              >&times;</span
+            >
+          </div>
+          <div class="existing-ratings-content" id="existing-ratings-content">
+            <!-- Existing ratings will be populated here -->
+          </div>
+          <div class="existing-ratings-footer">
+            <p class="already-rated-message" data-i18n="alreadyRatedMessage">
+              لقد قمت بتقييم هذا الطلب مسبقاً. لا يمكن تعديل التقييم أو إضافة
+              تقييم جديد.
+            </p>
+            <button
+              class="rating-done-btn"
+              id="close-existing-ratings-btn"
+              data-i18n="close">
+              إغلاق
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/rating.js"></script>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <div class="footer-container">
+        <div class="footer-section footer-about">
+          <div class="footer-logo">
+            <i class="fas fa-hamburger"></i>
+            <h3 id="footer-restaurant-name">ديجيتال منيو</h3>
+          </div>
+          <p class="footer-description" id="footer-description" data-i18n="footerDescription">
+            نقدم لكم أفضل الوجبات السريعة بجودة عالية وأسعار مناسبة
+          </p>
+          <p class="footer-address" id="footer-address"></p>
+        </div>
+
+        <div class="footer-section footer-links">
+          <h4 data-i18n="quickLinks">روابط سريعة</h4>
+          <ul>
+            <li><a href="#" class="footer-link menu-section-link"><i class="fas fa-utensils"></i> <span data-i18n="sidebarMenu">القائمة</span></a></li>
+            <li><a href="#" class="footer-link offers-section-link"><i class="fas fa-tag"></i> <span data-i18n="sidebarOffers">العروض</span></a></li>
+            <li><a href="#" class="footer-link reservation-section-link"><i class="fas fa-calendar-alt"></i> <span data-i18n="sidebarReservation">احجز طاولة</span></a></li>
+            <li><a href="#" class="footer-link previous-orders-section-link"><i class="fas fa-history"></i> <span data-i18n="sidebarPreviousOrders">طلباتي السابقة</span></a></li>
+          </ul>
+        </div>
+
+        <div class="footer-section footer-hours">
+          <h4 data-i18n="workingHours">ساعات العمل</h4>
+          <div id="footer-working-hours">
+            <p><i class="fas fa-clock"></i> <span data-i18n="sundayToThursday">الأحد - الخميس: 10 صباحًا - 11 مساءً</span></p>
+            <p><i class="fas fa-clock"></i> <span data-i18n="fridayToSaturday">الجمعة - السبت: 10 صباحًا - 12 مساءً</span></p>
+          </div>
+        </div>
+
+        <div class="footer-section footer-contact">
+          <h4 data-i18n="contactUs">اتصل بنا</h4>
+          <ul class="footer-contact-list">
+            <li id="footer-phone-wrapper" style="display: none;">
+              <a href="#" id="footer-phone" class="footer-contact-link">
+                <i class="fas fa-phone-alt"></i>
+                <span></span>
+              </a>
+            </li>
+            <li id="footer-whatsapp-wrapper" style="display: none;">
+              <a href="#" id="footer-whatsapp" class="footer-contact-link" target="_blank">
+                <i class="fab fa-whatsapp"></i>
+                <span></span>
+              </a>
+            </li>
+            <li id="footer-email-wrapper" style="display: none;">
+              <a href="#" id="footer-email" class="footer-contact-link">
+                <i class="fas fa-envelope"></i>
+                <span></span>
+              </a>
+            </li>
+          </ul>
+          <div class="footer-social" id="footer-social">
+            <!-- Social links will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">
+          <span data-i18n="footerCopyright">جميع الحقوق محفوظة ©</span>
+          <span id="footer-copyright-name">ديجيتال منيو</span>
+          <span id="footer-year">2025</span>
+        </p>
+      </div>
+    </footer>
+
+    <script src="../js/footer-loader.js"></script>
+    <script src="../js/hero-banner-loader.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1153 @@
+/* Registration date styling */
+.registration-date {
+  font-family: "Tajawal", sans-serif;
+  background-color: rgba(66, 209, 88, 0.1);
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  direction: ltr;
+  min-width: 100px;
+  border-right: 3px solid var(--admin-accent-color);
+}
+
+/* English language styling for registration date */
+html[lang="en"] .registration-date {
+  border-right: none;
+  border-left: 3px solid var(--admin-accent-color);
+}
+
+/* Make the date column centered */
+.accounts-table th:nth-child(4),
+.accounts-table td:nth-child(4) {
+  text-align: center;
+}
+
+/* Add hover effect to the date */
+.registration-date:hover {
+  background-color: rgba(66, 209, 88, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Role badge styling */
+.role-badge {
+  font-family: "Tajawal", sans-serif;
+  background-color: rgba(108, 117, 125, 0.15);
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  font-size: 0.85rem;
+  min-width: 80px;
+  border-right: 3px solid #6c757d;
+}
+
+/* English language styling for role badges */
+html[lang="en"] .role-badge {
+  border-right: none;
+  border-left: 3px solid #6c757d;
+}
+
+html[lang="en"] .role-badge.admin,
+html[lang="en"] .role-badge.مدير {
+  border-left-color: #dc3545;
+}
+
+html[lang="en"] .role-badge.moderator,
+html[lang="en"] .role-badge.مشرف {
+  border-left-color: #007bff;
+}
+
+html[lang="en"] .role-badge.editor,
+html[lang="en"] .role-badge.محرر {
+  border-left-color: #ffc107;
+}
+
+html[lang="en"] .role-badge.cashier,
+html[lang="en"] .role-badge.كاشير {
+  border-left-color: #28a745;
+}
+
+html[lang="en"] .role-badge.user,
+html[lang="en"] .role-badge.مستخدم {
+  border-left-color: #6c757d;
+}
+
+/* Different role colors */
+.role-badge.admin,
+.role-badge.مدير {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+  border-right-color: #dc3545;
+}
+
+.role-badge.moderator,
+.role-badge.مشرف {
+  background-color: rgba(0, 123, 255, 0.15);
+  color: #007bff;
+  border-right-color: #007bff;
+}
+
+.role-badge.editor,
+.role-badge.محرر {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border-right-color: #ffc107;
+}
+
+.role-badge.cashier,
+.role-badge.كاشير {
+  background-color: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+  border-right-color: #28a745;
+}
+
+.role-badge.user,
+.role-badge.مستخدم {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: #6c757d;
+  border-right-color: #6c757d;
+}
+
+/* Make the role column centered */
+.accounts-table th:nth-child(4),
+.accounts-table td:nth-child(4) {
+  text-align: center;
+}
+
+/* Add hover effect to the role badge */
+.role-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Improve customer accounts list width and responsiveness */
+.customer-accounts-list {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Set table to full width */
+.accounts-table {
+  width: 100%;
+  min-width: 900px; /* Ensure minimum width to prevent squishing */
+  border-collapse: collapse;
+}
+
+/* Set column widths */
+.accounts-table th:nth-child(1) {
+  width: 18%; /* Name */
+}
+
+.accounts-table th:nth-child(2) {
+  width: 20%; /* Email */
+}
+
+.accounts-table th:nth-child(3) {
+  width: 12%; /* Username */
+}
+
+.accounts-table th:nth-child(4) {
+  width: 10%; /* Role */
+}
+
+.accounts-table th:nth-child(5) {
+  width: 12%; /* Registration Date */
+}
+
+.accounts-table th:nth-child(6) {
+  width: 8%; /* Loyalty Points */
+}
+
+.accounts-table th:nth-child(7) {
+  width: 20%; /* Actions */
+}
+
+/* Add a subtle hover effect to rows */
+.accounts-table tbody tr:hover {
+  background-color: rgba(66, 209, 88, 0.05);
+}
+
+/* Make the actions column buttons more compact */
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.account-action-btn {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Improve table headers and cell padding */
+.accounts-table th {
+  padding: 12px 8px;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.accounts-table td {
+  padding: 10px 8px;
+  vertical-align: middle;
+}
+
+/* Add container padding */
+.customer-accounts-container {
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+/* Make pagination more visible */
+.pagination {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* Fix the role and date columns to use the correct index after adding the role column */
+.accounts-table th:nth-child(4),
+.accounts-table td:nth-child(4) {
+  text-align: center; /* Role column */
+}
+
+.accounts-table th:nth-child(5),
+.accounts-table td:nth-child(5) {
+  text-align: center; /* Registration date column */
+}
+
+/* Role Management Styles */
+.role-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  border-left: 4px solid var(--admin-accent-color);
+}
+
+.role-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+}
+
+.role-card.deleting {
+  opacity: 0.7;
+  background-color: #f8d7da;
+  border-left-color: #dc3545;
+}
+
+.role-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.role-permissions-count {
+  font-size: 0.85rem;
+  color: #6c757d;
+  background-color: rgba(108, 117, 125, 0.1);
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.role-deleting {
+  color: #dc3545;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 5px;
+}
+
+.role-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-role-btn,
+.delete-role-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.edit-role-btn {
+  color: #007bff;
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.delete-role-btn {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.edit-role-btn:hover {
+  background-color: rgba(0, 123, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.delete-role-btn:hover {
+  background-color: rgba(220, 53, 69, 0.2);
+  transform: translateY(-2px);
+}
+
+.loading-roles {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+  background-color: rgba(108, 117, 125, 0.05);
+  border-radius: 10px;
+  margin: 10px 0;
+}
+
+.loading-roles i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: var(--admin-accent-color);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+.error-message {
+  text-align: center;
+  padding: 25px;
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid #dc3545;
+  margin: 10px 0;
+}
+
+.error-message i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+}
+
+/* Role Management Modal Styles */
+#role-management-modal .modal-content {
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+}
+
+#role-management-modal .modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+#role-management-modal .modal-header h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+#role-management-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 24px;
+}
+
+.roles-intro {
+  background-color: rgba(66, 209, 88, 0.08);
+  border-radius: 10px;
+  padding: 15px 20px;
+  border-left: 4px solid var(--admin-accent-color);
+  margin-bottom: 5px;
+}
+
+.roles-intro p {
+  margin: 0;
+  line-height: 1.5;
+  color: #444;
+}
+
+.roles-list-section,
+.role-form-section {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.roles-list {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 5px;
+  border-radius: 8px;
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  margin-bottom: 18px;
+  color: #333;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(66, 209, 88, 0.2);
+}
+
+.section-subtitle i {
+  color: var(--admin-accent-color);
+  font-size: 1.1em;
+}
+
+.no-roles-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 35px 20px;
+  color: #888;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.no-roles-message i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: #aaa;
+}
+
+/* Assign Role Modal */
+#assign-role-modal .modal-content {
+  max-width: 500px;
+  border-radius: 16px;
+}
+
+#assign-role-username {
+  font-weight: bold;
+  color: var(--admin-accent-color);
+}
+
+#selected-role {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-family: "Tajawal", sans-serif;
+  background-color: #f9f9f9;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+#selected-role:focus {
+  border-color: var(--admin-accent-color);
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15);
+  outline: none;
+}
+
+/* Role Form Styling */
+#role-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  margin-bottom: 5px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.form-group label i {
+  color: var(--admin-accent-color);
+  margin-left: 6px;
+}
+
+#role-name {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-family: "Tajawal", sans-serif;
+  background-color: #f9f9f9;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+#role-name:focus {
+  border-color: var(--admin-accent-color);
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15);
+  outline: none;
+}
+
+.permissions-group {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.permissions-group h4 {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: #333;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.permissions-group h4 i {
+  color: var(--admin-accent-color);
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px 0;
+  transition: all 0.2s ease;
+}
+
+.permission-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 6px;
+}
+
+.permission-item label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: normal;
+  margin-right: 8px;
+  width: 100%;
+  padding: 0 10px;
+}
+
+.permission-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.role-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primary-btn {
+  background: linear-gradient(
+    145deg,
+    var(--admin-accent-color),
+    var(--admin-gradient-end)
+  );
+  color: white;
+  border: none;
+  box-shadow: 0 4px 10px rgba(66, 209, 88, 0.25);
+}
+
+.primary-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(66, 209, 88, 0.35);
+}
+
+.secondary-btn {
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.secondary-btn:hover {
+  background-color: #ececec;
+  transform: translateY(-2px);
+}
+
+/* Enhanced save-role button styling */
+#save-role {
+  background: linear-gradient(
+    145deg,
+    var(--admin-accent-color),
+    var(--admin-gradient-end)
+  );
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(66, 209, 88, 0.3);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 100px;
+}
+
+#save-role::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#save-role:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(66, 209, 88, 0.4);
+}
+
+#save-role:hover::before {
+  opacity: 1;
+}
+
+#save-role:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(66, 209, 88, 0.3);
+}
+
+#save-role i {
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+#save-role:hover i {
+  transform: rotate(10deg);
+}
+
+#cancel-role-edit {
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+/* Dark mode styles for save-role button */
+body:not(.light-mode) #save-role {
+  background: linear-gradient(
+    145deg,
+    var(--admin-accent-color),
+    var(--admin-gradient-end)
+  );
+  box-shadow: 0 4px 15px rgba(66, 209, 88, 0.25),
+    0 0 0 1px rgba(66, 209, 88, 0.3);
+}
+
+body:not(.light-mode) #save-role::before {
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+body:not(.light-mode) #save-role:hover {
+  box-shadow: 0 8px 20px rgba(66, 209, 88, 0.35),
+    0 0 0 1px rgba(66, 209, 88, 0.4);
+}
+
+body:not(.light-mode) #cancel-role-edit {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f0f0f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+body:not(.light-mode) #cancel-role-edit:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Loading state for save button */
+#save-role.loading {
+  pointer-events: none;
+  position: relative;
+  color: transparent;
+}
+
+#save-role.loading::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success animation for save button */
+#save-role.success {
+  background: linear-gradient(145deg, #34c759, #28a745);
+  box-shadow: 0 4px 15px rgba(52, 199, 89, 0.4);
+  transition: all 0.3s ease;
+}
+
+#save-role.success i {
+  animation: successPop 0.5s ease forwards;
+}
+
+@keyframes successPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Add a subtle pulse effect to the save button to draw attention */
+@keyframes subtlePulse {
+  0% {
+    box-shadow: 0 4px 15px rgba(66, 209, 88, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(66, 209, 88, 0.5);
+  }
+  100% {
+    box-shadow: 0 4px 15px rgba(66, 209, 88, 0.3);
+  }
+}
+
+#role-form:valid
+  #save-role:not(:hover):not(:active):not(.loading):not(.success) {
+  animation: subtlePulse 2s infinite ease-in-out;
+}
+
+/* Animation for role cards */
+.role-card {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark Mode Styles for Role Management Modal */
+body:not(.light-mode) .roles-list-section,
+body:not(.light-mode) .role-form-section {
+  background-color: rgba(40, 40, 40, 0.5);
+  border: 1px solid var(--admin-border-dark);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+body:not(.light-mode) .section-subtitle {
+  color: var(--admin-text-light);
+  border-bottom-color: rgba(66, 209, 88, 0.3);
+}
+
+body:not(.light-mode) .role-card {
+  background-color: #1e1e1e;
+  border: none;
+  border-left: 4px solid var(--admin-accent-color);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+body:not(.light-mode) .role-card:hover {
+  background-color: #2a2a2a;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+body:not(.light-mode) .role-name {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) .role-permissions-count {
+  color: #b0b0b0;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+body:not(.light-mode) .role-deleting {
+  color: #ff6b6b;
+}
+
+body:not(.light-mode) .edit-role-btn {
+  color: #5b7cff;
+  background-color: rgba(91, 124, 255, 0.15);
+}
+
+body:not(.light-mode) .delete-role-btn {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.15);
+}
+
+body:not(.light-mode) .edit-role-btn:hover {
+  background-color: rgba(91, 124, 255, 0.25);
+}
+
+body:not(.light-mode) .delete-role-btn:hover {
+  background-color: rgba(255, 107, 107, 0.25);
+}
+
+body:not(.light-mode) #role-name,
+body:not(.light-mode) #selected-role {
+  background-color: rgba(30, 30, 30, 0.8);
+  border-color: #333;
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) #role-name:focus,
+body:not(.light-mode) #selected-role:focus {
+  border-color: var(--admin-accent-color);
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15);
+}
+
+body:not(.light-mode) .permissions-group {
+  background-color: rgba(40, 40, 40, 0.6);
+  border: 1px solid #333;
+}
+
+body:not(.light-mode) .permissions-group h4 {
+  color: #e0e0e0;
+  border-bottom-color: #333;
+}
+
+body:not(.light-mode) .permission-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+body:not(.light-mode) .permission-item label {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) .no-roles-message {
+  color: #b0b0b0;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+body:not(.light-mode) .no-roles-message i {
+  color: #666;
+}
+
+body:not(.light-mode) .loading-roles,
+body:not(.light-mode) .error-message {
+  color: #b0b0b0;
+}
+
+body:not(.light-mode) .loading-roles {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+body:not(.light-mode) .error-message {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+body:not(.light-mode) .role-card.deleting {
+  background-color: rgba(220, 53, 69, 0.2);
+}
+
+body:not(.light-mode) .roles-intro {
+  background-color: rgba(66, 209, 88, 0.1);
+  border-color: var(--admin-accent-color);
+}
+
+body:not(.light-mode) .roles-intro p,
+body:not(.light-mode) .assign-role-intro p {
+  color: #b0b0b0;
+}
+
+body:not(.light-mode) .role-actions {
+  border-top-color: #333;
+}
+
+body:not(.light-mode) .secondary-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f8f9fa;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body:not(.light-mode) .secondary-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Enhanced checkbox styles for dark mode */
+body:not(.light-mode) .permission-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background-color: rgba(30, 30, 30, 0.8);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+body:not(.light-mode) .permission-item input[type="checkbox"]:checked {
+  background-color: var(--admin-accent-color);
+  border-color: var(--admin-accent-color);
+}
+
+body:not(.light-mode) .permission-item input[type="checkbox"]:checked::after {
+  content: "\f00c";
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 12px;
+}
+
+body:not(.light-mode) .permission-item input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.3);
+  outline: none;
+}
+
+body:not(.light-mode)
+  .permission-item:hover
+  input[type="checkbox"]:not(:checked) {
+  border-color: #777;
+}
+
+/* Enhanced modal style for dark mode */
+body:not(.light-mode) #role-management-modal .modal-content {
+  background-color: #121212;
+  border: 1px solid #333;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+body:not(.light-mode) #role-management-modal .modal-header {
+  border-bottom: 1px solid #333;
+}
+
+body:not(.light-mode) #role-management-modal .modal-header h3 {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) #role-management-modal .close-modal:hover {
+  opacity: 1;
+}
+
+/* Enhanced scrollbar for dark mode */
+body:not(.light-mode) #role-management-modal .modal-content::-webkit-scrollbar,
+body:not(.light-mode) #assign-role-modal .modal-content::-webkit-scrollbar,
+body:not(.light-mode) .roles-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+body:not(.light-mode)
+  #role-management-modal
+  .modal-content::-webkit-scrollbar-track,
+body:not(.light-mode)
+  #assign-role-modal
+  .modal-content::-webkit-scrollbar-track,
+body:not(.light-mode) .roles-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+body:not(.light-mode)
+  #role-management-modal
+  .modal-content::-webkit-scrollbar-thumb,
+body:not(.light-mode)
+  #assign-role-modal
+  .modal-content::-webkit-scrollbar-thumb,
+body:not(.light-mode) .roles-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+body:not(.light-mode)
+  #role-management-modal
+  .modal-content::-webkit-scrollbar-thumb:hover,
+body:not(.light-mode)
+  #assign-role-modal
+  .modal-content::-webkit-scrollbar-thumb:hover,
+body:not(.light-mode) .roles-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Customer permission item styling */
+.customer-permission-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 10px;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.customer-permission-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.customer-permission-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-right: 12px;
+  order: -1; /* Explicitly place checkbox on the left */
+  position: relative;
+  left: auto;
+}
+
+.customer-permission-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: normal;
+  width: 100%;
+}
+
+.customer-permission-item i {
+  padding-left: 10px;
+}
+
+/* Dark mode styles for customer permission item */
+body:not(.light-mode) .customer-permission-item {
+  background-color: rgba(40, 40, 40, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body:not(.light-mode) .customer-permission-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+body:not(.light-mode) .customer-permission-item label {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) .customer-permission-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background-color: rgba(30, 30, 30, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+body:not(.light-mode) .customer-permission-item input[type="checkbox"]:checked {
+  background-color: var(--admin-accent-color);
+  border-color: var(--admin-accent-color);
+}
+
+body:not(.light-mode)
+  .customer-permission-item
+  input[type="checkbox"]:checked::after {
+  content: "\f00c";
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 12px;
+}
+
+body:not(.light-mode) .customer-permission-item input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.3);
+  outline: none;
+}
+
+body:not(.light-mode)
+  .customer-permission-item:hover
+  input[type="checkbox"]:not(:checked) {
+  border-color: #777;
+}

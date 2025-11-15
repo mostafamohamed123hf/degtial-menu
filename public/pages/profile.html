@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="profilePageTitle">الملف الشخصي | ديجيتال منيو</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>" />
+    <meta name="description" content="إدارة الملف الشخصي في ديجيتال منيو" />
+    <!-- Load auth.js before other scripts -->
+    <script src="../js/auth.js"></script>
+    <!-- Load i18n.js for internationalization -->
+    <script src="../js/i18n.js"></script>
+    <!-- Load global settings loader -->
+    <script src="../js/global-settings-loader.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="header-container">
+        <div class="menu-icon" id="sidebar-toggle">
+          <i class="fas fa-bars"></i>
+        </div>
+        <div class="page-title" data-i18n="profileTitle">الملف الشخصي</div>
+        <div class="toggle-switch">
+          <span class="toggle-label" data-i18n="themeToggle">الوضع</span>
+          <div class="toggle-switch-container">
+            <input type="checkbox" id="switch" checked="" />
+            <label for="switch"></label>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar" id="sidebar-menu">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i class="fas fa-hamburger"></i>
+          <span data-i18n="sidebarDigitalMenu">ديجيتال منيو</span>
+        </div>
+        <div class="sidebar-close" id="sidebar-close">
+          <i class="fas fa-times"></i>
+        </div>
+      </div>
+      <div class="sidebar-content">
+        <ul class="sidebar-nav">
+          <li class="sidebar-item">
+            <a href="index.html" class="sidebar-link menu-section-link">
+              <i class="fas fa-utensils"></i>
+              <span data-i18n="sidebarMenu">القائمة</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a
+              href="index.html#previousOrders"
+              class="sidebar-link previous-orders-section-link">
+              <i class="fas fa-history"></i>
+              <span data-i18n="sidebarPreviousOrders">طلباتي السابقة</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a
+              href="index.html#offers"
+              class="sidebar-link offers-section-link">
+              <i class="fas fa-tag"></i>
+              <span data-i18n="sidebarOffers">العروض</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a
+              href="index.html#reservation"
+              class="sidebar-link reservation-section-link">
+              <i class="fas fa-calendar-alt"></i>
+              <span data-i18n="sidebarReservation">احجز طاولة</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="#" class="sidebar-link">
+              <i class="fas fa-phone"></i>
+              <span data-i18n="sidebarContactUs">اتصل بنا</span>
+            </a>
+          </li>
+          <!-- Cashier Panel Link (Hidden by default, shown only for cashier users) -->
+          <li class="sidebar-item cashier-only-item" style="display: none">
+            <a href="/public/pages/cashier.html" class="sidebar-link">
+              <i class="fas fa-cash-register"></i>
+              <span data-i18n="sidebarCashierPanel">نظام الكاشير</span>
+            </a>
+          </li>
+          <!-- Admin Panel Link (Hidden by default, shown only for admin users) -->
+          <li class="sidebar-item admin-only-item" style="display: none">
+            <a href="/admin/admin-login.html" class="sidebar-link">
+              <i class="fas fa-cog"></i>
+              <span data-i18n="sidebarAdminPanel">لوحة الإدارة</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-divider"></div>
+
+        <ul class="sidebar-nav">
+          <li class="sidebar-item active">
+            <a href="profile.html" class="sidebar-link">
+              <i class="fas fa-user"></i>
+              <span data-i18n="sidebarProfile">الملف الشخصي</span>
+            </a>
+          </li>
+          <li class="sidebar-item auth-dependent">
+            <a href="#" class="sidebar-link logout-btn">
+              <i class="fas fa-sign-out-alt"></i>
+              <span data-i18n="sidebarLogout">تسجيل الخروج</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="sidebar-footer" data-i18n="sidebarFooter">
+        جميع الحقوق محفوظة © ديجيتال منيو 2025
+      </div>
+    </div>
+    <!-- Overlay for sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="floating-circle floating-circle-1"></div>
+        <div class="floating-circle floating-circle-2"></div>
+        <div class="floating-circle floating-circle-3"></div>
+
+        <div class="profile-photo-container">
+          <div class="profile-photo" id="profile-photo">
+            <i class="fas fa-user"></i>
+          </div>
+          <div
+            class="change-photo-btn"
+            id="change-photo-btn"
+            title="تغيير صورة الملف الشخصي">
+            <i class="fas fa-camera"></i>
+          </div>
+          <input
+            type="file"
+            id="photo-upload"
+            accept="image/*"
+            style="display: none" />
+        </div>
+
+        <div class="user-info-header">
+          <h2 id="profile-name">اسم المستخدم</h2>
+          <div class="points-display">
+            <i class="fas fa-star"></i>
+            <span id="points-value">0</span>
+            <span data-i18n="points">نقطة</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-tabs">
+        <button class="tab-btn active" data-tab="personal-info">
+          <i class="fas fa-user"></i>
+          <span data-i18n="personalInfo">المعلومات الشخصية</span>
+        </button>
+        <button class="tab-btn" data-tab="security">
+          <i class="fas fa-lock"></i> <span data-i18n="security">الأمان</span>
+        </button>
+        <button class="tab-btn" data-tab="preferences">
+          <i class="fas fa-cog"></i>
+          <span data-i18n="preferences">الإعدادات</span>
+        </button>
+      </div>
+
+      <div class="profile-content">
+        <!-- Personal Info Tab -->
+        <div class="tab-content active" id="personal-info">
+          <div class="profile-card">
+            <h3 data-i18n="personalInfo">المعلومات الشخصية</h3>
+            <form id="personal-info-form">
+              <div class="form-group">
+                <label for="full-name" data-i18n="fullNameLabel"
+                  >الاسم الكامل</label
+                >
+                <div class="input-with-icon">
+                  <input
+                    type="text"
+                    id="full-name"
+                    data-i18n-placeholder="fullNamePlaceholder" />
+                  <i class="fas fa-user"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="email" data-i18n="emailLabel"
+                  >البريد الإلكتروني</label
+                >
+                <div class="input-with-icon">
+                  <input
+                    type="email"
+                    id="email"
+                    data-i18n-placeholder="emailPlaceholder"
+                    readonly />
+                  <i class="fas fa-envelope"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="phone" data-i18n="phoneLabel">رقم الهاتف</label>
+                <div class="input-with-icon">
+                  <input
+                    type="tel"
+                    id="phone"
+                    data-i18n-placeholder="phonePlaceholder" />
+                  <i class="fas fa-phone"></i>
+                </div>
+              </div>
+              <button type="submit" class="save-btn">
+                <i class="fas fa-save"></i>
+                <span data-i18n="saveChanges">حفظ التغييرات</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Security Tab -->
+        <div class="tab-content" id="security">
+          <div class="profile-card">
+            <h3 data-i18n="changePassword">تغيير كلمة المرور</h3>
+            <form id="change-password-form">
+              <div class="form-group">
+                <label for="current-password" data-i18n="currentPassword"
+                  >كلمة المرور الحالية</label
+                >
+                <div class="input-with-icon">
+                  <input
+                    type="password"
+                    id="current-password"
+                    data-i18n-placeholder="currentPassword" />
+                  <i class="fas fa-lock"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="new-password" data-i18n="newPassword"
+                  >كلمة المرور الجديدة</label
+                >
+                <div class="input-with-icon">
+                  <input
+                    type="password"
+                    id="new-password"
+                    data-i18n-placeholder="newPassword" />
+                  <i class="fas fa-lock"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="confirm-password" data-i18n="confirmPasswordChange"
+                  >تأكيد كلمة المرور</label
+                >
+                <div class="input-with-icon">
+                  <input
+                    type="password"
+                    id="confirm-password"
+                    data-i18n-placeholder="confirmPasswordChange" />
+                  <i class="fas fa-lock"></i>
+                </div>
+              </div>
+              <button type="submit" class="save-btn">
+                <i class="fas fa-save"></i>
+                <span data-i18n="changePassword">تغيير كلمة المرور</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Preferences Tab -->
+        <div class="tab-content" id="preferences">
+          <div class="profile-card">
+            <h3 data-i18n="preferences">الإعدادات والتفضيلات</h3>
+            <div class="form-group">
+              <label data-i18n="appLanguage">لغة التطبيق</label>
+              <div class="language-selector">
+                <button class="lang-btn active" data-lang="ar">
+                  <div class="lang-flag">
+                    <img src="../images/flags/sa.svg" alt="العربية" />
+                  </div>
+                  <span>العربية</span>
+                </button>
+                <button class="lang-btn" data-lang="en">
+                  <div class="lang-flag">
+                    <img src="../images/flags/gb.svg" alt="English" />
+                  </div>
+                  <span>English</span>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="notificationsLabel">الإشعارات</label>
+              <div class="toggle-option offers-notification-option">
+                <span
+                  ><i class="fas fa-tag"></i>
+                  <span data-i18n="offersNotifications"
+                    >إشعارات العروض والخصومات</span
+                  ></span
+                >
+                <div class="toggle-switch-container">
+                  <input type="checkbox" id="offers-notifications" checked />
+                  <label for="offers-notifications"></label>
+                </div>
+              </div>
+              <div class="toggle-option order-notification-option">
+                <span
+                  ><i class="fas fa-bell"></i>
+                  <span data-i18n="orderNotifications"
+                    >إشعارات حالة الطلب</span
+                  ></span
+                >
+                <div class="toggle-switch-container">
+                  <input type="checkbox" id="order-notifications" checked />
+                  <label for="order-notifications"></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-card">
+            <h3 data-i18n="pointsInfo">معلومات النقاط</h3>
+            <div class="points-info">
+              <div class="points-circle">
+                <span id="total-points">0</span>
+                <div class="points-label" data-i18n="points">نقطة</div>
+              </div>
+              <div class="points-details">
+                <div class="points-row">
+                  <span class="points-label" data-i18n="currentLevel"
+                    >المستوى الحالي:</span
+                  >
+                  <span class="points-value" id="current-level">مبتدئ</span>
+                </div>
+                <div class="points-row">
+                  <span class="points-label" data-i18n="pointsForNextLevel"
+                    >النقاط المطلوبة للمستوى التالي:</span
+                  >
+                  <span class="points-value" id="next-level-points">100</span>
+                </div>
+                <div class="points-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="level-progress"></div>
+                  </div>
+                  <div class="progress-text">
+                    <span id="progress-percentage">0%</span>
+                    <span data-i18n="towardsNextLevel">نحو المستوى التالي</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="points-history">
+              <h4 data-i18n="pointsHistory">سجل النقاط</h4>
+              <div class="points-history-list" id="points-history-list">
+                <!-- Points history will be loaded here dynamically -->
+                <div class="points-history-empty" data-i18n="noPointsHistory">
+                  لا يوجد سجل للنقاط حتى الآن
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">
+      <div class="toast-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="toast-message" id="toast-message"></div>
+      <div class="toast-close" id="toast-close">
+        <i class="fas fa-times"></i>
+      </div>
+    </div>
+
+    <!-- Photo Upload Modal -->
+    <div class="modal" id="photo-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 data-i18n="changeProfilePhoto">تغيير صورة الملف الشخصي</h3>
+          <span class="modal-close" id="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="photo-preview-container">
+            <img id="photo-preview" src="#" alt="صورة المستخدم" />
+          </div>
+          <div class="photo-upload-controls">
+            <button id="select-photo-btn" class="btn">
+              <i class="fas fa-image"></i>
+              <span data-i18n="selectPhoto">اختر صورة</span>
+            </button>
+            <button id="take-photo-btn" class="btn">
+              <i class="fas fa-camera"></i>
+              <span data-i18n="takePhoto">التقط صورة</span>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="save-photo-btn" class="btn btn-primary">
+            <span data-i18n="savePhoto">حفظ الصورة</span>
+          </button>
+          <button id="cancel-photo-btn" class="btn btn-secondary">
+            <span data-i18n="cancel">إلغاء</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/profile.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/theme.js"></script>
+  </body>
+</html>
