@@ -362,6 +362,10 @@ app.use('/assets', express.static(path.join(__dirname, "../assets")));
 app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/pages/register.html"));
 });
+// Serve cart page at root path for compatibility
+app.get("/cart.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/pages/cart.html"));
+});
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/pages/index.html"));
 });
