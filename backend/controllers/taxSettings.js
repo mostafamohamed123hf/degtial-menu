@@ -1,4 +1,5 @@
 const TaxSettings = require("../models/TaxSettings");
+const mongoose = require("mongoose");
 const asyncHandler = require("../middleware/async");
 const ErrorResponse = require("../utils/errorResponse");
 
@@ -6,10 +7,20 @@ const ErrorResponse = require("../utils/errorResponse");
 // @route   GET /api/tax-settings
 // @access  Public
 exports.getTaxSettings = asyncHandler(async (req, res, next) => {
-  // There should only be one tax settings document
+  if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        enabled: false,
+        rate: 0,
+        serviceEnabled: false,
+        serviceRate: 0,
+      },
+    });
+  }
+
   let taxSettings = await TaxSettings.findOne();
 
-  // If no tax settings exist, create default settings
   if (!taxSettings) {
     taxSettings = await TaxSettings.create({
       enabled: false,
