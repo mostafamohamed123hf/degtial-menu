@@ -4777,7 +4777,12 @@ function updateOrderSummary() {
 // Load tax settings
 async function loadTaxSettings() {
   try {
-    const response = await fetch("http://localhost:5000/api/tax-settings");
+    const base = (function () {
+      const { hostname, origin } = window.location;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      return isLocal ? "http://localhost:5000" : origin;
+    })();
+    const response = await fetch(`${base}/api/tax-settings`);
     const data = await response.json();
 
     if (data.success && data.data) {
