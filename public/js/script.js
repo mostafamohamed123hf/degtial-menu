@@ -7962,14 +7962,18 @@ function escapeJsString(str) {
 // Initialize WebSocket connection for real-time notifications
 function initWebSocketConnection() {
   try {
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    if (!isLocal) {
+      window.menuSocket = null;
+      return;
+    }
     console.log("Initializing WebSocket connection...");
 
     // Create WebSocket connection
     const socketProtocol =
       window.location.protocol === "https:" ? "wss:" : "ws:";
-    const isLocal =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
     const socketUrl = isLocal
       ? `${socketProtocol}//localhost:5000`
       : `${socketProtocol}//${window.location.host}`;
