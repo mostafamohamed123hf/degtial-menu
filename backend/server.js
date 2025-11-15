@@ -360,7 +360,7 @@ app.use('/assets', express.static(path.join(__dirname, "../assets")));
 
 // Add a specific route for /register to redirect to register.html
 app.get("/register", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/register.html"));
+  res.sendFile(path.join(__dirname, "../public/pages/register.html"));
 });
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/pages/index.html"));
