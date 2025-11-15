@@ -1,7 +1,13 @@
 // API Client for handling common API operations
 class ApiClient {
-  constructor(baseUrl = "http://localhost:5000/api") {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl) {
+    if (!baseUrl) {
+      const { hostname, origin } = window.location;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      this.baseUrl = isLocal ? "http://localhost:5000/api" : `${origin}/api`;
+    } else {
+      this.baseUrl = baseUrl;
+    }
   }
 
   // Generic request method
