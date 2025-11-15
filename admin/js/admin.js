@@ -36,7 +36,12 @@ window.globalSettings = {
 // Load global settings from API
 async function loadAdminGlobalSettings() {
   try {
-    const response = await fetch("http://localhost:5000/api/global-settings");
+    const base = (function () {
+      const { hostname, origin } = window.location;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      return isLocal ? "http://localhost:5000" : origin;
+    })();
+    const response = await fetch(`${base}/api/global-settings`);
     const result = await response.json();
     
     if (result.success && result.data) {
