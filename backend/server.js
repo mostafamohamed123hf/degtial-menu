@@ -156,6 +156,8 @@ app.use(
           "http://localhost:5000",
           "ws://localhost:5000",
           "https://unpkg.com",
+          "https:",
+          "wss:",
         ],
         fontSrc: [
           "'self'",
@@ -182,6 +184,7 @@ app.use(
       "http://127.0.0.1:5000",
       "http://localhost", // For local file access
       "null", // For file:// protocol
+      "https://degtial-menu.vercel.app",
       "*", // Allow all origins for development
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
