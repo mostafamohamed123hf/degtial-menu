@@ -2951,7 +2951,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   function getTaxRate() {
     return new Promise((resolve, reject) => {
-      fetch("http://localhost:5000/api/tax-settings")
+      fetch(`${API_BASE_URL}/api/tax-settings`)
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to load tax settings");
