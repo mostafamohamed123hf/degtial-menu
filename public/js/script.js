@@ -4085,10 +4085,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         sessionStorage.setItem("tableNumber", tableNumber);
         localStorage.setItem("tableNumber", tableNumber);
 
-        // Add table number to any anchor elements that point to cart.html
-        const cartLinks = document.querySelectorAll('a[href="cart.html"]');
+        // Add table number to any anchor elements that point to the cart page
+        const cartLinks = document.querySelectorAll('a[href$="cart.html"]');
         cartLinks.forEach((link) => {
-          link.href = `cart.html?table=${tableNumber}`;
+          const base = "/pages/cart.html";
+          link.href = `${base}?table=${tableNumber}`;
         });
 
         return;
@@ -4129,10 +4130,11 @@ document.addEventListener("DOMContentLoaded", async function () {
       sessionStorage.setItem("tableNumber", tableNumber);
       localStorage.setItem("tableNumber", tableNumber);
 
-      // Add table number to any anchor elements that point to cart.html
-      const cartLinks = document.querySelectorAll('a[href="cart.html"]');
+      // Add table number to any anchor elements that point to the cart page
+      const cartLinks = document.querySelectorAll('a[href$="cart.html"]');
       cartLinks.forEach((link) => {
-        link.href = `cart.html?table=${tableNumber}`;
+        const base = "/pages/cart.html";
+        link.href = `${base}?table=${tableNumber}`;
       });
     }
   }
@@ -5923,7 +5925,7 @@ async function handleReorder(orderId) {
       // If all else fails, try to redirect to cart.html
       const currentUrl = window.location.href;
       const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf("/") + 1);
-      window.location.href = `${baseUrl}cart.html`;
+      window.location.href = "/pages/cart.html";
     } catch (navigationError) {
       console.error("Error navigating to cart:", navigationError);
       // Show a message to the user that items were added but navigation failed
