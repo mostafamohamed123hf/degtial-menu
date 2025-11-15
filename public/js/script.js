@@ -1,5 +1,9 @@
 // Base URL for API requests
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = (function () {
+  const { hostname, origin } = window.location;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:5000" : origin;
+})();
 
 // Import authentication functions if they don't exist in this context
 if (typeof isLoggedIn !== "function") {
@@ -7963,7 +7967,12 @@ function initWebSocketConnection() {
     // Create WebSocket connection
     const socketProtocol =
       window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socketUrl = `${socketProtocol}//${window.location.hostname}:5000`;
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    const socketUrl = isLocal
+      ? `${socketProtocol}//localhost:5000`
+      : `${socketProtocol}//${window.location.host}`;
     const socket = new WebSocket(socketUrl);
 
     // Connection opened
