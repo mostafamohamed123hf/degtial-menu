@@ -3253,7 +3253,12 @@ function initWebSocketConnection() {
     // Create WebSocket connection
     const socketProtocol =
       window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socketUrl = `${socketProtocol}//${window.location.hostname}:5000`;
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    const socketUrl = isLocal
+      ? `${socketProtocol}//localhost:5000`
+      : `${socketProtocol}//${window.location.host}`;
     const socket = new WebSocket(socketUrl);
 
     // Connection opened
