@@ -11,7 +11,11 @@
 // Function to fetch public vouchers from the API
 async function fetchPublicVouchers() {
   try {
-    const API_BASE_URL = "http://localhost:5000"; // Use the API base URL
+    const API_BASE_URL = (function () {
+      const { hostname, origin } = window.location;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      return isLocal ? "http://localhost:5000" : origin;
+    })();
     const response = await fetch(`${API_BASE_URL}/api/vouchers/public`);
 
     if (!response.ok) {
