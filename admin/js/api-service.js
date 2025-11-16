@@ -726,99 +726,39 @@ class ApiService {
   async getDashboardStats() {
     try {
       console.log("[DEBUG] API Service: Fetching dashboard stats");
-
-      // Try to get orders first
-      let orders = [];
+      // Try fast dashboard endpoint first
       try {
-        const ordersResponse = await this.request("orders", "GET");
-        console.log("[DEBUG] Orders response:", ordersResponse);
-
-        if (
-          ordersResponse &&
-          ordersResponse.success &&
-          Array.isArray(ordersResponse.data)
-        ) {
-          orders = ordersResponse.data;
-        } else {
-          console.warn(
-            "[DEBUG] Invalid orders response format:",
-            ordersResponse
-          );
+        const fast = await this.request("admin/dashboard-fast", "GET");
+        if (fast && fast.success && fast.data) {
+          const data = fast.data;
+          const stats = {
+            totalOrders: data.totalOrders || 0,
+            totalEarnings: data.totalEarnings || 0,
+            todayOrders: data.todayOrders || 0,
+            todayEarnings: data.todayEarnings || 0,
+            totalProducts: data.totalProducts || 0,
+            totalVouchers: data.totalVouchers || 0,
+            recentOrders: Array.isArray(data.recentOrders)
+              ? data.recentOrders
+              : [],
+          };
+          console.log("[DEBUG] Returning fast dashboard stats:", stats);
+          return stats;
         }
-      } catch (ordersError) {
-        console.error("[DEBUG] Error fetching orders:", ordersError);
+      } catch (fastErr) {
+        console.warn("[DEBUG] Fast dashboard endpoint failed:", fastErr);
       }
 
-      // Calculate totals even if API fails
-      const totalOrders = orders.length;
-      let totalEarnings = 0;
-
-      // Calculate total earnings
-      orders.forEach((order) => {
-        totalEarnings += order.total || 0;
-      });
-
-      // Get today's orders and earnings
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const todayOrders = orders.filter((order) => {
-        const orderDate = new Date(order.date);
-        return orderDate >= today;
-      });
-
-      const todayEarnings = todayOrders.reduce(
-        (sum, order) => sum + (order.total || 0),
-        0
-      );
-
-      // Get products count
-      let totalProducts = 0;
-      try {
-        const productsResponse = await this.request("products", "GET");
-        if (
-          productsResponse &&
-          productsResponse.success &&
-          Array.isArray(productsResponse.data)
-        ) {
-          totalProducts = productsResponse.data.length;
-        }
-      } catch (productsError) {
-        console.error("[DEBUG] Error fetching products:", productsError);
-      }
-
-      // Get vouchers count
-      let totalVouchers = 0;
-      try {
-        const vouchersResponse = await this.request("vouchers", "GET");
-        if (
-          vouchersResponse &&
-          vouchersResponse.success &&
-          Array.isArray(vouchersResponse.data)
-        ) {
-          totalVouchers = vouchersResponse.data.length;
-        }
-      } catch (vouchersError) {
-        console.error("[DEBUG] Error fetching vouchers:", vouchersError);
-      }
-
-      // Get recent orders for the dashboard
-      const recentOrders = orders
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 5);
-
-      const stats = {
-        totalOrders,
-        totalEarnings,
-        todayOrders: todayOrders.length,
-        todayEarnings,
-        totalProducts,
-        totalVouchers,
-        recentOrders,
+      // Fallback: minimal stats if fast endpoint isn't available
+      return {
+        totalOrders: 0,
+        totalEarnings: 0,
+        todayOrders: 0,
+        todayEarnings: 0,
+        totalProducts: 0,
+        totalVouchers: 0,
+        recentOrders: [],
       };
-
-      console.log("[DEBUG] Returning dashboard stats:", stats);
-      return stats;
     } catch (error) {
       console.error("[DEBUG] Fatal error in getDashboardStats:", error);
       // Return minimal stats to avoid UI breakage
