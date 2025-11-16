@@ -879,12 +879,11 @@ document.addEventListener("DOMContentLoaded", function () {
     wrapper.classList.add("has-file");
     statusText.textContent = getTranslation("processingImage");
 
+    let compressedDataUrl = null;
     try {
-      // Compress the image before uploading
       console.log("Compressing image...");
       statusText.textContent = getTranslation("processingImage");
-      
-      const compressedDataUrl = await ImageCompressor.compress(file, {
+      compressedDataUrl = await ImageCompressor.compress(file, {
         maxWidth: 800,
         maxHeight: 800,
         quality: 0.85,
@@ -894,15 +893,12 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Image compressed successfully, uploading to server...");
       statusText.textContent = getTranslation("uploadingImage") || "جاري رفع الصورة...";
 
-      // Upload compressed image to server
       const response = await fetch(`${API_BASE_URL}/upload/image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          imageData: compressedDataUrl
-        })
+        body: JSON.stringify({ imageData: compressedDataUrl })
       });
 
       if (!response.ok) {
@@ -911,34 +907,31 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const result = await response.json();
-      
       if (!result.success || !result.imageUrl) {
         throw new Error('Invalid response from server');
       }
 
-      console.log("Image uploaded successfully:", result.imageUrl);
-
-      // Update preview with the uploaded image URL
-      // Remove /api from API_BASE_URL for asset URLs since assets are served from root
       const baseUrl = API_BASE_URL.replace('/api', '');
       const imageUrl = `${baseUrl}${result.imageUrl}`;
       previewImg.src = imageUrl;
       previewImg.style.display = "block";
       noPreviewDiv.style.display = "none";
-
-      // Store the image URL (not base64) in the hidden field
       productImageFinal.value = result.imageUrl;
-
-      // Update status
       statusText.textContent = getTranslation("imageUploadedSuccessStatus") || "تم رفع الصورة بنجاح";
-
-      // Show success notification
       showNotification(getTranslation("imageUploadedSuccess") || "تم رفع الصورة بنجاح", "success");
     } catch (error) {
-      console.error("Error in file upload process:", error);
-      wrapper.classList.add("error");
-      statusText.textContent = error.message || getTranslation("unexpectedErrorProcessingFile");
-      showNotification(getTranslation("errorUploadingImage") || "فشل رفع الصورة", "error");
+      if (compressedDataUrl) {
+        previewImg.src = compressedDataUrl;
+        previewImg.style.display = "block";
+        noPreviewDiv.style.display = "none";
+        productImageFinal.value = compressedDataUrl;
+        statusText.textContent = getTranslation("imageStoredInlineStatus") || "تم حفظ الصورة ضمن البيانات";
+        showNotification(getTranslation("imageStoredInline") || "تم حفظ الصورة ضمن البيانات", "success");
+      } else {
+        wrapper.classList.add("error");
+        statusText.textContent = error.message || getTranslation("unexpectedErrorProcessingFile");
+        showNotification(getTranslation("errorUploadingImage") || "فشل رفع الصورة", "error");
+      }
     }
   }
 
