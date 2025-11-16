@@ -432,7 +432,12 @@ function getCurrentUser() {
   // Admin tokens should never reach here with the updated getToken function
 
   // This is a customer token, get actual profile from API
-  return fetch("http://localhost:5000/api/customer/me", {
+  const base = (function () {
+    const { hostname, origin } = window.location;
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    return isLocal ? "http://localhost:5000" : origin;
+  })();
+  return fetch(`${base}/api/customer/me`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
