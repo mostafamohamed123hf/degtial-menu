@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const compression = require("compression");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
@@ -174,6 +175,9 @@ app.use(
   })
 );
 
+// Enable gzip compression to reduce payload size
+app.use(compression());
+
 // Configure CORS with specific options
 app.use(
   cors({
@@ -221,6 +225,73 @@ app.get("/api/health", (req, res) => {
     message: "Server is running",
     time: new Date().toISOString(),
   });
+});
+
+// Fast admin dashboard stats endpoint
+app.get("/api/admin/dashboard-fast", async (req, res) => {
+  try {
+    const Order = require("./models/Order");
+    const Product = require("./models/Product");
+    const Voucher = require("./models/Voucher");
+
+    const [totalOrders, totalProducts, totalVouchers] = await Promise.all([
+      Order.countDocuments(),
+      Product.countDocuments(),
+      Voucher.countDocuments(),
+    ]);
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const todayAgg = await Order.aggregate([
+      { $match: { date: { $gte: startOfDay } } },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          total: { $sum: { $ifNull: ["$total", 0] } },
+        },
+      },
+    ]);
+
+    const totalAgg = await Order.aggregate([
+      { $group: { _id: null, total: { $sum: { $ifNull: ["$total", 0] } } } },
+    ]);
+
+    const todayOrders = todayAgg[0]?.count || 0;
+    const todayEarnings = todayAgg[0]?.total || 0;
+    const totalEarnings = totalAgg[0]?.total || 0;
+
+    const recentOrders = await Order.find({}, {
+      orderNumber: 1,
+      date: 1,
+      total: 1,
+      status: 1,
+    })
+      .sort({ date: -1 })
+      .limit(5)
+      .lean();
+
+    res.json({
+      success: true,
+      data: {
+        totalOrders,
+        totalProducts,
+        totalVouchers,
+        todayOrders,
+        todayEarnings,
+        totalEarnings,
+        recentOrders,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard fast stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard stats",
+      error: error.message,
+    });
+  }
 });
 
 // Apply CSRF protection to all API routes except GET requests
@@ -360,14 +431,6 @@ app.use('/public', express.static(path.join(__dirname, "../public")));
 app.use('/assets', express.static(path.join(__dirname, "../assets")));
 app.use('/admin', express.static(path.join(__dirname, "../admin")));
 app.use('/sounds', express.static(path.join(__dirname, "../sounds")));
-
-app.get('/service-worker.js', (req, res) => {
-  res.sendFile(path.join(__dirname, "../service-worker.js"));
-});
-
-app.get('/manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, "../manifest.json"));
-});
 
 // Add a specific route for /register to redirect to register.html
 app.get("/register", (req, res) => {
