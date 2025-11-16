@@ -354,6 +354,7 @@ app.get("/api/debug/routes", (req, res) => {
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, "../public")));
+app.use('/public', express.static(path.join(__dirname, "../public")));
 
 // Explicitly serve assets folder for uploaded images
 app.use('/assets', express.static(path.join(__dirname, "../assets")));
