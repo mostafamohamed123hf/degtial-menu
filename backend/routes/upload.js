@@ -91,8 +91,9 @@ router.post("/image", (req, res) => {
       uploadStream.end(buffer);
       uploadStream.on("finish", () => {
         const fileId = uploadStream.id.toString();
-        const imageUrl = `/assets/products/${filename}`;
-        return res.status(200).json({ success: true, imageUrl, fileId, downloadUrl: `/api/upload/file/${fileId}` });
+        const downloadUrl = `/api/upload/file/${fileId}`;
+        const imageUrl = downloadUrl;
+        return res.status(200).json({ success: true, imageUrl, fileId, downloadUrl });
       });
       uploadStream.on("error", () => {
         const imageUrl = isVercel
@@ -203,8 +204,9 @@ router.post("/idcard", (req, res) => {
       uploadStream.end(buffer);
       uploadStream.on("finish", () => {
         const fileId = uploadStream.id.toString();
-        const imageUrl = `/assets/idcards/${filename}`;
-        return res.status(200).json({ success: true, imageUrl, fileId, downloadUrl: `/api/upload/file/${fileId}` });
+        const downloadUrl = `/api/upload/file/${fileId}`;
+        const imageUrl = downloadUrl;
+        return res.status(200).json({ success: true, imageUrl, fileId, downloadUrl });
       });
       uploadStream.on("error", () => {
         const imageUrl = isVercel
