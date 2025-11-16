@@ -85,10 +85,6 @@ const VoucherSchema = new Schema(
   { timestamps: true }
 );
 
-// Indexes for faster lookups
-VoucherSchema.index({ endDate: 1 });
-VoucherSchema.index({ isActive: 1 });
-
 // Check if voucher is valid and can be used
 VoucherSchema.methods.isValid = function (orderValue) {
   const now = new Date();
