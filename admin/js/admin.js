@@ -36,12 +36,13 @@ window.globalSettings = {
 // Load global settings from API
 async function loadAdminGlobalSettings() {
   try {
-    const API_BASE_URL =
-      (typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"))
-        ? "http://localhost:5000/api"
-        : "/api";
+    const API_BASE_URL = (typeof window !== "undefined" && window.API_BASE_URL)
+      ? `${window.API_BASE_URL}/api`
+      : ((typeof window !== "undefined" &&
+          (window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1"))
+            ? "http://localhost:5000/api"
+            : "/api");
     const response = await fetch(`${API_BASE_URL}/global-settings`);
     const result = await response.json();
     
@@ -1441,12 +1442,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to update dashboard offer statistics
   async function updateDashboardOfferStats() {
     try {
-      const API_BASE_URL =
-        (typeof window !== "undefined" &&
-          (window.location.hostname === "localhost" ||
-            window.location.hostname === "127.0.0.1"))
-          ? "http://localhost:5000/api"
-          : "/api";
+      const API_BASE_URL = (typeof window !== "undefined" && window.API_BASE_URL)
+        ? `${window.API_BASE_URL}/api`
+        : ((typeof window !== "undefined" &&
+            (window.location.hostname === "localhost" ||
+              window.location.hostname === "127.0.0.1"))
+              ? "http://localhost:5000/api"
+              : "/api");
       const response = await fetch(`${API_BASE_URL}/offers`, {
         headers: {
           "Content-Type": "application/json",
