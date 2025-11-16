@@ -1013,7 +1013,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "Content-Type": "application/json",
       },
       // Set a timeout to avoid hanging if server is down
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(5000),
     })
       .then((response) => {
         if (response.ok) {
