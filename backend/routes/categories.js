@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
     console.log("GET /api/categories - Fetching categories from database...");
     
     // Sort by sortOrder first, then by name as secondary sort
-    const categories = await Category.find().sort({ sortOrder: 1, name: 1 });
+    const categories = await Category.find().sort({ sortOrder: 1, name: 1 }).lean();
     
     console.log(`Found ${categories.length} categories`);
     
