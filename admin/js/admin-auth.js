@@ -1,6 +1,12 @@
 /**
  * Check if user is authenticated
  */
+const API_BASE_URL = (function () {
+  const { hostname, origin } = window.location;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:5000" : origin;
+})();
+
 function isAuthenticated() {
   try {
     // Get session from localStorage
@@ -373,7 +379,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Try both email and username formats for maximum compatibility
       const response = await fetch(
-        "http://localhost:5000/api/auth/admin/login",
+        `${API_BASE_URL}/api/auth/admin/login`,
         {
           method: "POST",
           headers: {
@@ -545,7 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // If API login, call server-side logout
           if (session.loginType === "api") {
-            fetch("http://localhost:5000/api/auth/admin/logout", {
+            fetch(`${API_BASE_URL}/api/auth/admin/logout`, {
               method: "GET",
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
@@ -1001,7 +1007,7 @@ document.addEventListener("DOMContentLoaded", function () {
     serverStatus.classList.add("offline");
 
     // Try to reach the server using health check endpoint
-    fetch("http://localhost:5000/api/health", {
+    fetch(`${API_BASE_URL}/api/health`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
