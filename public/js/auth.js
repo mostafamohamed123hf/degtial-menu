@@ -284,7 +284,12 @@ function refreshToken() {
     );
   }
 
-  return fetch("http://localhost:5000/api/customer/refresh-token", {
+  const base = (function () {
+    const { hostname, origin } = window.location;
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    return isLocal ? "http://localhost:5000" : origin;
+  })();
+  return fetch(`${base}/api/customer/refresh-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -377,7 +382,12 @@ function logout() {
   }
 
   // Send request to server to invalidate token
-  return fetch("http://localhost:5000/api/auth/logout", {
+  const base = (function () {
+    const { hostname, origin } = window.location;
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    return isLocal ? "http://localhost:5000" : origin;
+  })();
+  return fetch(`${base}/api/auth/logout`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
