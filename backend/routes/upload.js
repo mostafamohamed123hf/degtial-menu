@@ -4,6 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 
+const isVercel = !!process.env.VERCEL;
+
 /**
  * @route POST /api/upload/image
  * @desc Upload an image (handles base64 data)
@@ -38,10 +40,17 @@ router.post("/image", (req, res) => {
       });
     }
 
-    // Create the assets/products directory if it doesn't exist
-    const uploadDir = path.join(__dirname, "../../assets/products");
+    // Resolve upload directory (use /tmp on Vercel)
+    const uploadDir = isVercel
+      ? path.join("/tmp", "assets", "products")
+      : path.join(__dirname, "../../assets/products");
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      } catch (e) {
+        // If directory creation fails on a read-only filesystem
+        console.error("Failed to create upload directory:", e.message);
+      }
     }
 
     // Extract image type and data
@@ -72,7 +81,11 @@ router.post("/image", (req, res) => {
     const filepath = path.join(uploadDir, filename);
 
     // Save the file
-    fs.writeFileSync(filepath, buffer);
+    try {
+      fs.writeFileSync(filepath, buffer);
+    } catch (writeErr) {
+      console.error("File write error:", writeErr.message);
+    }
     if (global.gridfsBucket) {
       const uploadStream = global.gridfsBucket.openUploadStream(filename, { contentType: `image/${imageType}` });
       uploadStream.end(buffer);
@@ -82,7 +95,9 @@ router.post("/image", (req, res) => {
         return res.status(200).json({ success: true, imageUrl, fileId, downloadUrl: `/api/upload/file/${fileId}` });
       });
       uploadStream.on("error", () => {
-        const imageUrl = `/assets/products/${filename}`;
+        const imageUrl = isVercel
+          ? `/api/upload/tmp/products/${filename}`
+          : `/assets/products/${filename}`;
         return res.status(200).json({ success: true, imageUrl });
       });
       return;
@@ -91,7 +106,9 @@ router.post("/image", (req, res) => {
     console.log(`Image saved: ${filename}, size: ${(buffer.length / 1024).toFixed(2)} KB`);
 
     // Return the relative URL to the saved image
-    const imageUrl = `/assets/products/${filename}`;
+    const imageUrl = isVercel
+      ? `/api/upload/tmp/products/${filename}`
+      : `/assets/products/${filename}`;
 
     return res.status(200).json({ success: true, imageUrl: imageUrl });
   } catch (error) {
@@ -136,10 +153,16 @@ router.post("/idcard", (req, res) => {
       });
     }
 
-    // Create the assets/idcards directory if it doesn't exist
-    const uploadDir = path.join(__dirname, "../../assets/idcards");
+    // Resolve upload directory (use /tmp on Vercel)
+    const uploadDir = isVercel
+      ? path.join("/tmp", "assets", "idcards")
+      : path.join(__dirname, "../../assets/idcards");
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      } catch (e) {
+        console.error("Failed to create idcards directory:", e.message);
+      }
     }
 
     // Extract image type and data
@@ -170,7 +193,11 @@ router.post("/idcard", (req, res) => {
     const filepath = path.join(uploadDir, filename);
 
     // Save the file
-    fs.writeFileSync(filepath, buffer);
+    try {
+      fs.writeFileSync(filepath, buffer);
+    } catch (writeErr) {
+      console.error("File write error (idcard):", writeErr.message);
+    }
     if (global.gridfsBucket) {
       const uploadStream = global.gridfsBucket.openUploadStream(filename, { contentType: `image/${imageType}` });
       uploadStream.end(buffer);
@@ -180,7 +207,9 @@ router.post("/idcard", (req, res) => {
         return res.status(200).json({ success: true, imageUrl, fileId, downloadUrl: `/api/upload/file/${fileId}` });
       });
       uploadStream.on("error", () => {
-        const imageUrl = `/assets/idcards/${filename}`;
+        const imageUrl = isVercel
+          ? `/api/upload/tmp/idcards/${filename}`
+          : `/assets/idcards/${filename}`;
         return res.status(200).json({ success: true, imageUrl });
       });
       return;
@@ -189,7 +218,9 @@ router.post("/idcard", (req, res) => {
     console.log(`ID card image saved: ${filename}, size: ${(buffer.length / 1024).toFixed(2)} KB`);
 
     // Return the relative URL to the saved image
-    const imageUrl = `/assets/idcards/${filename}`;
+    const imageUrl = isVercel
+      ? `/api/upload/tmp/idcards/${filename}`
+      : `/assets/idcards/${filename}`;
 
     return res.status(200).json({ success: true, imageUrl: imageUrl });
   } catch (error) {
@@ -222,6 +253,37 @@ router.get("/file/:id", async (req, res) => {
     downloadStream.pipe(res);
   } catch (e) {
     return res.status(400).json({ success: false, message: "Invalid file id" });
+  }
+});
+
+// Serve files saved to /tmp on Vercel
+router.get("/tmp/products/:filename", (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join("/tmp", "assets", "products", filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: "File not found" });
+    }
+    const ext = path.extname(filename).replace(".", "") || "jpeg";
+    res.set("Content-Type", `image/${ext}`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Error reading file" });
+  }
+});
+
+router.get("/tmp/idcards/:filename", (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join("/tmp", "assets", "idcards", filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: "File not found" });
+    }
+    const ext = path.extname(filename).replace(".", "") || "jpeg";
+    res.set("Content-Type", `image/${ext}`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Error reading file" });
   }
 });
 
