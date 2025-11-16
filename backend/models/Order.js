@@ -100,11 +100,6 @@ const OrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes to speed up common queries
-OrderSchema.index({ date: -1 });
-OrderSchema.index({ orderNumber: 1 }, { unique: true });
-OrderSchema.index({ orderId: 1 }, { sparse: true });
-
 // Generate a random order number and set orderId if not provided
 OrderSchema.pre("save", async function (next) {
   // Generate a random order number if not provided
