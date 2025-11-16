@@ -6,12 +6,12 @@ const Category = require("../models/Category");
 router.get("/", async (req, res) => {
   try {
     console.log("GET /api/categories - Fetching categories from database...");
-    
+
     // Sort by sortOrder first, then by name as secondary sort
-    const categories = await Category.find().sort({ sortOrder: 1, name: 1 }).lean();
-    
+    const categories = await Category.find().sort({ sortOrder: 1, name: 1 });
+
     console.log(`Found ${categories.length} categories`);
-    
+
     res.json({
       success: true,
       data: categories,
@@ -31,10 +31,10 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     console.log(`Fetching category with ID: ${req.params.id}`);
-    
+
     // Try to find by the custom ID field
     let category = await Category.findOne({ id: req.params.id });
-    
+
     // If not found, try with MongoDB's _id as fallback
     if (!category) {
       try {
@@ -43,7 +43,7 @@ router.get("/:id", async (req, res) => {
         console.log("Invalid MongoDB ID format, skipping _id lookup");
       }
     }
-    
+
     if (!category) {
       console.log(`Category with ID ${req.params.id} not found`);
       return res.status(404).json({
@@ -51,7 +51,7 @@ router.get("/:id", async (req, res) => {
         message: "Category not found",
       });
     }
-    
+
     res.json({
       success: true,
       data: category,
@@ -71,34 +71,31 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     console.log("POST /api/categories - Creating new category:", req.body);
-    
+
     // Check if category with same ID or value already exists
     const existingCategory = await Category.findOne({
-      $or: [
-        { id: req.body.id },
-        { value: req.body.value }
-      ]
+      $or: [{ id: req.body.id }, { value: req.body.value }],
     });
-    
+
     if (existingCategory) {
       return res.status(400).json({
         success: false,
         message: "Category with this ID or value already exists",
       });
     }
-    
+
     const category = new Category(req.body);
     await category.save();
-    
+
     console.log("Category created successfully:", category);
-    
+
     // Notify connected clients about the new category
     if (global.notifyClients) {
       global.notifyClients("category_added", {
         category: category,
       });
     }
-    
+
     res.status(201).json({
       success: true,
       data: category,
@@ -118,35 +115,35 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     console.log(`Updating category with ID: ${req.params.id}`, req.body);
-    
+
     // First try to find by the custom ID field
     let category = await Category.findOne({ id: req.params.id });
-    
+
     // If not found, try with MongoDB's _id as fallback
     if (!category) {
       category = await Category.findById(req.params.id);
     }
-    
+
     if (!category) {
       return res.status(404).json({
         success: false,
         message: "Category not found",
       });
     }
-    
+
     // Update the category with the new data
     Object.assign(category, req.body);
     await category.save();
-    
+
     console.log("Category updated successfully:", category);
-    
+
     // Notify connected clients about the updated category
     if (global.notifyClients) {
       global.notifyClients("category_updated", {
         category: category,
       });
     }
-    
+
     res.json({
       success: true,
       data: category,
@@ -166,47 +163,47 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     console.log(`Deleting category with ID: ${req.params.id}`);
-    
+
     // First try to find by the custom ID field
     let category = await Category.findOne({ id: req.params.id });
-    
+
     // If not found, try with MongoDB's _id as fallback
     if (!category) {
       category = await Category.findById(req.params.id);
     }
-    
+
     if (!category) {
       return res.status(404).json({
         success: false,
         message: "Category not found",
       });
     }
-    
+
     // Check if any products are using this category
     const Product = require("../models/Product");
-    const productsUsingCategory = await Product.countDocuments({ 
-      category: category.value 
+    const productsUsingCategory = await Product.countDocuments({
+      category: category.value,
     });
-    
+
     if (productsUsingCategory > 0) {
       return res.status(400).json({
         success: false,
         message: `Cannot delete category. ${productsUsingCategory} product(s) are using this category.`,
       });
     }
-    
+
     // Delete the category
     await category.deleteOne();
-    
+
     console.log("Category deleted successfully");
-    
+
     // Notify connected clients about the deleted category
     if (global.notifyClients) {
       global.notifyClients("category_deleted", {
         categoryId: req.params.id,
       });
     }
-    
+
     res.json({
       success: true,
       message: "Category deleted successfully",
