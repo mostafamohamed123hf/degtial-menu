@@ -1242,8 +1242,8 @@ document.addEventListener("DOMContentLoaded", function () {
         // Keep currency in a span for live i18n updates
         totalEarningsElement.innerHTML = `${formattedEarnings} <span class="currency-text">${currencyText}</span>`;
         totalOrdersElement.textContent = stats.totalOrders;
-        totalProductsElement.textContent = stats.totalProducts;
-        totalVouchersElement.textContent = stats.totalVouchers;
+        totalProductsElement.textContent = products.length;
+        totalVouchersElement.textContent = vouchers.length;
 
         const averageOrderValue =
           stats.totalOrders > 0
