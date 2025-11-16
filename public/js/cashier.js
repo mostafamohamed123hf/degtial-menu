@@ -59,6 +59,12 @@ let soundEnabled = false;
 window.notificationsEnabled = true;
 let notificationsEnabled = window.notificationsEnabled;
 
+const API_BASE_URL = (function () {
+  const { hostname, origin } = window.location;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:5000" : origin;
+})();
+
 // Sound system initialization
 function initSoundSystem() {
   // Get the audio element
@@ -724,7 +730,7 @@ function loadActiveOrders() {
   )}...</div>`;
 
   // Fetch orders from the API
-  fetch("http://localhost:5000/api/orders")
+  fetch(`${API_BASE_URL}/api/orders`)
     .then((response) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -972,7 +978,7 @@ function loadRecentActivity() {
     </div>`;
 
   // Fetch completed and cancelled orders from the API
-  fetch("http://localhost:5000/api/orders?status=completed,cancelled")
+  fetch(`${API_BASE_URL}/api/orders?status=completed,cancelled`)
     .then((response) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -1384,7 +1390,7 @@ function viewOrderDetails(orderId) {
     '<tr><td colspan="4" class="loading-spinner-container"><i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات الطلب...</td></tr>';
 
   // Fetch order from the API
-  fetch(`http://localhost:5000/api/orders/${orderId}`)
+  fetch(`${API_BASE_URL}/api/orders/${orderId}`)
     .then((response) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -1819,7 +1825,7 @@ function checkTableOrder() {
 
   // Fetch active orders for this table from the API
   fetch(
-    `http://localhost:5000/api/orders?tableNumber=${tableNumber}&status=pending,processing`
+    `${API_BASE_URL}/api/orders?tableNumber=${tableNumber}&status=pending,processing`
   )
     .then((response) => {
       if (!response.ok) {
@@ -1955,7 +1961,7 @@ function completeOrder() {
   cancelButton.disabled = true;
 
   // Update order status using the API
-  fetch(`http://localhost:5000/api/orders/${orderId}`, {
+  fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -2149,7 +2155,7 @@ function printReceipt() {
   );
 
   // Fetch order details from the API
-  fetch(`http://localhost:5000/api/orders/${orderId}`)
+  fetch(`${API_BASE_URL}/api/orders/${orderId}`)
     .then((response) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -2723,7 +2729,7 @@ function loadReservationsForDate(dateStr) {
   }
 
   // Fetch reservations from the API for the specified date
-  fetch(`http://localhost:5000/api/reservations/cashier?date=${dateStr}`)
+  fetch(`${API_BASE_URL}/api/reservations/cashier?date=${dateStr}`)
     .then((response) => {
       if (!response.ok) {
         throw new Error(
@@ -2961,7 +2967,7 @@ function updateReservationStatus(id, action) {
   }
 
   // Update the reservation status
-  fetch(`http://localhost:5000/api/reservations/cashier/${id}/${action}`, {
+  fetch(`${API_BASE_URL}/api/reservations/cashier/${id}/${action}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -3039,7 +3045,7 @@ function checkForNewOrders() {
     localStorage.getItem("lastOrderNotificationTime") || 0;
 
   // Fetch recent orders from the API
-  fetch("http://localhost:5000/api/orders?status=pending")
+  fetch(`${API_BASE_URL}/api/orders?status=pending`)
     .then((response) => {
       if (!response.ok) {
         throw new Error("Error fetching new orders");
@@ -3161,7 +3167,7 @@ function cancelOrder() {
   completeButton.disabled = true;
 
   // Update order status using the API
-  fetch(`http://localhost:5000/api/orders/${orderId}`, {
+  fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -3425,7 +3431,7 @@ function printKitchenReceipt(kitchenReceiptButton) {
   );
 
   // First update the order status to "processing" (preparing)
-  fetch(`http://localhost:5000/api/orders/${orderId}`, {
+  fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -3443,7 +3449,7 @@ function printKitchenReceipt(kitchenReceiptButton) {
     })
     .then((statusUpdateResult) => {
       // After status update, proceed with fetching order details and printing
-      return fetch(`http://localhost:5000/api/orders/${orderId}`);
+      return fetch(`${API_BASE_URL}/api/orders/${orderId}`);
     })
     .then((response) => {
       if (!response.ok) {
@@ -3987,13 +3993,13 @@ async function loadProductsForOrder() {
 
   try {
     // Fetch products
-    const productsResponse = await fetch("http://localhost:5000/api/products");
+    const productsResponse = await fetch(`${API_BASE_URL}/api/products`);
     const productsData = await productsResponse.json();
     allProducts = productsData.data || [];
 
     // Fetch categories
     const categoriesResponse = await fetch(
-      "http://localhost:5000/api/categories"
+      `${API_BASE_URL}/api/categories`
     );
     const categoriesData = await categoriesResponse.json();
     allCategories = categoriesData.data || [];
@@ -4025,7 +4031,7 @@ async function loadOffersForOrder() {
   try {
     // Fetch active offers
     const offersResponse = await fetch(
-      "http://localhost:5000/api/offers?active=true"
+      `${API_BASE_URL}/api/offers?active=true`
     );
     const offersData = await offersResponse.json();
     allOffers = offersData.data || [];
@@ -4897,7 +4903,7 @@ async function submitNewOrder() {
   };
 
   try {
-    const response = await fetch("http://localhost:5000/api/orders/guest", {
+    const response = await fetch(`${API_BASE_URL}/api/orders/guest`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
