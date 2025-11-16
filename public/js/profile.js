@@ -2,7 +2,7 @@
 
 // API Configuration
 const USE_MOCK_API = false; // Set to false to use the real backend
-const API_BASE_URL = (function () {
+window.API_BASE_URL = window.API_BASE_URL || (function () {
   const { hostname, origin } = window.location;
   const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
   return isLocal ? "http://localhost:5000" : origin;
