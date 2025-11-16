@@ -13,13 +13,13 @@ router.get("/", async (req, res) => {
     // Check if a global discount is active
     const discountStatus = await GlobalSettings.findOne({
       key: "discountActive",
-    }).lean();
+    });
     const isDiscountActive = discountStatus && discountStatus.value === true;
 
     // Fetch all categories to get their sortOrder
-    const categories = await Category.find().lean();
+    const categories = await Category.find();
     const categorySortMap = {};
-    categories.forEach(cat => {
+    categories.forEach((cat) => {
       categorySortMap[cat.value] = cat.sortOrder || 0;
     });
 
@@ -27,8 +27,8 @@ router.get("/", async (req, res) => {
 
     if (isDiscountActive) {
       // If discount is active, fetch both original and discounted products
-      const originalProducts = await Product.find().lean();
-      const discountedProducts = await DiscountedProduct.find().lean();
+      const originalProducts = await Product.find();
+      const discountedProducts = await DiscountedProduct.find();
 
       // Create a map for quick lookup of discounted products
       const discountedMap = {};
@@ -55,7 +55,7 @@ router.get("/", async (req, res) => {
       console.log(`Found ${products.length} products with discount applied`);
     } else {
       // If no discount is active, just fetch regular products
-      products = await Product.find().lean();
+      products = await Product.find();
       console.log(
         `Found ${products.length} regular products (no discount active)`
       );
@@ -65,14 +65,14 @@ router.get("/", async (req, res) => {
     products.sort((a, b) => {
       const categoryOrderA = categorySortMap[a.category] || 999;
       const categoryOrderB = categorySortMap[b.category] || 999;
-      
+
       // First sort by category sortOrder
       if (categoryOrderA !== categoryOrderB) {
         return categoryOrderA - categoryOrderB;
       }
-      
+
       // If same category, sort by product name
-      return (a.name || '').localeCompare(b.name || '');
+      return (a.name || "").localeCompare(b.name || "");
     });
 
     if (products.length === 0) {
