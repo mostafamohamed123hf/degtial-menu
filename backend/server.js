@@ -357,6 +357,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 
 // Explicitly serve assets folder for uploaded images
 app.use('/assets', express.static(path.join(__dirname, "../assets")));
+app.use('/admin', express.static(path.join(__dirname, "../admin")));
 
 // Add a specific route for /register to redirect to register.html
 app.get("/register", (req, res) => {
