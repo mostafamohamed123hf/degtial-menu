@@ -97,9 +97,4 @@ const ProductSchema = new mongoose.Schema({
   },
 });
 
-// Indexes to improve query performance
-ProductSchema.index({ category: 1 });
-ProductSchema.index({ name: 1 });
-ProductSchema.index({ createdAt: -1 });
-
 module.exports = mongoose.model("Product", ProductSchema);
