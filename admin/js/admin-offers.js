@@ -1,9 +1,10 @@
 // API Base URL
-window.API_BASE_URL = window.API_BASE_URL || (function () {
-  const { hostname, origin } = window.location;
-  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-  return isLocal ? "http://localhost:5000/api" : `${origin}/api`;
-})();
+const API_BASE_URL =
+  (typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"))
+    ? "http://localhost:5000/api"
+    : "/api";
 
 // Offers Management Module
 const OffersManager = {
