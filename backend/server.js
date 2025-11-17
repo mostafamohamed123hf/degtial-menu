@@ -363,6 +363,14 @@ app.use("/sounds", express.static(path.join(__dirname, "../sounds")));
 
 // PWA assets at root scope
 app.get("/service-worker.js", (req, res) => {
+  res.set("Service-Worker-Allowed", "/");
+  res.sendFile(path.join(__dirname, "../service-worker.js"));
+});
+
+// Ensure legacy path works and allow root scope
+app.get("/public/js/service-worker.js", (req, res) => {
+  res.set("Service-Worker-Allowed", "/");
+  // Serve the root service worker to avoid outdated/conflicting versions
   res.sendFile(path.join(__dirname, "../service-worker.js"));
 });
 
