@@ -547,6 +547,7 @@
     </div>
     <div
       id="qr-scan-modal"
+      class="qr-scan-modal"
       style="
         display: none;
         position: fixed;
@@ -556,35 +557,13 @@
         align-items: center;
         justify-content: center;
       ">
-      <div
-        style="
-          position: relative;
-          width: 90%;
-          max-width: 420px;
-          background: var(--card-bg, #fff);
-          border-radius: 16px;
-          padding: 16px;
-        ">
-        <button
-          id="qr-close-btn"
-          style="
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: transparent;
-            border: none;
-            font-size: 22px;
-            cursor: pointer;
-          ">
-          ×
-        </button>
-        <video
-          id="qr-video"
-          playsinline
-          style="width: 100%; border-radius: 12px; background: #000"></video>
-        <div
-          class="qr-hint"
-          style="margin-top: 10px; text-align: center; font-weight: 600"></div>
+      <div class="qr-scan-card" style="position: relative; width: 90%; max-width: 420px; background: var(--card-bg, #fff); border-radius: 16px; padding: 16px;">
+        <button id="qr-close-btn" class="qr-close-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 22px; cursor: pointer;">×</button>
+        <div class="qr-video-wrap">
+          <video id="qr-video" class="qr-video" playsinline style="width: 100%; border-radius: 12px; background: #000"></video>
+          <div class="qr-frame"></div>
+        </div>
+        <div class="qr-hint" style="margin-top: 10px; text-align: center; font-weight: 600"></div>
       </div>
     </div>
 
