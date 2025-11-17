@@ -5,14 +5,9 @@
       "src": "server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": [
-          "public/**",
-          "assets/**",
-          "admin/**",
-          "sounds/**",
-          "service-worker.js",
-          "manifest.json"
-        ]
+
+        "includeFiles": ["public/**", "assets/**", "admin/**", "sounds/**"]
+
       }
     }
   ],

@@ -2569,8 +2569,9 @@ when rate products be free item the rate save in database but dont show in index
 
           // Race the service worker registration against the timeout
           Promise.race([
-            navigator.serviceWorker.register("/service-worker.js", {
+            navigator.serviceWorker.register("../service-worker.js", {
               scope: "/",
+                // Use update on reload during development
                 updateViaCache: "none"
             }),
             timeoutPromise,
