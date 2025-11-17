@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
   <defs>
@@ -6,4 +7,14 @@
     </pattern>
   </defs>
   <rect width="100" height="100" fill="url(#dottedPattern)" />
+=======
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <defs>
+    <pattern id="dottedPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="2" fill="#ffffff" />
+    </pattern>
+  </defs>
+  <rect width="100" height="100" fill="url(#dottedPattern)" />
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
 </svg> 

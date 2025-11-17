@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Voucher Modal Styles for both RTL and LTR modes */
 
 /* Common styles for both directions */
@@ -207,3 +208,214 @@
   right: 15px;
   left: auto;
 }
+=======
+/* Voucher Modal Styles for both RTL and LTR modes */
+
+/* Common styles for both directions */
+#voucher-modal .modal-content {
+  padding: 25px;
+  max-width: 500px;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+}
+
+#voucher-modal h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: var(--admin-text-color);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+#voucher-modal h2::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, var(--admin-accent-color), transparent);
+  border-radius: 2px;
+}
+
+#voucher-modal .form-group {
+  margin-bottom: 20px;
+}
+
+#voucher-modal .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--admin-text-color);
+  transition: text-align 0.3s ease;
+}
+
+#voucher-modal .code-input-group {
+  display: flex;
+  align-items: center;
+  transition: flex-direction 0.3s ease;
+}
+
+#voucher-modal .code-input-group input {
+  flex: 1;
+}
+
+#voucher-modal .code-input-group button {
+  background-color: var(--admin-accent-color);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+#voucher-modal .code-input-group button:hover {
+  background-color: var(--admin-gradient-end);
+}
+
+#voucher-modal .price-input,
+#voucher-modal .discount-input {
+  display: flex;
+  align-items: center;
+  transition: flex-direction 0.3s ease;
+}
+
+#voucher-modal .form-hint {
+  font-size: 0.85rem;
+  color: var(--admin-text-muted);
+  margin-top: 5px;
+  transition: text-align 0.3s ease;
+}
+
+#voucher-modal .form-actions {
+  margin-top: 30px;
+  transition: text-align 0.3s ease;
+}
+
+#voucher-modal .save-button {
+  background: linear-gradient(
+    135deg,
+    var(--admin-gradient-start),
+    var(--admin-gradient-end)
+  );
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#voucher-modal .save-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* RTL specific styles */
+[dir="rtl"] #voucher-modal .modal-content {
+  text-align: right;
+}
+
+[dir="rtl"] #voucher-modal h2::after {
+  right: 0;
+  background: linear-gradient(to left, var(--admin-accent-color), transparent);
+}
+
+[dir="rtl"] #voucher-modal .form-group label {
+  text-align: right;
+}
+
+[dir="rtl"] #voucher-modal .code-input-group {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] #voucher-modal .code-input-group button {
+  margin-right: 10px;
+  margin-left: 0;
+}
+
+[dir="rtl"] #voucher-modal .price-input,
+[dir="rtl"] #voucher-modal .discount-input {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] #voucher-modal .price-input .currency-symbol,
+[dir="rtl"] #voucher-modal .discount-input .percentage-symbol {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+[dir="rtl"] #voucher-modal .form-hint {
+  text-align: right;
+}
+
+[dir="rtl"] #voucher-modal .form-actions {
+  text-align: left;
+}
+
+[dir="rtl"] #voucher-modal .save-button i {
+  margin-left: 5px;
+  margin-right: 0;
+}
+
+/* LTR specific styles */
+[dir="ltr"] #voucher-modal .modal-content {
+  text-align: left;
+}
+
+[dir="ltr"] #voucher-modal h2::after {
+  left: 0;
+  background: linear-gradient(to right, var(--admin-accent-color), transparent);
+}
+
+[dir="ltr"] #voucher-modal .form-group label {
+  text-align: left;
+}
+
+[dir="ltr"] #voucher-modal .code-input-group {
+  flex-direction: row;
+}
+
+[dir="ltr"] #voucher-modal .code-input-group button {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+[dir="ltr"] #voucher-modal .price-input,
+[dir="ltr"] #voucher-modal .discount-input {
+  flex-direction: row;
+}
+
+[dir="ltr"] #voucher-modal .price-input .currency-symbol,
+[dir="ltr"] #voucher-modal .discount-input .percentage-symbol {
+  margin-left: 5px;
+  margin-right: 0;
+}
+
+[dir="ltr"] #voucher-modal .form-hint {
+  text-align: left;
+}
+
+[dir="ltr"] #voucher-modal .form-actions {
+  text-align: right;
+}
+
+[dir="ltr"] #voucher-modal .save-button i {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+/* Close button positioning */
+[dir="rtl"] #voucher-modal .close-modal {
+  left: 15px;
+  right: auto;
+}
+
+[dir="ltr"] #voucher-modal .close-modal {
+  right: 15px;
+  left: auto;
+}
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654

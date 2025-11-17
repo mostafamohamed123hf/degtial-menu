@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * LTR (Left-to-Right) specific styles for date range modal
  */
@@ -42,3 +43,49 @@ html[dir="ltr"] .date-inputs-container {
     flex-direction: column-reverse;
   }
 }
+=======
+/**
+ * LTR (Left-to-Right) specific styles for date range modal
+ */
+
+/* Position close button on the right side for LTR languages */
+html[lang="en"] .close-date-range-modal,
+html[dir="ltr"] .close-date-range-modal {
+  right: -10px;
+  left: auto;
+}
+
+/* Ensure border is on the left side for LTR languages */
+html[lang="en"] .custom-range-message,
+html[dir="ltr"] .custom-range-message {
+  border-right: none;
+  border-left: 3px solid var(--date-range-primary);
+}
+
+/* Fix icon margins for LTR languages */
+html[lang="en"] .date-range-form .form-group label i,
+html[dir="ltr"] .date-range-form .form-group label i {
+  margin-left: 0;
+  margin-right: 6px;
+}
+
+/* Align action buttons for LTR languages */
+html[lang="en"] .date-range-actions,
+html[dir="ltr"] .date-range-actions {
+  justify-content: flex-end;
+}
+
+/* Ensure the date inputs container has proper direction */
+html[lang="en"] .date-inputs-container,
+html[dir="ltr"] .date-inputs-container {
+  flex-direction: row;
+}
+
+/* Responsive styles for LTR languages */
+@media (max-width: 576px) {
+  html[lang="en"] .date-range-actions,
+  html[dir="ltr"] .date-range-actions {
+    flex-direction: column-reverse;
+  }
+}
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654

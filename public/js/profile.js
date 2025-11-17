@@ -2,7 +2,15 @@
 
 // API Configuration
 const USE_MOCK_API = false; // Set to false to use the real backend
+<<<<<<< HEAD
 const API_BASE_URL = "http://localhost:5000"; // Set your real API base URL here
+=======
+window.API_BASE_URL = window.API_BASE_URL || (function () {
+  const { hostname, origin } = window.location;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:5000" : origin;
+})();
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
 
 // Helper function to get the appropriate product name based on current language
 function getLocalizedProductName(arabicName, currentLang) {

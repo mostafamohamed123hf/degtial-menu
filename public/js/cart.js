@@ -1,5 +1,13 @@
 // Base URL for API requests
+<<<<<<< HEAD
 const API_BASE_URL = "http://localhost:5000";
+=======
+window.API_BASE_URL = window.API_BASE_URL || (function () {
+  const { hostname, origin } = window.location;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:5000" : origin;
+})();
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
 
 // Import authentication functions if they don't exist in this context
 if (typeof isLoggedIn !== "function") {
@@ -2947,7 +2955,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   function getTaxRate() {
     return new Promise((resolve, reject) => {
+<<<<<<< HEAD
       fetch("http://localhost:5000/api/tax-settings")
+=======
+      fetch(`${API_BASE_URL}/api/tax-settings`)
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to load tax settings");

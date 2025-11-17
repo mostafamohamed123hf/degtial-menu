@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
@@ -211,3 +212,218 @@
     </script>
   </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>أنت غير متصل - Digital Menu</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8f9fa;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        text-align: center;
+        padding: 20px;
+        line-height: 1.6;
+      }
+
+      .offline-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+      }
+
+      .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        color: #ff9500;
+      }
+
+      h1 {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 24px;
+      }
+
+      p {
+        color: #666;
+        margin-bottom: 25px;
+      }
+
+      .btn {
+        display: inline-block;
+        background-color: #4caf50;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background-color 0.3s;
+        cursor: pointer;
+        border: none;
+        margin: 0 5px 10px;
+      }
+
+      .btn:hover {
+        background-color: #388e3c;
+      }
+
+      .btn-secondary {
+        background-color: #607d8b;
+      }
+
+      .btn-secondary:hover {
+        background-color: #455a64;
+      }
+
+      .status {
+        margin: 20px 0;
+        padding: 10px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #ff9500;
+      }
+
+      .tips {
+        text-align: right;
+        margin-top: 30px;
+        padding: 15px;
+        background-color: #e8f5e9;
+        border-radius: 8px;
+      }
+
+      .tips h3 {
+        color: #2e7d32;
+        margin-bottom: 10px;
+      }
+
+      .tips ul {
+        list-style-position: inside;
+        text-align: right;
+      }
+
+      .tips li {
+        margin-bottom: 8px;
+      }
+
+      .connection-status {
+        font-weight: bold;
+        color: #f44336;
+      }
+
+      .status-online {
+        color: #4caf50;
+      }
+
+      @media (max-width: 576px) {
+        .offline-container {
+          padding: 30px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-container">
+      <div class="icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="64"
+          viewBox="0 -960 960 960"
+          width="64"
+          fill="#ff9500">
+          <path
+            d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
+        </svg>
+      </div>
+      <h1>أنت غير متصل بالإنترنت</h1>
+      <p>
+        يبدو أنك غير متصل بالإنترنت حالياً. بعض ميزات التطبيق قد لا تعمل بشكل
+        صحيح.
+      </p>
+
+      <div class="status">
+        حالة الاتصال:
+        <span id="connection-status" class="connection-status">غير متصل</span>
+      </div>
+
+      <div>
+        <button class="btn" onclick="tryReconnect()">إعادة المحاولة</button>
+        <button class="btn btn-secondary" onclick="goToLocalContent()">
+          استخدام المحتوى المحلي
+        </button>
+      </div>
+
+      <div class="tips">
+        <h3>نصائح للتعامل مع وضع عدم الاتصال:</h3>
+        <ul>
+          <li>تحقق من اتصال الإنترنت الخاص بك</li>
+          <li>تأكد من أن الخادم المحلي يعمل على المنفذ 5000</li>
+          <li>يمكنك الوصول إلى بعض البيانات المخزنة محلياً</li>
+          <li>سيتم مزامنة التغييرات تلقائياً عند استعادة الاتصال</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Check connection status
+      function updateConnectionStatus() {
+        const statusElement = document.getElementById("connection-status");
+        if (navigator.onLine) {
+          statusElement.textContent = "متصل";
+          statusElement.classList.add("status-online");
+        } else {
+          statusElement.textContent = "غير متصل";
+          statusElement.classList.remove("status-online");
+        }
+      }
+
+      // Update status when page loads
+      updateConnectionStatus();
+
+      // Try to reconnect
+      function tryReconnect() {
+        // Try to reload the page when the user clicks "Try Again"
+        window.location.reload();
+      }
+
+      // Go to local content
+      function goToLocalContent() {
+        // Try to navigate to the admin page with a flag to use local data
+        window.location.href = "/admin/admin.html?offline=true";
+      }
+
+      // Listen for online status changes
+      window.addEventListener("online", () => {
+        updateConnectionStatus();
+        // Wait a moment before reloading to ensure connection is stable
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      });
+
+      window.addEventListener("offline", () => {
+        updateConnectionStatus();
+      });
+
+      // Check connection status every 5 seconds
+      setInterval(updateConnectionStatus, 5000);
+    </script>
+  </body>
+</html>
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654

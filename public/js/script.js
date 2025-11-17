@@ -1,5 +1,13 @@
 // Base URL for API requests
+<<<<<<< HEAD
 const API_BASE_URL = "http://localhost:5000";
+=======
+window.API_BASE_URL = window.API_BASE_URL || (function () {
+  const { hostname, origin } = window.location;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:5000" : origin;
+})();
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
 
 // Import authentication functions if they don't exist in this context
 if (typeof isLoggedIn !== "function") {
@@ -4081,10 +4089,18 @@ document.addEventListener("DOMContentLoaded", async function () {
         sessionStorage.setItem("tableNumber", tableNumber);
         localStorage.setItem("tableNumber", tableNumber);
 
+<<<<<<< HEAD
         // Add table number to any anchor elements that point to cart.html
         const cartLinks = document.querySelectorAll('a[href="cart.html"]');
         cartLinks.forEach((link) => {
           link.href = `cart.html?table=${tableNumber}`;
+=======
+        // Add table number to any anchor elements that point to the cart page
+        const cartLinks = document.querySelectorAll('a[href$="cart.html"]');
+        cartLinks.forEach((link) => {
+          const base = "/pages/cart.html";
+          link.href = `${base}?table=${tableNumber}`;
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
         });
 
         return;
@@ -4125,10 +4141,18 @@ document.addEventListener("DOMContentLoaded", async function () {
       sessionStorage.setItem("tableNumber", tableNumber);
       localStorage.setItem("tableNumber", tableNumber);
 
+<<<<<<< HEAD
       // Add table number to any anchor elements that point to cart.html
       const cartLinks = document.querySelectorAll('a[href="cart.html"]');
       cartLinks.forEach((link) => {
         link.href = `cart.html?table=${tableNumber}`;
+=======
+      // Add table number to any anchor elements that point to the cart page
+      const cartLinks = document.querySelectorAll('a[href$="cart.html"]');
+      cartLinks.forEach((link) => {
+        const base = "/pages/cart.html";
+        link.href = `${base}?table=${tableNumber}`;
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
       });
     }
   }
@@ -5919,7 +5943,11 @@ async function handleReorder(orderId) {
       // If all else fails, try to redirect to cart.html
       const currentUrl = window.location.href;
       const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf("/") + 1);
+<<<<<<< HEAD
       window.location.href = `${baseUrl}cart.html`;
+=======
+      window.location.href = "/pages/cart.html";
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
     } catch (navigationError) {
       console.error("Error navigating to cart:", navigationError);
       // Show a message to the user that items were added but navigation failed
@@ -7958,12 +7986,28 @@ function escapeJsString(str) {
 // Initialize WebSocket connection for real-time notifications
 function initWebSocketConnection() {
   try {
+<<<<<<< HEAD
+=======
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    if (!isLocal) {
+      window.menuSocket = null;
+      return;
+    }
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
     console.log("Initializing WebSocket connection...");
 
     // Create WebSocket connection
     const socketProtocol =
       window.location.protocol === "https:" ? "wss:" : "ws:";
+<<<<<<< HEAD
     const socketUrl = `${socketProtocol}//${window.location.hostname}:5000`;
+=======
+    const socketUrl = isLocal
+      ? `${socketProtocol}//localhost:5000`
+      : `${socketProtocol}//${window.location.host}`;
+>>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
     const socket = new WebSocket(socketUrl);
 
     // Connection opened
