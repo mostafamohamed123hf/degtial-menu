@@ -17,23 +17,23 @@
     <meta
       name="description"
       content="Digital menu for ordering food online - pizza, burgers, and sandwiches" />
-    
+
     <!-- Inline script to prevent language flash -->
     <script>
-      (function() {
-        var savedLang = localStorage.getItem('public-language') || 'ar';
+      (function () {
+        var savedLang = localStorage.getItem("public-language") || "ar";
         var html = document.documentElement;
-        
-        if (savedLang === 'en') {
-          html.setAttribute('lang', 'en');
-          html.setAttribute('dir', 'ltr');
+
+        if (savedLang === "en") {
+          html.setAttribute("lang", "en");
+          html.setAttribute("dir", "ltr");
         } else {
-          html.setAttribute('lang', 'ar');
-          html.setAttribute('dir', 'rtl');
+          html.setAttribute("lang", "ar");
+          html.setAttribute("dir", "rtl");
         }
       })();
     </script>
-    
+
     <!-- Hide content until translations are applied -->
     <style>
       body:not(.i18n-ready) {
@@ -44,7 +44,7 @@
         transition: opacity 0.15s ease-in;
       }
     </style>
-    
+
     <!-- Load auth.js before other scripts -->
     <script src="../js/auth.js"></script>
     <!-- Load user-permissions.js for permission checks -->
@@ -63,8 +63,10 @@
           <i class="fas fa-bars"></i>
         </div>
         <div id="table-number-display" class="table-number-display"></div>
-        
-        <button id="scan-qr-btn" class="language-switcher"></button>
+
+        <button
+          id="scan-qr-btn"
+          class="language-switcher"></button>
         <button id="language-switcher" class="language-switcher">
           English
         </button>
@@ -236,7 +238,10 @@
             <div class="floating-circle floating-circle-1"></div>
             <div class="floating-circle floating-circle-2"></div>
             <div class="floating-circle floating-circle-3"></div>
-            <span class="welcome-text" data-specific-content="true" data-i18n="ourSpecialOffers"
+            <span
+              class="welcome-text"
+              data-specific-content="true"
+              data-i18n="ourSpecialOffers"
               >عروضنا المميزة 🔥</span
             >
           </div>
@@ -251,7 +256,7 @@
         </section>
 
         <!-- Featured Offer Banner -->
-        <section class="offers-hero-banner" style="display: none;">
+        <section class="offers-hero-banner" style="display: none">
           <div class="main-offer-banner">
             <div class="offer-banner-image">
               <div class="offer-timer">
@@ -540,11 +545,46 @@
         </section>
       </div>
     </div>
-    <div id="qr-scan-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;">
-      <div style="position: relative; width: 90%; max-width: 420px; background: var(--card-bg, #fff); border-radius: 16px; padding: 16px;">
-        <button id="qr-close-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 22px; cursor: pointer">×</button>
-        <video id="qr-video" playsinline style="width: 100%; border-radius: 12px; background: #000"></video>
-        <div class="qr-hint" style="margin-top: 10px; text-align: center; font-weight: 600"></div>
+    <div
+      id="qr-scan-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+      ">
+      <div
+        style="
+          position: relative;
+          width: 90%;
+          max-width: 420px;
+          background: var(--card-bg, #fff);
+          border-radius: 16px;
+          padding: 16px;
+        ">
+        <button
+          id="qr-close-btn"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+          ">
+          ×
+        </button>
+        <video
+          id="qr-video"
+          playsinline
+          style="width: 100%; border-radius: 12px; background: #000"></video>
+        <div
+          class="qr-hint"
+          style="margin-top: 10px; text-align: center; font-weight: 600"></div>
       </div>
     </div>
 
@@ -562,6 +602,7 @@
       rel="stylesheet"
       href="https://unpkg.com/swiper/swiper-bundle.min.css" />
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="../js/reservation-settings.js"></script>
     <script src="../js/script.js"></script>
 
@@ -830,7 +871,10 @@
             <i class="fas fa-hamburger"></i>
             <h3 id="footer-restaurant-name">ديجيتال منيو</h3>
           </div>
-          <p class="footer-description" id="footer-description" data-i18n="footerDescription">
+          <p
+            class="footer-description"
+            id="footer-description"
+            data-i18n="footerDescription">
             نقدم لكم أفضل الوجبات السريعة بجودة عالية وأسعار مناسبة
           </p>
           <p class="footer-address" id="footer-address"></p>
@@ -839,37 +883,71 @@
         <div class="footer-section footer-links">
           <h4 data-i18n="quickLinks">روابط سريعة</h4>
           <ul>
-            <li><a href="#" class="footer-link menu-section-link"><i class="fas fa-utensils"></i> <span data-i18n="sidebarMenu">القائمة</span></a></li>
-            <li><a href="#" class="footer-link offers-section-link"><i class="fas fa-tag"></i> <span data-i18n="sidebarOffers">العروض</span></a></li>
-            <li><a href="#" class="footer-link reservation-section-link"><i class="fas fa-calendar-alt"></i> <span data-i18n="sidebarReservation">احجز طاولة</span></a></li>
-            <li><a href="#" class="footer-link previous-orders-section-link"><i class="fas fa-history"></i> <span data-i18n="sidebarPreviousOrders">طلباتي السابقة</span></a></li>
+            <li>
+              <a href="#" class="footer-link menu-section-link"
+                ><i class="fas fa-utensils"></i>
+                <span data-i18n="sidebarMenu">القائمة</span></a
+              >
+            </li>
+            <li>
+              <a href="#" class="footer-link offers-section-link"
+                ><i class="fas fa-tag"></i>
+                <span data-i18n="sidebarOffers">العروض</span></a
+              >
+            </li>
+            <li>
+              <a href="#" class="footer-link reservation-section-link"
+                ><i class="fas fa-calendar-alt"></i>
+                <span data-i18n="sidebarReservation">احجز طاولة</span></a
+              >
+            </li>
+            <li>
+              <a href="#" class="footer-link previous-orders-section-link"
+                ><i class="fas fa-history"></i>
+                <span data-i18n="sidebarPreviousOrders">طلباتي السابقة</span></a
+              >
+            </li>
           </ul>
         </div>
 
         <div class="footer-section footer-hours">
           <h4 data-i18n="workingHours">ساعات العمل</h4>
           <div id="footer-working-hours">
-            <p><i class="fas fa-clock"></i> <span data-i18n="sundayToThursday">الأحد - الخميس: 10 صباحًا - 11 مساءً</span></p>
-            <p><i class="fas fa-clock"></i> <span data-i18n="fridayToSaturday">الجمعة - السبت: 10 صباحًا - 12 مساءً</span></p>
+            <p>
+              <i class="fas fa-clock"></i>
+              <span data-i18n="sundayToThursday"
+                >الأحد - الخميس: 10 صباحًا - 11 مساءً</span
+              >
+            </p>
+            <p>
+              <i class="fas fa-clock"></i>
+              <span data-i18n="fridayToSaturday"
+                >الجمعة - السبت: 10 صباحًا - 12 مساءً</span
+              >
+            </p>
           </div>
         </div>
 
         <div class="footer-section footer-contact">
           <h4 data-i18n="contactUs">اتصل بنا</h4>
           <ul class="footer-contact-list">
-            <li id="footer-phone-wrapper" style="display: none;">
+            <li id="footer-phone-wrapper" style="display: none">
               <a href="#" id="footer-phone" class="footer-contact-link">
                 <i class="fas fa-phone-alt"></i>
                 <span></span>
               </a>
             </li>
-            <li id="footer-whatsapp-wrapper" style="display: none;">
-              <a href="#" id="footer-whatsapp" class="footer-contact-link" target="_blank">
+            <li id="footer-whatsapp-wrapper" style="display: none">
+              <a
+                href="#"
+                id="footer-whatsapp"
+                class="footer-contact-link"
+                target="_blank">
                 <i class="fab fa-whatsapp"></i>
                 <span></span>
               </a>
             </li>
-            <li id="footer-email-wrapper" style="display: none;">
+            <li id="footer-email-wrapper" style="display: none">
               <a href="#" id="footer-email" class="footer-contact-link">
                 <i class="fas fa-envelope"></i>
                 <span></span>
