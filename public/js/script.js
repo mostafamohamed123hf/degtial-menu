@@ -4063,6 +4063,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const urlParams = new URLSearchParams(window.location.search);
     const tableNumber = urlParams.get("table");
     const qid = urlParams.get("qid");
+    const scanBtnInit = document.getElementById("scan-qr-btn");
+    if (scanBtnInit) {
+      const langInit = localStorage.getItem("public-language") || "ar";
+      scanBtnInit.textContent = langInit === "en" ? "Scan QR" : "مسح QR";
+      scanBtnInit.style.display = "block";
+      scanBtnInit.onclick = () => openQrScanModal(tableNumber);
+    }
     function hasValidSession(table) {
       try {
         const token = sessionStorage.getItem("orderSessionToken") || "";
@@ -4168,15 +4175,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <span>طاولة ${tableNumber}</span>
             `;
 
-      const scanBtn = document.getElementById("scan-qr-btn");
-      if (scanBtn) {
-        const lang = localStorage.getItem("public-language") || "ar";
-        scanBtn.textContent = lang === "en" ? "Scan QR" : "مسح QR";
-        scanBtn.style.display = !hasValidSession(tableNumber)
-          ? "block"
-          : "none";
-        scanBtn.onclick = () => openQrScanModal(tableNumber);
-      }
+      
 
       // Display with animation
       setTimeout(() => {
@@ -4278,8 +4277,12 @@ document.addEventListener("DOMContentLoaded", async function () {
               scannedTable = p.get("table");
               scannedQid = p.get("qid");
             } catch (_) {}
-            if (scannedTable && String(scannedTable) === String(currentTable)) {
+            if (
+              scannedTable &&
+              (!currentTable || String(scannedTable) === String(currentTable))
+            ) {
               try {
+                const targetTable = currentTable || scannedTable;
                 const baseUrl =
                   window.API_BASE_URL ||
                   (function () {
@@ -4289,16 +4292,18 @@ document.addEventListener("DOMContentLoaded", async function () {
                     return isLocal ? "http://localhost:5000" : origin;
                   })();
                 const sessionUrl = scannedQid
-                  ? `${baseUrl}/api/table/session?table=${currentTable}&qid=${encodeURIComponent(
+                  ? `${baseUrl}/api/table/session?table=${targetTable}&qid=${encodeURIComponent(
                       scannedQid
                     )}`
-                  : `${baseUrl}/api/table/session?table=${currentTable}`;
+                  : `${baseUrl}/api/table/session?table=${targetTable}`;
                 const r = await fetch(sessionUrl);
                 const d = await r.json();
                 if (d && d.success && d.token) {
                   sessionStorage.setItem("orderSessionToken", d.token);
                   sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
-                  sessionStorage.setItem("orderSessionTable", currentTable);
+                  sessionStorage.setItem("orderSessionTable", targetTable);
+                  sessionStorage.setItem("tableNumber", targetTable);
+                  localStorage.setItem("tableNumber", targetTable);
                   const okMsg =
                     lang === "en"
                       ? "Ordering enabled for 20 minutes"
@@ -4333,8 +4338,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             } else {
               const err =
                 lang === "en"
-                  ? "Please scan the QR of the same table"
-                  : "يرجى مسح رمز نفس الطاولة";
+                  ? currentTable
+                    ? "Please scan the QR of the same table"
+                    : "Invalid QR"
+                  : currentTable
+                  ? "يرجى مسح رمز نفس الطاولة"
+                  : "رمز QR غير صالح";
               if (typeof showToast === "function")
                 showToast(err, "error", 3000);
               running = true;
