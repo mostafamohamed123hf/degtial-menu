@@ -4305,16 +4305,30 @@ document.addEventListener("DOMContentLoaded", async function () {
                       : "تم تفعيل الطلب لمدة 20 دقيقة";
                   if (typeof showToast === "function")
                     showToast(okMsg, "success", 3000);
-                } else if (!scannedQid) {
+                  stop();
+                } else {
                   const errMsg =
                     lang === "en"
-                      ? "QR validation required. Use the official table QR"
+                      ? (scannedQid
+                          ? "Invalid or expired QR. Ask staff for a new QR"
+                          : "QR validation required. Use the official table QR")
+                      : scannedQid
+                      ? "رمز QR غير صالح أو منتهي. اطلب رمزًا جديدًا من الموظف"
                       : "يتطلب التحقق عبر رمز QR الرسمي للطاولة";
+                  hint.textContent = errMsg;
                   if (typeof showToast === "function")
                     showToast(errMsg, "error", 3000);
+                  running = true;
                 }
-              } catch (_) {}
-              stop();
+              } catch (_) {
+                const errMsg =
+                  lang === "en"
+                    ? "Network error. Please try scanning again"
+                    : "خطأ في الشبكة. يرجى المحاولة مرة أخرى";
+                hint.textContent = errMsg;
+                if (typeof showToast === "function") showToast(errMsg, "error", 3000);
+                running = true;
+              }
             } else {
               const err =
                 lang === "en"
