@@ -1,0 +1,1119 @@
+/* Enhanced Product Modal Styles */
+:root {
+  --modal-primary: #42d158;
+  --modal-primary-dark: #2eb542;
+  --modal-secondary: #6c757d;
+  --modal-success: #28a745;
+  --modal-danger: #dc3545;
+  --modal-warning: #ffc107;
+  --modal-info: #17a2b8;
+  --modal-light: #f8f9fa;
+  --modal-dark: #343a40;
+  --modal-border-radius: 16px;
+  --modal-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --modal-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* RTL/LTR Direction Support */
+body[dir="rtl"] #product-modal,
+html[dir="rtl"] #product-modal {
+  direction: rtl;
+}
+
+body[dir="ltr"] #product-modal,
+html[dir="ltr"] #product-modal,
+body.english #product-modal,
+html.english #product-modal {
+  direction: ltr;
+}
+
+/* Product Modal Container */
+#product-modal {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#product-modal .modal-content {
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: var(--modal-border-radius);
+  box-shadow: var(--modal-shadow);
+  background: linear-gradient(135deg, var(--admin-card-bg) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+/* Product Modal Header */
+#product-modal-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--admin-text-color);
+  margin-bottom: 2rem;
+  text-align: center;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+#product-modal-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--modal-primary), var(--modal-primary-dark));
+  border-radius: 2px;
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 2.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition: var(--modal-transition);
+}
+
+.form-section:hover {
+  border-color: rgba(66, 209, 88, 0.3);
+  box-shadow: 0 8px 25px rgba(66, 209, 88, 0.1);
+}
+
+.form-section-header {
+  background: linear-gradient(135deg, rgba(66, 209, 88, 0.1), rgba(66, 209, 88, 0.05));
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.form-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--admin-text-color);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-section-title i {
+  color: var(--modal-primary);
+  width: fit-content;
+  font-size: 1.2rem;
+  background: rgba(66, 209, 88, 0.15);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.form-section-content {
+  padding: 1.5rem;
+}
+
+/* Dual Language Row */
+.dual-language-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr  ;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.language-field {
+  position: relative;
+}
+
+.language-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--admin-text-color);
+}
+
+.language-tag {
+  background: linear-gradient(135deg, var(--modal-primary), var(--modal-primary-dark));
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.optional-tag {
+  background: var(--modal-secondary);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  margin-left: 0.5rem;
+}
+
+/* English Language Mode Adjustments */
+body[dir="ltr"] .optional-tag,
+html[dir="ltr"] .optional-tag,
+body.english .optional-tag,
+html.english .optional-tag {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+/* Enhanced Form Inputs */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--admin-text-color);
+  font-size: 0.95rem;
+  transition: var(--modal-transition);
+  backdrop-filter: blur(10px);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--modal-primary);
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Enhanced Price Input */
+.price-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 48px;
+  overflow: hidden;
+}
+
+.price-input:hover {
+  border-color: rgba(66, 209, 88, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.price-input:focus-within {
+  border-color: var(--modal-primary);
+  box-shadow: 0 0 0 4px rgba(66, 209, 88, 0.15), 
+              0 4px 12px rgba(66, 209, 88, 0.1);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.price-input input {
+  border: none;
+  background: transparent;
+  flex: 1;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--modal-text);
+  outline: none;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.price-input input::-webkit-outer-spin-button,
+.price-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.price-input input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.price-input .currency-symbol {
+  background: linear-gradient(135deg, var(--modal-primary), var(--modal-primary-dark));
+  color: white;
+  padding: 1rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 0;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+}
+
+html[dir="rtl"] .price-input .currency-symbol {
+    left: 0;
+    right: auto;
+    width: fit-content;
+
+}
+
+/* RTL/LTR Support for Price Input */
+/* RTL Mode (Arabic) */
+html[dir="rtl"] .price-input,
+body[dir="rtl"] .price-input,
+body.arabic .price-input {
+  flex-direction: row;
+}
+
+html[dir="rtl"] .price-input input,
+body[dir="rtl"] .price-input input,
+body.arabic .price-input input {
+  text-align: right;
+  direction: rtl;
+}
+
+html[dir="rtl"] .price-input .currency-symbol,
+body[dir="rtl"] .price-input .currency-symbol,
+body.arabic .price-input .currency-symbol {
+  order: -1;
+  border-radius: 12px 0 0 12px;
+}
+
+/* LTR Mode (English) */
+html[dir="ltr"] .price-input,
+body[dir="ltr"] .price-input,
+body.english .price-input {
+  flex-direction: row-reverse;
+}
+
+html[dir="ltr"] .price-input input,
+body[dir="ltr"] .price-input input,
+body.english .price-input input {
+  text-align: left;
+  direction: ltr;
+}
+
+html[dir="ltr"] .price-input .currency-symbol,
+body[dir="ltr"] .price-input .currency-symbol,
+body.english .price-input .currency-symbol {
+  order: 1;
+  border-radius: 0 12px 12px 0;
+}
+
+/* Enhanced Focus States for Different Languages */
+html[dir="rtl"] .price-input:focus-within .currency-symbol,
+body[dir="rtl"] .price-input:focus-within .currency-symbol,
+body.arabic .price-input:focus-within .currency-symbol {
+  background: linear-gradient(135deg, var(--modal-primary-dark), var(--modal-primary));
+}
+
+html[dir="ltr"] .price-input:focus-within .currency-symbol,
+body[dir="ltr"] .price-input:focus-within .currency-symbol,
+body.english .price-input:focus-within .currency-symbol {
+  background: linear-gradient(135deg, var(--modal-primary), var(--modal-primary-dark));
+}
+
+/* Price Input Validation States */
+.price-input.valid {
+  border-color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.price-input.valid:focus-within {
+  border-color: #28a745;
+  box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.15), 
+              0 4px 12px rgba(40, 167, 69, 0.1);
+}
+
+.price-input.valid .currency-symbol {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.price-input.invalid {
+  border-color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.price-input.invalid:focus-within {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15), 
+              0 4px 12px rgba(220, 53, 69, 0.1);
+}
+
+.price-input.invalid .currency-symbol {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+/* Responsive Design for Price Input */
+@media (max-width: 768px) {
+  .price-input {
+    min-height: 44px;
+  }
+  
+  .price-input input {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.95rem;
+  }
+  
+  .price-input .currency-symbol {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.85rem;
+    min-width: 55px;
+  }
+}
+
+/* Image Upload Section */
+.image-upload-container {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: var(--modal-transition);
+}
+
+.image-upload-container:hover {
+  border-color: rgba(66, 209, 88, 0.5);
+}
+
+.image-upload-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.image-tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--admin-text-color);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--modal-transition);
+  border-bottom: 3px solid transparent;
+}
+
+.image-tab.active {
+  background: rgba(66, 209, 88, 0.1);
+  border-bottom-color: var(--modal-primary);
+  color: var(--modal-primary);
+}
+
+.image-tab-content {
+  padding: 1.5rem;
+  display: none;
+}
+
+.image-tab-content.active {
+  display: block;
+}
+
+.image-input-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.image-input-container input {
+  flex: 1;
+}
+
+.image-input-container button {
+  background: linear-gradient(135deg, var(--modal-primary), var(--modal-primary-dark));
+  color: white;
+  border: none;
+  padding: 0.875rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--modal-transition);
+}
+
+.image-input-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(66, 209, 88, 0.3);
+}
+
+/* File Upload */
+.file-upload-wrapper {
+  position: relative;
+}
+
+.file-upload-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.file-upload-box {
+  text-align: center;
+  padding: 2rem;
+  color: var(--admin-text-muted);
+  transition: var(--modal-transition);
+}
+
+.file-upload-box:hover {
+  color: var(--modal-primary);
+}
+
+.file-upload-box i {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--modal-primary);
+}
+
+/* Image Preview */
+.image-preview {
+  margin-top: 1rem;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.no-preview {
+  text-align: center;
+  color: var(--admin-text-muted);
+}
+
+.no-preview i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Enhanced Addons Section */
+.addons-container {
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-height: 120px;
+  transition: var(--modal-transition);
+}
+
+.addons-container:hover {
+  border-color: rgba(66, 209, 88, 0.3);
+}
+
+.no-addons-message {
+  text-align: center;
+  color: var(--admin-text-muted);
+  padding: 2rem;
+}
+
+.no-addons-message i {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--modal-primary);
+  opacity: 0.6;
+}
+
+/* Addon Section */
+.addon-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: var(--modal-transition);
+  position: relative;
+}
+
+.addon-section:hover {
+  border-color: rgba(66, 209, 88, 0.3);
+  box-shadow: 0 8px 25px rgba(66, 209, 88, 0.1);
+}
+
+.addon-section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.drag-handle {
+  color: var(--admin-text-muted);
+  cursor: grab;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: var(--modal-transition);
+}
+
+.drag-handle:hover {
+  background: rgba(66, 209, 88, 0.1);
+  color: var(--modal-primary);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Addon Section Titles */
+.addon-section-title {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--admin-text-color);
+  font-weight: 500;
+  transition: var(--modal-transition);
+}
+
+.addon-section-title:focus {
+  outline: none;
+  border-color: var(--modal-primary);
+  box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15);
+}
+
+.addon-section-title-en {
+  margin-top: 0.5rem;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.addon-section-title-en::placeholder {
+  color: var(--admin-text-muted);
+  opacity: 0.6;
+}
+
+/* Addon Section Actions */
+.addon-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.addon-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* English Language Mode - Addon Section Toggles */
+body[dir="ltr"] .addon-section-toggle,
+html[dir="ltr"] .addon-section-toggle,
+body.english .addon-section-toggle,
+html.english .addon-section-toggle {
+  margin-right: 0;
+  margin-left: 1rem;
+}
+
+.addon-section-toggle label {
+  color: var(--admin-text-color);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addon-section-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--modal-primary);
+}
+
+/* Action Buttons */
+.addon-section-actions button,
+.addon-option-actions button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--admin-text-color);
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--modal-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.addon-section-actions button:hover,
+.addon-option-actions button:hover {
+  background: rgba(66, 209, 88, 0.1);
+  border-color: var(--modal-primary);
+  color: var(--modal-primary);
+  transform: translateY(-2px);
+}
+
+.addon-section-actions button.delete-btn:hover,
+.addon-option-actions button.delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: var(--modal-danger);
+  color: var(--modal-danger);
+}
+
+/* Addon Options */
+.addon-options {
+  margin-top: 1rem;
+}
+
+.addon-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  transition: var(--modal-transition);
+}
+
+.addon-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(66, 209, 88, 0.2);
+}
+
+.addon-option-name {
+  flex: 1;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--admin-text-color);
+  transition: var(--modal-transition);
+}
+
+.addon-option-name:focus {
+  outline: none;
+  border-color: var(--modal-primary);
+  box-shadow: 0 0 0 2px rgba(66, 209, 88, 0.15);
+}
+
+.addon-option-name-en {
+  margin-top: 0.5rem;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.addon-option-price {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 140px;
+  height: 42px;
+}
+
+.addon-option-price input {
+  border: none;
+  background: transparent;
+  padding: 0.625rem 3rem 0.625rem 0.875rem;
+  color: var(--admin-text-color);
+  text-align: right;
+  width: 100%;
+  font-size: 0.9rem;
+  direction: rtl;
+}
+
+.addon-option-price .currency-symbol {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, rgba(66, 209, 88, 0.2), rgba(66, 209, 88, 0.1));
+  color: var(--modal-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 2;
+  transition: var(--modal-transition);
+}
+
+.addon-option-price:hover {
+  border-color: rgba(66, 209, 88, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.addon-option-price:focus-within {
+  border-color: var(--modal-primary);
+  box-shadow: 0 0 0 2px rgba(66, 209, 88, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.addon-option-price:focus-within .currency-symbol {
+  background: linear-gradient(135deg, rgba(66, 209, 88, 0.3), rgba(66, 209, 88, 0.15));
+  color: var(--modal-primary);
+}
+
+.addon-option-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Add Option Button */
+.add-addon-option-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, rgba(66, 209, 88, 0.1), rgba(66, 209, 88, 0.05));
+  border: 2px dashed rgba(66, 209, 88, 0.3);
+  border-radius: 8px;
+  color: var(--modal-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--modal-transition);
+  margin-top: 1rem;
+}
+
+.add-addon-option-btn:hover {
+  background: linear-gradient(135deg, rgba(66, 209, 88, 0.15), rgba(66, 209, 88, 0.08));
+  border-color: var(--modal-primary);
+  transform: translateY(-2px);
+}
+
+.add-addon-option-btn i {
+  margin-right: 0.5rem;
+}
+
+/* English Language Mode - Button Icon Margins */
+body[dir="ltr"] .add-addon-option-btn i,
+html[dir="ltr"] .add-addon-option-btn i,
+body.english .add-addon-option-btn i,
+html.english .add-addon-option-btn i {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Add Section Button */
+.addons-actions {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+#add-addon-section-btn {
+  background: linear-gradient(135deg, var(--modal-primary), var(--modal-primary-dark));
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--modal-transition);
+  box-shadow: 0 4px 15px rgba(66, 209, 88, 0.3);
+}
+
+#add-addon-section-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(66, 209, 88, 0.4);
+}
+
+#add-addon-section-btn i {
+  margin-right: 0.75rem;
+}
+
+/* English Language Mode - Add Section Button Icon */
+body[dir="ltr"] #add-addon-section-btn i,
+html[dir="ltr"] #add-addon-section-btn i,
+body.english #add-addon-section-btn i,
+html.english #add-addon-section-btn i {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
+/* Form Actions */
+.form-actions {
+  text-align: center;
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#save-product {
+  background: linear-gradient(135deg, var(--modal-primary), var(--modal-primary-dark));
+  color: white;
+  border: none;
+  padding: 1.25rem 3rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: var(--modal-transition);
+  box-shadow: 0 6px 20px rgba(66, 209, 88, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+#save-product::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+#save-product:hover::before {
+  left: 100%;
+}
+
+#save-product:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(66, 209, 88, 0.4);
+}
+
+#save-product i {
+  margin-right: 0.75rem;
+}
+
+/* English Language Mode - Save Button Icon */
+body[dir="ltr"] #save-product i,
+html[dir="ltr"] #save-product i,
+body.english #save-product i,
+html.english #save-product i {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
+/* Close Button */
+#close-product-modal {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--admin-text-color);
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--modal-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+#close-product-modal:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: var(--modal-danger);
+  transform: rotate(90deg);
+}
+
+/* English Language Mode - Close Button Position */
+body[dir="ltr"] #close-product-modal,
+html[dir="ltr"] #close-product-modal,
+body.english #close-product-modal,
+html.english #close-product-modal {
+  right: auto;
+  left: 1.5rem;
+}
+
+/* English Language Mode - Text Alignment and Input Direction */
+body[dir="ltr"] .form-group input,
+body[dir="ltr"] .form-group textarea,
+body[dir="ltr"] .addon-section-title,
+body[dir="ltr"] .addon-option-name,
+html[dir="ltr"] .form-group input,
+html[dir="ltr"] .form-group textarea,
+html[dir="ltr"] .addon-section-title,
+html[dir="ltr"] .addon-option-name,
+body.english .form-group input,
+body.english .form-group textarea,
+body.english .addon-section-title,
+body.english .addon-option-name,
+html.english .form-group input,
+html.english .form-group textarea,
+html.english .addon-section-title,
+html.english .addon-option-name {
+  text-align: left;
+  direction: ltr;
+}
+
+/* English Language Mode - Addon Option Price Alignment */
+body[dir="ltr"] .addon-option-price input,
+html[dir="ltr"] .addon-option-price input,
+body.english .addon-option-price input,
+html.english .addon-option-price input {
+  text-align: left;
+  direction: ltr;
+  padding: 0.625rem 0.875rem 0.625rem 3rem;
+}
+
+body[dir="ltr"] .addon-option-price .currency-symbol,
+html[dir="ltr"] .addon-option-price .currency-symbol,
+body.english .addon-option-price .currency-symbol,
+html.english .addon-option-price .currency-symbol {
+  right: auto;
+  left: 12px;
+}
+
+/* English Language Mode - Form Actions Alignment */
+body[dir="ltr"] .addons-actions,
+body[dir="ltr"] .form-actions,
+html[dir="ltr"] .addons-actions,
+html[dir="ltr"] .form-actions,
+body.english .addons-actions,
+body.english .form-actions,
+html.english .addons-actions,
+html.english .form-actions {
+  text-align: center;
+}
+
+/* English Language Mode - Language Label Alignment */
+body[dir="ltr"] .language-label,
+html[dir="ltr"] .language-label,
+body.english .language-label,
+html.english .language-label {
+  justify-content: flex-start;
+}
+
+body[dir="ltr"] .language-label .optional-tag,
+html[dir="ltr"] .language-label .optional-tag,
+body.english .language-label .optional-tag,
+html.english .language-label .optional-tag {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.addon-section.fade-in {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.addon-option.fade-in {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.addon-section.section-highlight {
+  animation: pulse 0.6s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  #product-modal .modal-content {
+    width: 98%;
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .dual-language-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .addon-option {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .addon-option-actions {
+    align-self: flex-end;
+  }
+
+  .addon-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .addon-section-actions {
+    justify-content: center;
+  }
+
+  #save-product {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+
+  /* English Language Mode - Mobile Responsive */
+  body[dir="ltr"] .addon-option-actions,
+  html[dir="ltr"] .addon-option-actions,
+  body.english .addon-option-actions,
+  html.english .addon-option-actions {
+    align-self: flex-start;
+  }
+
+  body[dir="ltr"] #close-product-modal,
+  html[dir="ltr"] #close-product-modal,
+  body.english #close-product-modal,
+  html.english #close-product-modal {
+    left: 1rem;
+    right: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  #product-modal .modal-content {
+    padding: 1rem;
+  }
+
+  .form-section-content {
+    padding: 1rem;
+  }
+
+  .addon-section {
+    padding: 1rem;
+  }
+
+  /* English Language Mode - Small Mobile Responsive */
+  body[dir="ltr"] #close-product-modal,
+  html[dir="ltr"] #close-product-modal,
+  body.english #close-product-modal,
+  html.english #close-product-modal {
+    left: 0.75rem;
+    top: 0.75rem;
+    right: auto;
+  }
+
+  body[dir="ltr"] .addon-section-toggle,
+  html[dir="ltr"] .addon-section-toggle,
+  body.english .addon-section-toggle,
+  html.english .addon-section-toggle {
+    margin-left: 0.5rem;
+    margin-right: 0;
+  }
+}

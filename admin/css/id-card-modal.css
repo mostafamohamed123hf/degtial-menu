@@ -1,0 +1,736 @@
+/* ID Card Modal Styling */
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.modal-container.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+#id-card-modal .modal {
+  width: 90%;
+  max-width: 550px;
+  background-color: var(--admin-card-bg, #fff);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  display: block;
+  opacity: 1;
+  animation: modalFadeIn 0.3s ease;
+  position: relative;
+  margin: 0 auto;
+  transform: translateY(0);
+  max-height: fit-content;
+}
+
+/* Close Modal Button Styling */
+#close-id-card-modal {
+  position: fixed;
+  padding-bottom: 1px;
+  padding-left: 1px;
+  top: 21px;
+  left: 36px;
+  width: 36px;
+  height: 36px;
+  background-color: var(--admin-accent-color, #42d158);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  z-index: 11;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+#close-id-card-modal:hover {
+  background-color: rgba(66, 209, 88, 0.8);
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: 0;
+}
+
+.id-card-image-container {
+  padding: 12px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.id-card-image-wrapper {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 35vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+  background-color: transparent;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.id-card-image-wrapper::before {
+  display: none;
+}
+
+.id-card-image-wrapper::after {
+  display: none;
+}
+
+.id-card-image-container img {
+  max-width: 95%;
+  max-height: 95%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  z-index: 2;
+}
+
+.id-card-image-container img:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.18);
+}
+
+.id-card-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--admin-accent-color, #42d158);
+  font-size: 1.8rem;
+  display: none;
+  z-index: 5;
+  text-align: center;
+}
+
+.id-card-loader.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.id-card-loader i {
+  animation: rotate 1.5s linear infinite;
+}
+
+.id-card-loader.active::after {
+  content: "جاري التحميل...";
+  font-size: 0.75rem;
+  color: var(--admin-text-color, #333);
+  margin-top: 8px;
+  font-weight: 500;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+}
+
+.id-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 10px;
+}
+
+.id-card-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+  margin-bottom: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.id-card-control-btn {
+  background-color: var(--admin-card-bg, #fff);
+  color: var(--admin-text-color, #333);
+  border: 1px solid var(--admin-border-color, #ddd);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.id-card-control-btn:hover {
+  background-color: var(--admin-accent-color, #42d158);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.id-card-download-btn {
+  background-color: var(--admin-accent-color, #42d158);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  margin: 0 0 0 0;
+}
+
+.id-card-download-btn:hover {
+  background-color: #38b94c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(66, 209, 88, 0.3);
+}
+
+.view-id-card-btn {
+  background-color: var(--admin-accent-color, #42d158);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-id-card-btn:hover {
+  background-color: #38b94c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(66, 209, 88, 0.3);
+}
+
+.view-id-card-btn i {
+  font-size: 1rem;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Additional keyframes for loading effect */
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #id-card-modal .modal {
+    width: 95%;
+    max-height: fit-content;
+  }
+
+  .id-card-image-container {
+    padding: 10px 10px 10px 10px;
+  }
+
+  .id-card-actions {
+    padding-bottom: 8px;
+  }
+
+  .id-card-controls {
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+
+  .id-card-control-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+
+  .id-card-download-btn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  .modal-header {
+    padding: 8px 15px;
+  }
+
+  .modal-header h3 {
+    font-size: 1rem;
+  }
+
+  .id-card-image-wrapper {
+    height: 30vh;
+  }
+}
+
+@media (hover: hover) {
+  .id-card-image-container img {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .id-card-image-container img:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* ID Verification Status Styling - Improved Design */
+.id-verification-status {
+  width: 100%;
+  padding: 15px;
+  background-color: var(--admin-card-bg, #1e1e1e);
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+  border: 1px solid var(--admin-border-color, #2d2d2d);
+}
+
+/* Updated verification indicator with title and description */
+.verification-indicator {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: rgba(255, 193, 7, 0.1);
+  margin-bottom: 12px;
+  color: #ffc107;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(255, 193, 7, 0.1);
+  text-align: right;
+}
+
+.verification-indicator::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 5px;
+  background-color: #ffc107;
+}
+
+.verification-indicator i {
+  margin-left: 12px;
+  font-size: 1.6rem;
+  margin-top: 4px;
+  animation: slight-bounce 2s infinite;
+}
+
+.status-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.status-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.status-description {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.verification-indicator.verified {
+  background-color: rgba(66, 209, 88, 0.15);
+  color: var(--admin-success-color, #34c759);
+  box-shadow: 0 2px 5px rgba(66, 209, 88, 0.1);
+}
+
+.verification-indicator.verified::before {
+  background-color: var(--admin-success-color, #34c759);
+}
+
+.verification-indicator.rejected {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--admin-error-color, #ff3b30);
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.1);
+}
+
+.verification-indicator.rejected::before {
+  background-color: var(--admin-error-color, #ff3b30);
+}
+
+/* Improved Verification Action Buttons */
+.verification-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.verify-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.verify-btn i {
+  font-size: 1.1rem;
+}
+
+.verify-btn.approve {
+  background-color: rgba(66, 209, 88, 0.15);
+  color: var(--admin-accent-color, #42d158);
+  border: 1px solid rgba(66, 209, 88, 0.3);
+}
+
+.verify-btn.approve:hover {
+  background-color: var(--admin-accent-color, #42d158);
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(66, 209, 88, 0.4);
+}
+
+.verify-btn.approve:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(66, 209, 88, 0.4);
+}
+
+.verify-btn.reject {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--admin-error-color, #ff3b30);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.verify-btn.reject:hover {
+  background-color: var(--admin-error-color, #ff3b30);
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+}
+
+.verify-btn.reject:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+}
+
+.verify-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.verification-details {
+  background-color: var(--admin-card-bg, #1e1e1e);
+  border-radius: 8px;
+  padding: 12px 15px;
+  border: 1px solid var(--admin-border-color, #2d2d2d);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.verification-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.9rem;
+  border-bottom: 1px dashed var(--admin-border-color, rgba(45, 45, 45, 0.5));
+}
+
+.verification-item:last-child {
+  border-bottom: none;
+}
+
+.verification-item .label {
+  color: var(--text-muted, #b0b0b0);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.verification-item .label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: var(--admin-accent-color, #42d158);
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.verification-item .value {
+  color: var(--text-color, #ffffff);
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes slight-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Media queries for verification indicator */
+@media (max-width: 768px) {
+  .id-verification-status {
+    padding: 12px;
+  }
+
+  .verify-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .verification-item {
+    font-size: 0.8rem;
+  }
+
+  .verification-indicator {
+    padding: 12px;
+  }
+
+  .verification-indicator i {
+    font-size: 1.3rem;
+    margin-left: 10px;
+  }
+
+  .status-title {
+    font-size: 1rem;
+  }
+
+  .status-description {
+    font-size: 0.8rem;
+  }
+}
+
+/* ID Badge Styles - Improved Design */
+.id-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 6px;
+  font-size: 0.75rem;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.id-badge::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0.6;
+  animation: pulse-ring 2s infinite;
+}
+
+.id-badge.pending {
+  background-color: #fff7e6;
+  color: #d97706;
+  border: 1.5px solid #fdba74;
+}
+
+.id-badge.pending::after {
+  box-shadow: 0 0 0 rgba(217, 119, 6, 0.4);
+  animation: pending-pulse 2s infinite;
+}
+
+.id-badge.verified {
+  background-color: #ecfdf5;
+  color: #10b981;
+  border: 1.5px solid #6ee7b7;
+}
+
+.id-badge.verified::after {
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: verified-pulse 2s infinite;
+}
+
+.id-badge.rejected {
+  background-color: #fee2e2;
+  color: #ef4444;
+  border: 1.5px solid #fca5a5;
+}
+
+.id-badge.rejected::after {
+  box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+  animation: rejected-pulse 2s infinite;
+}
+
+.view-id-card-btn {
+  position: relative;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.view-id-card-btn:hover .id-badge {
+  transform: scale(1.2);
+}
+
+@keyframes pending-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(217, 119, 6, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0);
+  }
+}
+
+@keyframes verified-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes rejected-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Modal Footer Styling */
+.modal-footer {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.modal-footer-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  background-color: #f7f7f7;
+  border-radius: 6px;
+  text-align: right;
+}
+
+.modal-footer-note i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+/* Animation for modal appearance */
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-container.active .modal-content {
+  animation: modal-fade-in 0.3s ease forwards;
+}
+
+/* Scrollbar styling for modal */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}

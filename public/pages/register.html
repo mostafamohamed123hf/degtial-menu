@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل الدخول | ديجيتال منيو</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>" />
+    <meta
+      name="description"
+      content="تسجيل حساب جديد في ديجيتال منيو لطلب الطعام عبر الإنترنت" />
+    
+    <!-- Inline script to prevent language flash -->
+    <script>
+      (function() {
+        var savedLang = localStorage.getItem('public-language') || 'ar';
+        var html = document.documentElement;
+        
+        if (savedLang === 'en') {
+          html.setAttribute('lang', 'en');
+          html.setAttribute('dir', 'ltr');
+        } else {
+          html.setAttribute('lang', 'ar');
+          html.setAttribute('dir', 'rtl');
+        }
+      })();
+    </script>
+    
+    <style>
+      /* Hide content until translations are applied */
+      body:not(.i18n-ready) {
+        opacity: 0;
+      }
+      body.i18n-ready {
+        opacity: 1;
+        transition: opacity 0.15s ease-in;
+      }
+    </style>
+    <style>
+      .auth-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        background-color: #0a1020;
+        background-image: radial-gradient(
+            circle at 10% 20%,
+            rgba(66, 209, 88, 0.04) 0%,
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 90% 80%,
+            rgba(66, 209, 88, 0.04) 0%,
+            transparent 30%
+          ),
+          linear-gradient(
+            135deg,
+            rgba(10, 16, 32, 0.9) 0%,
+            rgba(25, 35, 60, 0.8) 100%
+          );
+        position: relative;
+        overflow: hidden;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .auth-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2342d158' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        opacity: 0.3;
+        z-index: 0;
+      }
+
+      .auth-card {
+        width: 100%;
+        max-width: 450px;
+        background-color: #131c32;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.05);
+        animation: fadeIn 0.6s ease, floatUp 0.8s ease;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transform: translateZ(0);
+        transition: all 0.3s ease;
+      }
+
+      .auth-card:hover {
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.08);
+        transform: translateY(-5px) translateZ(0);
+      }
+
+      .auth-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, var(--primary-color), #65e580);
+        box-shadow: 0 0 20px rgba(66, 209, 88, 0.4);
+      }
+
+      @keyframes floatUp {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .floating-circle {
+        position: absolute;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), #65e580);
+        opacity: 0.07;
+        z-index: 0;
+        filter: blur(3px);
+      }
+
+      .floating-circle-1 {
+        width: 250px;
+        height: 250px;
+        top: -120px;
+        right: -100px;
+        animation: pulse-scale 8s ease-in-out infinite alternate;
+      }
+
+      .floating-circle-2 {
+        width: 180px;
+        height: 180px;
+        bottom: -90px;
+        left: -90px;
+        animation: pulse-scale 6s ease-in-out infinite alternate;
+        background: linear-gradient(135deg, #65e580, var(--primary-color));
+      }
+
+      .floating-circle-3 {
+        width: 120px;
+        height: 120px;
+        top: 50%;
+        left: -60px;
+        opacity: 0.05;
+        animation: pulse-scale 10s ease-in-out infinite alternate;
+      }
+
+      .floating-circle-4 {
+        width: 80px;
+        height: 80px;
+        bottom: 30%;
+        right: -20px;
+        opacity: 0.04;
+        animation: pulse-scale 7s ease-in-out infinite alternate;
+        background: linear-gradient(135deg, #65e580, var(--primary-color));
+      }
+
+      @keyframes pulse-scale {
+        0% {
+          transform: scale(1);
+          opacity: 0.05;
+        }
+        50% {
+          opacity: 0.08;
+        }
+        100% {
+          transform: scale(1.15);
+          opacity: 0.05;
+        }
+      }
+
+      .auth-header {
+        text-align: center;
+        margin-bottom: 25px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .auth-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        margin-bottom: 15px;
+        background: linear-gradient(to right, #ffffff, #dddddd);
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+      }
+
+      .form-container {
+        position: relative;
+        z-index: 1;
+      }
+
+      .auth-form {
+        display: none;
+      }
+
+      .auth-form.active {
+        display: block;
+        animation: fadeIn 0.5s ease;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #dddddd;
+        font-size: 0.95rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .input-with-icon {
+        position: relative;
+      }
+
+      .input-with-icon i {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #8a8fa3;
+        transition: all 0.3s ease;
+      }
+
+      .input-with-icon input:focus + i {
+        color: #42d158;
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .input-with-icon input {
+        padding-right: 45px;
+        width: 100%;
+        height: 55px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background-color: rgba(0, 0, 0, 0.25);
+        color: #ffffff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .input-with-icon input:focus {
+        border-color: rgba(66, 209, 88, 0.6);
+        box-shadow: 0 0 0 3px rgba(66, 209, 88, 0.15),
+          inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        outline: none;
+        transform: translateY(-2px);
+      }
+
+      .toggle-password {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #8a8fa3;
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0;
+        transition: all 0.2s ease;
+      }
+
+      .toggle-password:hover {
+        color: #42d158;
+      }
+
+      .toggle-password:focus {
+        outline: none;
+      }
+
+      .auth-button {
+        display: block;
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #349f46, #65e580);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3),
+          0 0 0 1px rgba(66, 209, 88, 0.2);
+        margin-top: 15px;
+        position: relative;
+        overflow: hidden;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        letter-spacing: 0.5px;
+      }
+
+      .auth-button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        transform: translateX(-100%);
+      }
+
+      .auth-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(66, 209, 88, 0.4),
+          0 0 0 1px rgba(66, 209, 88, 0.2);
+        background: linear-gradient(135deg, #3aad4d, #72ea8d);
+      }
+
+      .auth-button:active {
+        transform: translateY(0);
+      }
+
+      .auth-button i {
+        margin-left: 8px;
+        transition: transform 0.3s ease;
+      }
+
+      .auth-button:hover i {
+        transform: translateX(4px);
+      }
+
+      html[dir="ltr"] .auth-button i {
+        margin-left: 0;
+        margin-right: 8px;
+      }
+
+      html[dir="ltr"] .auth-button:hover i {
+        transform: translateX(-4px);
+      }
+
+      .auth-footer {
+        text-align: center;
+        margin-top: 35px;
+        padding-top: 25px;
+        font-size: 0.95rem;
+        color: #8a8fa3;
+        position: relative;
+        z-index: 1;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .auth-footer::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        left: 30%;
+        right: 30%;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(66, 209, 88, 0.3),
+          transparent
+        );
+      }
+
+      .auth-link {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: inline-block;
+        padding: 12px 24px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #349f46, #65e580);
+        margin-top: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2),
+          0 0 0 1px rgba(66, 209, 88, 0.2);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        letter-spacing: 0.5px;
+      }
+
+      .auth-link:hover {
+        text-decoration: none;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(66, 209, 88, 0.4),
+          0 0 0 1px rgba(66, 209, 88, 0.2);
+        background: linear-gradient(135deg, #3aad4d, #72ea8d);
+      }
+
+      .auth-link:active {
+        transform: translateY(0);
+      }
+
+      .auth-link i {
+        margin-left: 8px;
+      }
+
+      html[dir="ltr"] .auth-link i {
+        margin-left: 0;
+        margin-right: 8px;
+      }
+
+      html[dir="ltr"] .auth-link:hover i {
+        transform: translateX(-4px);
+      }
+
+      .back-button {
+        display: inline-flex;
+        align-items: center;
+        color: #a0a6b8;
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .back-button:hover {
+        color: #ffffff;
+        background: rgba(66, 209, 88, 0.1);
+        border-color: rgba(66, 209, 88, 0.2);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .back-button i {
+        margin-left: 8px;
+        transition: transform 0.3s ease;
+      }
+
+      .back-button:hover i {
+        transform: translateX(3px);
+        color: #42d158;
+      }
+
+      .error-message {
+        background-color: rgba(255, 59, 48, 0.1);
+        border-right: 3px solid rgb(255, 59, 48);
+        padding: 15px 18px;
+        color: rgb(255, 110, 110);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        margin-bottom: 25px;
+        display: none;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        box-shadow: 0 5px 15px rgba(255, 59, 48, 0.1);
+        transform: translateZ(0);
+      }
+
+      .error-message.show {
+        display: block;
+        animation: shake 0.5s ease-in-out;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20%,
+        60% {
+          transform: translateX(-5px);
+        }
+        40%,
+        80% {
+          transform: translateX(5px);
+        }
+      }
+
+      .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .form-check input {
+        margin-left: 10px;
+        width: 20px;
+        height: 20px;
+        accent-color: #42d158;
+        cursor: pointer;
+        position: relative;
+        top: -1px;
+      }
+
+      .form-check label {
+        color: #8a8fa3;
+        font-size: 0.9rem;
+      }
+
+      .forgot-password {
+        text-align: left;
+        margin-bottom: 20px;
+      }
+
+      .forgot-password a {
+        color: #42d158;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .forgot-password a:hover {
+        text-decoration: underline;
+      }
+
+      .tab {
+        display: none;
+      }
+
+      .tab.active {
+        display: none;
+      }
+
+      .terms-link {
+        color: #8a8fa3;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        padding: 3px 5px;
+        border-radius: 4px;
+      }
+
+      .terms-link:hover {
+        color: #42d158;
+        text-decoration: underline;
+        background-color: rgba(66, 209, 88, 0.05);
+      }
+
+      @media (max-width: 480px) {
+        .auth-card {
+          padding: 25px 20px;
+          background-color: #131c32;
+        }
+
+        .input-with-icon input {
+          height: 50px;
+          background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-button {
+          padding: 14px;
+          background: linear-gradient(135deg, #349f46, #65e580);
+        }
+
+        .auth-title {
+          font-size: 2rem;
+        }
+
+        .auth-footer {
+          margin-top: 25px;
+          padding-top: 15px;
+        }
+
+        .auth-link {
+          padding: 10px 15px;
+          width: 85%;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .register-section {
+          padding: 12px 10px;
+          margin: 10px 0;
+        }
+
+        .register-section-title {
+          font-size: 1rem;
+        }
+
+        .register-section-desc {
+          font-size: 0.85rem;
+          padding: 0 5px;
+          margin-bottom: 12px;
+        }
+      }
+
+      /* Remove social login related styles */
+      .social-login,
+      .social-buttons,
+      .social-button,
+      .social-button.google,
+      .social-button.facebook,
+      .social-button.twitter {
+        display: none;
+      }
+
+      .footer-text {
+        font-size: 1rem;
+        margin-bottom: 10px;
+        color: #dddddd;
+      }
+
+      .terms-section {
+        margin-top: 25px;
+        font-size: 0.85rem;
+        color: #6a7085;
+        transition: all 0.3s ease;
+      }
+
+      .terms-section:hover {
+        color: #8a8fa3;
+      }
+
+      .register-section {
+        background-color: rgba(0, 0, 0, 0.25);
+        border-radius: 14px;
+        padding: 20px;
+        margin: 20px 0 15px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .register-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .register-section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 12px;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+
+      .register-section-desc {
+        font-size: 0.95rem;
+        color: #a0a6b8;
+        margin-bottom: 18px;
+        padding: 0 5px;
+        line-height: 1.5;
+      }
+
+      /* Add styles for showing/hiding forms */
+      .login-container {
+        display: block;
+      }
+
+      .register-container {
+        display: none;
+      }
+
+      body.show-register .login-container {
+        display: none;
+      }
+
+      body.show-register .register-container {
+        display: block;
+        animation: fadeIn 0.5s ease;
+      }
+
+      .password-strength {
+        margin-top: 10px;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+
+      .password-strength.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .strength-text {
+        font-size: 0.9rem;
+        color: #8a8fa3;
+        display: block;
+        padding: 5px 0;
+        transition: color 0.3s ease;
+      }
+
+      /* Modern Toast Notification System */
+      .toast-notification-container {
+        position: fixed;
+        bottom: 30px;
+        right: 50%;
+        transform: translateX(50%);
+        z-index: 10000;
+        width: 100%;
+        max-width: 380px;
+        pointer-events: none;
+      }
+
+      .toast-notification {
+        background: #ffffff;
+        border-right: 5px solid #42d158;
+        color: #333333;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        margin-bottom: 15px;
+        transform: translateY(70px);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        text-align: right;
+        direction: rtl;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        pointer-events: auto;
+      }
+
+      .toast-notification::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to right, #42d158, #65e580);
+        transform-origin: left;
+        transform: scaleX(0);
+        transition: transform 3s cubic-bezier(0.19, 1, 0.22, 1);
+      }
+
+      .toast-notification.success {
+        border-right-color: #42d158;
+      }
+
+      .toast-notification.success i {
+        color: #42d158;
+      }
+
+      .toast-notification.success::before {
+        background: linear-gradient(to right, #42d158, #65e580);
+      }
+
+      .toast-notification.error {
+        border-right-color: #fd6b6b;
+      }
+
+      .toast-notification.error i {
+        color: #fd6b6b;
+      }
+
+      .toast-notification.error::before {
+        background: linear-gradient(to right, #fd6b6b, #ff8a8a);
+      }
+
+      .toast-notification.warning {
+        border-right-color: #ffb648;
+      }
+
+      .toast-notification.warning i {
+        color: #ffb648;
+      }
+
+      .toast-notification.warning::before {
+        background: linear-gradient(to right, #ffb648, #ffc875);
+      }
+
+      .toast-notification.info {
+        border-right-color: #4a90e2;
+      }
+
+      .toast-notification.info i {
+        color: #4a90e2;
+      }
+
+      .toast-notification.info::before {
+        background: linear-gradient(to right, #4a90e2, #6aafff);
+      }
+
+      @keyframes toast-in {
+        0% {
+          opacity: 0;
+          transform: translateY(70px) scale(0.8);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes toast-out {
+        0% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(70px) scale(0.8);
+        }
+      }
+
+      .toast-notification.show {
+        animation: toast-in 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+      }
+
+      .toast-notification.show::before {
+        transform: scaleX(1);
+      }
+
+      .toast-notification.hide {
+        animation: toast-out 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+      }
+
+      .toast-notification i {
+        margin-left: 15px;
+        font-size: 1.6rem;
+        background-color: rgba(255, 255, 255, 0.12);
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+      }
+
+      .toast-notification .toast-content {
+        flex: 1;
+      }
+
+      .toast-notification .toast-title {
+        font-weight: 700;
+        margin-bottom: 4px;
+        font-size: 1rem;
+      }
+
+      .toast-notification .toast-message {
+        font-weight: 500;
+        opacity: 0.85;
+        font-size: 0.9rem;
+      }
+
+      .toast-notification .toast-close {
+        background: none;
+        border: none;
+        color: #999;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 5px;
+        margin-right: 5px;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .toast-notification .toast-close:hover {
+        background-color: rgba(0, 0, 0, 0.06);
+        color: #555;
+      }
+
+      .language-switcher {
+        position: fixed;
+        top: 10px;
+        right: 20px;
+        left: auto;
+        padding: 8px 15px;
+        background-color: rgb(19, 28, 50);
+        color: rgb(255, 255, 255);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        cursor: pointer;
+        z-index: 1000;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 10px;
+        transition: 0.3s;
+      }
+
+      .language-switcher:hover {
+        background-color: rgba(66, 209, 88, 0.1);
+        border-color: rgba(66, 209, 88, 0.2);
+        transform: translateY(-2px);
+      }
+
+      /* RTL/LTR specific styles will be handled by JavaScript */
+
+      /* Add these styles to ensure the body has no margins or padding */
+      body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        background-color: #0a1020;
+      }
+    </style>
+  </head>
+  <body style="background-color: #0a1020">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="floating-circle floating-circle-1"></div>
+        <div class="floating-circle floating-circle-2"></div>
+        <div
+          class="floating-circle floating-circle-3"
+          style="
+            width: 120px;
+            height: 120px;
+            top: 50%;
+            left: -60px;
+            opacity: 0.05;
+            animation: pulse-scale 10s ease-in-out infinite alternate;
+          "></div>
+        <div
+          class="floating-circle floating-circle-4"
+          style="
+            width: 80px;
+            height: 80px;
+            bottom: 30%;
+            right: -20px;
+            opacity: 0.04;
+            animation: pulse-scale 7s ease-in-out infinite alternate;
+            background: linear-gradient(135deg, #65e580, var(--primary-color));
+          "></div>
+
+        <!-- Toast Notification Container -->
+        <div id="toast-container" class="toast-notification-container"></div>
+
+        <button class="back-button" id="back-to-home">
+          <i class="fas fa-arrow-right"></i>
+          <span data-i18n="backToHome">العودة للصفحة الرئيسية</span>
+        </button>
+
+        <!-- Login Form Container -->
+        <div class="login-container">
+          <div class="auth-header">
+            <div class="auth-title" data-i18n="loginTitle">تسجيل الدخول</div>
+          </div>
+
+          <div class="error-message" id="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="error-text">حدث خطأ. يرجى المحاولة مرة أخرى</span>
+          </div>
+
+          <div class="form-container">
+            <form class="auth-form active" id="login-form">
+              <div class="form-group">
+                <label for="login-email" data-i18n="email"
+                  >البريد الإلكتروني</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-envelope"></i>
+                  <input
+                    type="email"
+                    id="login-email"
+                    name="login-email"
+                    autocomplete="email"
+                    data-i18n-placeholder="emailPlaceholder"
+                    placeholder="أدخل بريدك الإلكتروني"
+                    required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="login-password" data-i18n="password"
+                  >كلمة المرور</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-lock"></i>
+                  <input
+                    type="password"
+                    id="login-password"
+                    name="login-password"
+                    autocomplete="current-password"
+                    data-i18n-placeholder="passwordPlaceholder"
+                    placeholder="أدخل كلمة المرور"
+                    required />
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    id="toggle-login-password">
+                    <i class="fas fa-eye" style="right: -14px"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div
+                class="form-row"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 20px;
+                ">
+                <div class="form-check">
+                  <input type="checkbox" id="remember-me" name="remember-me" />
+                  <label for="remember-me" data-i18n="rememberMe">تذكرني</label>
+                </div>
+                <div class="forgot-password">
+                  <a href="#" data-i18n="forgotPassword">نسيت كلمة المرور؟</a>
+                </div>
+              </div>
+
+              <button type="submit" class="auth-button">
+                <span data-i18n="loginButton">تسجيل الدخول</span>
+                <i class="fas fa-arrow-left"></i>
+              </button>
+            </form>
+          </div>
+
+          <div class="auth-footer">
+            <div class="register-section">
+              <div class="register-section-title" data-i18n="noAccountYet">
+                ليس لديك حساب بعد؟
+              </div>
+              <div
+                class="register-section-desc"
+                data-i18n="registerDescription">
+                قم بإنشاء حساب جديد للاستفادة من جميع المميزات وحفظ طلباتك
+                السابقة
+              </div>
+              <a href="#" class="auth-link" id="show-register">
+                <i class="fas fa-user-plus"></i>
+                <span data-i18n="createNewAccount">إنشاء حساب جديد</span>
+              </a>
+            </div>
+
+            <div class="terms-section">
+              <a href="#" class="terms-link" data-i18n="privacyPolicy"
+                >سياسة الخصوصية</a
+              >
+              |
+              <a href="#" class="terms-link" data-i18n="termsOfUse"
+                >شروط الاستخدام</a
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Register Form Container -->
+        <div class="register-container">
+          <div class="auth-header">
+            <div class="auth-title" data-i18n="registerTitle">
+              إنشاء حساب جديد
+            </div>
+          </div>
+
+          <div class="error-message" id="register-error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="register-error-text"
+              >حدث خطأ. يرجى المحاولة مرة أخرى</span
+            >
+          </div>
+
+          <div class="form-container">
+            <form class="auth-form active" id="register-form">
+              <div class="form-group">
+                <label for="register-name" data-i18n="fullName"
+                  >الاسم الكامل</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-user"></i>
+                  <input
+                    type="text"
+                    id="register-name"
+                    name="register-name"
+                    autocomplete="name"
+                    data-i18n-placeholder="fullNamePlaceholder"
+                    placeholder="أدخل اسمك الكامل"
+                    required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="register-username" data-i18n="username"
+                  >اسم المستخدم</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-user-tag"></i>
+                  <input
+                    type="text"
+                    id="register-username"
+                    name="register-username"
+                    autocomplete="username"
+                    data-i18n-placeholder="usernamePlaceholder"
+                    placeholder="أدخل اسم المستخدم الخاص بك"
+                    required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="register-contact" data-i18n="email"
+                  >البريد الإلكتروني</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-envelope"></i>
+                  <input
+                    type="email"
+                    id="register-contact"
+                    name="register-contact"
+                    autocomplete="email"
+                    data-i18n-placeholder="emailPlaceholder"
+                    placeholder="أدخل بريدك الإلكتروني"
+                    required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="register-password" data-i18n="password"
+                  >كلمة المرور</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-lock"></i>
+                  <input
+                    type="password"
+                    id="register-password"
+                    name="register-password"
+                    autocomplete="new-password"
+                    data-i18n-placeholder="passwordPlaceholder"
+                    placeholder="أدخل كلمة المرور"
+                    required />
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    id="toggle-register-password">
+                    <i class="fas fa-eye" style="right: -14px"></i>
+                  </button>
+                </div>
+                <div
+                  class="password-strength"
+                  id="password-strength"
+                  style="display: none">
+                  <span
+                    class="strength-text"
+                    id="strength-text"
+                    data-i18n="passwordStrength"
+                    >قوة كلمة المرور</span
+                  >
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label
+                  for="register-confirm-password"
+                  data-i18n="confirmPassword"
+                  >تأكيد كلمة المرور</label
+                >
+                <div class="input-with-icon">
+                  <i class="fas fa-lock"></i>
+                  <input
+                    type="password"
+                    id="register-confirm-password"
+                    name="register-confirm-password"
+                    autocomplete="new-password"
+                    data-i18n-placeholder="confirmPasswordPlaceholder"
+                    placeholder="أعد إدخال كلمة المرور"
+                    required />
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    id="toggle-register-confirm-password">
+                    <i class="fas fa-eye" style="right: -14px"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-check">
+                <input type="checkbox" id="terms" name="terms" required />
+                <label for="terms">
+                  <span data-i18n="agreeToTerms">أوافق على</span>
+                  <a href="#" class="terms-link" data-i18n="termsAndConditions"
+                    >الشروط والأحكام</a
+                  >
+                </label>
+              </div>
+
+              <button type="submit" class="auth-button">
+                <span data-i18n="registerButton">إنشاء حساب</span>
+                <i class="fas fa-arrow-left"></i>
+              </button>
+
+              <div
+                class="auth-footer"
+                style="border-top: none; margin-top: 20px; padding-top: 0">
+                <a
+                  href="#"
+                  class="auth-link back-to-login"
+                  style="
+                    background: transparent;
+                    color: #42d158;
+                    box-shadow: none;
+                  ">
+                  <i class="fas fa-arrow-right"></i>
+                  <span data-i18n="backToLogin">العودة لتسجيل الدخول</span>
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- JavaScript -->
+    <script src="../js/i18n.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/user-permissions.js"></script>
+    <script src="../js/global-settings-loader.js"></script>
+    <script src="../js/register.js"></script>
+    <script src="../js/theme.js"></script>
+
+    <script>
+      // Initialize toast container if needed
+      if (!document.getElementById("toast-container")) {
+        const toastContainer = document.createElement("div");
+        toastContainer.id = "toast-container";
+        document.body.appendChild(toastContainer);
+      }
+    </script>
+  </body>
+</html>

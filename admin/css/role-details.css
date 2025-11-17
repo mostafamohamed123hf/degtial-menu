@@ -1,0 +1,163 @@
+/* Role Details Modal */
+#role-details-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+}
+
+#role-details-modal.show {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+}
+
+.role-details-modal-content {
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease forwards;
+  border: 1px solid #e0e0e0;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.role-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.role-details-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.role-details-header .close-modal {
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.role-details-header .close-modal:hover {
+  opacity: 1;
+}
+
+.role-details-body {
+  padding: 20px;
+}
+
+.role-permissions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.permission-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.permission-name {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.permission-value {
+  display: flex;
+  align-items: center;
+}
+
+.permission-value .fa-check {
+  color: #34c759;
+}
+
+.permission-value .fa-times {
+  color: #ff3b30;
+}
+
+.no-permissions {
+  text-align: center;
+  padding: 30px 0;
+  color: #666;
+  opacity: 0.7;
+}
+
+/* Dark mode styles */
+body:not(.light-mode) #role-details-modal {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+body:not(.light-mode) .role-details-modal-content {
+  background-color: #121212;
+  border-color: #333;
+}
+
+body:not(.light-mode) .role-details-header {
+  border-color: #333;
+}
+
+body:not(.light-mode) .role-details-header h3 {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) .role-details-header .close-modal {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) .permission-item {
+  background-color: #2a2a2a;
+  border-color: #333;
+}
+
+body:not(.light-mode) .permission-name {
+  color: #f8f9fa;
+}
+
+body:not(.light-mode) .no-permissions {
+  color: #b0b0b0;
+}
+
+/* Responsive styles for role details modal */
+@media (max-width: 576px) {
+  .role-permissions-list {
+    grid-template-columns: 1fr;
+  }
+
+  .role-details-modal-content {
+    width: 95%;
+  }
+}

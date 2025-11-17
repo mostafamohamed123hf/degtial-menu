@@ -1,0 +1,1580 @@
+/**
+ * LTR (Left-to-Right) specific styles for English language
+ */
+
+/* LTR (Left-to-Right) Styles for English language */
+html[lang="en"] {
+  direction: ltr;
+}
+
+html[lang="en"] body {
+  text-align: left;
+}
+
+html[lang="en"] .header-container {
+  flex-direction: row-reverse;
+}
+
+html[lang="en"] .admin-actions {
+  flex-direction: row-reverse;
+}
+
+html[lang="en"] .admin-info {
+  text-align: right;
+}
+
+html[lang="en"] .sidebar-toggle {
+  transform: scaleX(-1);
+}
+@media (max-width: 1140px) {
+  html[lang="en"] .sidebar-close-btn {
+    right: 0;
+    left: auto;
+    margin-right: 5%;
+  }
+  
+}
+
+html[lang="en"] .admin-tabs {
+  left: 0;
+  right: auto;
+  border-right: 1px solid var(--admin-border-color);
+  border-left: none;
+}
+
+html[lang="en"] .admin-content {
+  margin-left: 250px;
+  margin-right: 0;
+}
+
+
+html[lang="en"] .sidebar-open-btn {
+  margin-right: 10px;
+  margin-left: 0;
+}
+
+html[lang="en"] .admin-tab i {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+/* Admin tabs LTR specific styles */
+html[lang="en"] .admin-tabs a:nth-last-child(2) {
+  border-right: 3px solid var(--admin-accent-color);
+  border-left: none;
+}
+
+html[lang="en"] .admin-tabs a:last-child {
+  border-right: 3px solid #ff9500;
+  border-left: none;
+}
+
+html[lang="en"] .admin-tabs a:nth-last-child(2):hover,
+html[lang="en"] .admin-tabs a:last-child:hover {
+  transform: translateX(5px);
+}
+
+html[lang="en"] .admin-tab:hover {
+  transform: translateX(5px);
+}
+
+html[lang="en"] .admin-tab.active {
+  transform: translateX(5px);
+}
+
+html[lang="en"] .admin-tab.active::after {
+  left: 0;
+  right: auto;
+}
+
+html[lang="en"] .admin-tabs-header {
+  background: linear-gradient(to left, rgba(66, 209, 88, 0.05), transparent);
+}
+
+/* Light mode LTR admin tabs */
+body.light-mode html[lang="en"] .admin-tabs a:nth-last-child(2) {
+  background-color: #e9f7ef;
+  border-right: 3px solid #42d158;
+  border-left: none;
+}
+
+body.light-mode html[lang="en"] .admin-tabs a:last-child {
+  background-color: #fff7e6;
+  border-right: 3px solid #ff9500;
+  border-left: none;
+}
+
+html[lang="en"] .form-group label,
+html[lang="en"] .setting-group label {
+  text-align: left;
+}
+
+html[lang="en"] .percentage-symbol,
+html[lang="en"] .points-label {
+  left: 10px;
+  right: auto;
+}
+html[lang="en"] .currency-symbol {
+  left: 16px;
+  right: auto;
+}
+html[lang="en"] .drag-handle {
+  position: relative;
+  left: -12px;
+}
+
+html[lang="en"] input[type="number"] {
+  padding-right: 10px;
+}
+
+html[lang="en"] .modal-header .close-modal {
+  left: 20px;
+  right: auto;
+}
+
+html[lang="en"] .stat-icon {
+  margin-right: 0;
+  margin-left: 15px;
+}
+
+html[lang="en"] .stat-details {
+  text-align: left;
+}
+
+html[lang="en"] .form-hint {
+  text-align: left;
+}
+
+html[lang="en"] .toggle-password {
+  right: auto;
+  left: 10px;
+}
+
+/* Position checkboxes on the right side in permission modals when language is English */
+html[lang="en"] .customer-permission-item {
+  text-align: left;
+  position: relative;
+  padding-right: 40px; /* Add space for the checkbox on the right */
+}
+
+html[lang="en"] .customer-permission-item input[type="checkbox"] {
+  position: absolute;
+  right: 15px;
+  left: auto;
+  margin-right: 0;
+  order: 2; /* Place checkbox on the right */
+}
+
+html[lang="en"] .customer-permission-item i {
+  padding-left: 0;
+  padding-right: 10px;
+  margin-right: 5px;
+}
+
+/* Position order-item::before on right side for English language */
+html[lang="en"] .order-item::before {
+  left: auto !important;
+  right: 0 !important;
+}
+
+/* Update background gradients for order items in English mode */
+html[lang="en"] .order-item.completed {
+  background: linear-gradient(
+    to left,
+    rgba(40, 167, 69, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+html[lang="en"] .order-item.pending {
+  background: linear-gradient(
+    to left,
+    rgba(255, 193, 7, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+html[lang="en"] .order-item.processing {
+  background: linear-gradient(
+    to left,
+    rgba(23, 162, 184, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+html[lang="en"] .order-item.cancelled {
+  background: linear-gradient(
+    to left,
+    rgba(220, 53, 69, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+/* Change border from left to right for order items when language is English */
+html[lang="en"] .order-item.completed {
+  border-left: none;
+  border-right: 4px solid #28a745;
+}
+
+html[lang="en"] .order-item.pending {
+  border-left: none;
+  border-right: 4px solid #ffc107;
+}
+
+html[lang="en"] .order-item.cancelled {
+  border-left: none;
+  border-right: 4px solid #dc3545;
+}
+
+/* Additional LTR styles for tables and lists */
+html[lang="en"] table {
+  text-align: left;
+}
+
+html[lang="en"] th,
+html[lang="en"] td {
+  text-align: left;
+}
+
+html[lang="en"] .modal-content {
+  text-align: left;
+}
+
+html[lang="en"] .customer-permission-item {
+  text-align: left;
+}
+
+html[lang="en"] .vouchers-list .voucher-card {
+  text-align: left;
+}
+
+html[lang="en"] .products-list .product-card {
+  text-align: left;
+}
+
+html[lang="en"] .best-products-list li {
+  text-align: left;
+}
+
+html[lang="en"] .orders-list .order-item {
+  text-align: left;
+}
+
+html[lang="en"] .admin-tab {
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-card-header {
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-card-body {
+  text-align: left;
+}
+
+html[lang="en"] .security-tips {
+  text-align: left;
+}
+
+html[lang="en"] .security-tips ul {
+  padding-left: 20px;
+  padding-right: 0;
+}
+
+/* Loyalty Points Section - English Specific Styles */
+html[lang="en"] .loyalty-points-container {
+  direction: ltr;
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-cards-container {
+  flex-direction: row;
+  gap: 20px;
+}
+
+html[lang="en"] .loyalty-card {
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-card-header {
+  flex-direction: row;
+}
+
+html[lang="en"] .loyalty-card-header i {
+  margin-right: 10px;
+  margin-left: 0;
+}
+
+html[lang="en"] .loyalty-card-body {
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-action-form {
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-action-form .form-group {
+  text-align: left;
+}
+
+html[lang="en"] .loyalty-action-btn {
+  flex-direction: row;
+}
+
+html[lang="en"] .loyalty-action-btn i {
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+html[lang="en"] .points-input-group {
+  flex-direction: row;
+}
+
+html[lang="en"] .points-input-group input {
+  padding-right: 10px;
+  padding-left: 60px;
+}
+
+html[lang="en"] .points-input-group .points-label {
+  left: 10px;
+  right: auto;
+}
+
+html[lang="en"] .discount-input-group {
+  flex-direction: row;
+}
+
+html[lang="en"] .discount-input-group input {
+  padding-right: 10px;
+  padding-left: 40px;
+}
+
+html[lang="en"] .discount-input-group .percentage-symbol {
+  left: 10px;
+  right: auto;
+}
+
+html[lang="en"] .toggle-setting {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+html[lang="en"] .free-items-list {
+  text-align: left;
+}
+
+html[lang="en"] .empty-message {
+  text-align: center;
+}
+
+/* Responsive styles for loyalty section */
+@media (max-width: 768px) {
+  html[lang="en"] .loyalty-cards-container {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  html[lang="en"] .admin-content {
+    margin-left: 0;
+  }
+
+  html[lang="en"] .admin-tabs {
+    transform: translateX(-100%);
+  }
+
+  html[lang="en"] .admin-tabs.active {
+    transform: translateX(0);
+  }
+}
+
+/* Basic text alignment for all elements */
+html[dir="ltr"] * {
+  text-align: left;
+  box-sizing: border-box;
+}
+
+html[dir="ltr"] .admin-info {
+  text-align: right;
+}
+
+html[dir="ltr"] .input-with-icon i {
+  left: 15px;
+  right: auto;
+}
+
+/* Fix for admin actions in header */
+html[dir="ltr"] .admin-actions {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+/* Fix for sidebar and main content */
+html[dir="ltr"] .admin-tabs {
+  left: 0;
+  right: auto;
+  border-left: none;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 250px;
+  z-index: 1000;
+}
+
+html[dir="ltr"] .admin-content {
+  margin-left: 250px;
+  margin-right: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+@media (max-width: 1140px) {
+  html[lang="en"] .admin-content.sidebar-initialized,
+  html[dir="ltr"] .admin-content.sidebar-initialized,
+  html[lang="en"] body.sidebar-expanded .admin-content.sidebar-initialized,
+  html[dir="ltr"] body.sidebar-expanded .admin-content.sidebar-initialized {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html[lang="en"] .header-container,
+  html[dir="ltr"] .header-container {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding-left: 15px !important;
+  }
+
+  html[lang="en"] .admin-tabs,
+  html[dir="ltr"] .admin-tabs {
+    transform: translateX(-250px);
+    z-index: 1001;
+  }
+
+  html[lang="en"] .admin-tabs.active,
+  html[dir="ltr"] .admin-tabs.active,
+  html[lang="en"] body.sidebar-expanded .admin-tabs,
+  html[dir="ltr"] body.sidebar-expanded .admin-tabs {
+    transform: translateX(0);
+  }
+
+  html[lang="en"] body.sidebar-expanded .header-container,
+  html[dir="ltr"] body.sidebar-expanded .header-container,
+  html[lang="en"] body.sidebar-expanded .admin-content,
+  html[dir="ltr"] body.sidebar-expanded .admin-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Fix for icons in sidebar */
+html[dir="ltr"] .admin-tab i {
+  margin-right: 10px;
+  margin-left: 0;
+}
+
+/* Fix for header container in LTR mode */
+html[dir="ltr"] .header-container {
+  flex-direction: row;
+  margin-left: 250px;
+  margin-right: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+  position: relative;
+  z-index: 900;
+  width: calc(100% - 250px);
+  box-sizing: border-box;
+}
+
+html[dir="ltr"] .admin-info {
+  flex-direction: row;
+}
+
+/* Fix for tables */
+html[dir="ltr"] table {
+  text-align: left;
+}
+
+html[dir="ltr"] th,
+html[dir="ltr"] td {
+  text-align: left;
+}
+
+/* Fix for forms */
+html[dir="ltr"] .form-group {
+  text-align: left;
+}
+
+html[dir="ltr"] label {
+  text-align: left;
+}
+
+/* Fix for buttons with icons */
+html[dir="ltr"] button i {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+/* Fix for modals */
+html[dir="ltr"] .modal-header {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+html[dir="ltr"] .modal-header h3 i {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+html[dir="ltr"] .modal-header .close-modal {
+  right: auto;
+  left: 20px;
+}
+
+/* Fix for stats cards */
+html[dir="ltr"] .stat-card {
+  flex-direction: row;
+}
+
+html[dir="ltr"] .input-with-icon input {
+  padding-left: 40px;
+  padding-right: 15px;
+}
+
+/* Fix for dropdown menus */
+html[dir="ltr"] .dropdown-menu {
+  left: 0;
+  right: auto;
+  text-align: left;
+}
+
+/* Fix for responsive sidebar */
+@media (max-width: 992px) {
+  html[dir="ltr"] .admin-content {
+    margin-left: 0;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  html[dir="ltr"] .admin-tabs {
+    left: -250px;
+    right: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease, left 0.3s ease;
+  }
+
+  html[dir="ltr"] .admin-tabs.active {
+    left: 0;
+    transform: translateX(0);
+  }
+
+  html[dir="ltr"] .header-container {
+    margin-left: 0;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  html[dir="ltr"] .sidebar-overlay.active {
+    left: 0;
+    right: 0;
+  }
+
+  html[dir="ltr"] .sidebar-open-btn {
+    display: flex;
+    margin-right: 10px;
+  }
+}
+
+/* Fix for admin greeting and name */
+html[dir="ltr"] .admin-greeting,
+html[dir="ltr"] .admin-name {
+  margin-right: 5px;
+}
+
+/* Fix for admin logout button */
+html[dir="ltr"] .admin-logout-btn i {
+  margin-right: 0;
+  margin-left: 5px;
+}
+
+/* Fix for section headers */
+html[dir="ltr"] .section-header {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+/* Fix for section title */
+html[dir="ltr"] .section-title {
+  text-align: left;
+}
+
+/* Fix for stats grid */
+html[dir="ltr"] .stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 2fr));
+}
+
+/* Fix for chart controls */
+html[dir="ltr"] .chart-period-controls {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+/* Fix for chart period buttons */
+html[dir="ltr"] .chart-period-btn {
+  margin-right: 10px;
+  margin-left: 0;
+}
+
+/* Fix for orders filter container */
+html[dir="ltr"] .orders-filter-container,
+html[lang="en"] .orders-filter-container {
+  flex-direction: row;
+  border-left: none;
+  border-right: 3px solid transparent;
+  text-align: left;
+}
+
+html[dir="ltr"] .orders-filter-container label,
+html[lang="en"] .orders-filter-container label {
+  margin-right: 12px;
+  margin-left: 0;
+}
+
+html[dir="ltr"] .orders-filter-container.active-filter,
+html[lang="en"] .orders-filter-container.active-filter {
+  border-right: none;
+  border-left: 3px solid var(--admin-accent-color, #42d158);
+}
+
+html[dir="ltr"] .clear-filter-btn,
+html[lang="en"] .clear-filter-btn {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+html[dir="ltr"] .clear-filter-btn i,
+html[lang="en"] .clear-filter-btn i {
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+html[dir="ltr"] .orders-list .order-item,
+html[lang="en"] .orders-list .order-item {
+  text-align: left;
+  flex-direction: row;
+}
+
+html[dir="ltr"] .orders-list .order-item .order-icon,
+html[lang="en"] .orders-list .order-item .order-icon {
+  margin-right: 15px;
+  margin-left: 0;
+}
+
+html[dir="ltr"] .orders-list .order-item .order-details,
+html[lang="en"] .orders-list .order-item .order-details {
+  text-align: left;
+}
+
+html[dir="ltr"] .orders-list .order-item .order-total,
+html[lang="en"] .orders-list .order-item .order-total {
+  margin-left: auto;
+  margin-right: 25px;
+}
+
+html[dir="ltr"] .summary-title.orders-title::before,
+html[lang="en"] .summary-title.orders-title::before {
+  left: 0;
+  right: auto;
+}
+
+/* Fix for responsive orders filter in LTR mode */
+@media (max-width: 576px) {
+  html[dir="ltr"] .orders-filter-container,
+  html[lang="en"] .orders-filter-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  html[dir="ltr"] .orders-filter-container label,
+  html[lang="en"] .orders-filter-container label {
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+
+  html[dir="ltr"] .clear-filter-btn,
+  html[lang="en"] .clear-filter-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Fix for tabs header */
+html[dir="ltr"] .admin-tabs-header {
+  flex-direction: row;
+  text-align: left;
+  padding-left: 20px;
+}
+
+/* Fix for admin tabs title */
+html[dir="ltr"] .admin-tabs-title {
+  margin-right: 0;
+}
+
+/* Fix for margins - convert margin-left to margin-right in LTR mode */
+html[dir="ltr"] [class*="margin-left"],
+html[dir="ltr"] [style*="margin-left"] {
+  margin-right: var(--margin-left-value, inherit);
+  margin-left: 0;
+}
+
+/* Apply margin-right to elements with margin-left */
+html[dir="ltr"] .stat-icon,
+html[dir="ltr"] .admin-tab i,
+html[dir="ltr"] .form-group label,
+html[dir="ltr"] .setting-group label,
+html[dir="ltr"] .modal-title i,
+html[dir="ltr"] .section-title i,
+html[dir="ltr"] .summary-title i,
+html[dir="ltr"] .form-hint i,
+html[dir="ltr"] .customer-permission-item i,
+html[dir="ltr"] .security-tips i,
+html[dir="ltr"] .voucher-card i,
+html[dir="ltr"] .product-card i,
+html[dir="ltr"] .loyalty-card-header i,
+html[dir="ltr"] .best-products-header i,
+html[dir="ltr"] .filter-group label,
+html[dir="ltr"] .form-actions button i,
+html[dir="ltr"] .discount-title::before {
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+/* Fix for buttons with icons */
+html[dir="ltr"] button i:first-child {
+  margin-right: 0;
+  margin-left: 0px;
+}
+
+/* Fix for input fields with icons */
+html[dir="ltr"] .input-group i,
+html[dir="ltr"] .search-container i {
+  right: auto;
+  left: 10px;
+}
+
+/* Fix for form actions */
+html[dir="ltr"] .form-actions {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+/* Fix for pagination */
+html[dir="ltr"] .pagination {
+  flex-direction: row;
+}
+
+/* Fix for card layouts */
+html[dir="ltr"] .card-header,
+html[dir="ltr"] .card-body,
+html[dir="ltr"] .card-footer {
+  text-align: left;
+}
+
+/* Fix for lists */
+html[dir="ltr"] ul,
+html[dir="ltr"] ol {
+  padding-left: 20px;
+  padding-right: 0;
+}
+
+/* Fix for modal dialogs */
+html[dir="ltr"] .modal-footer {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+/* Fix for toggle switches */
+html[dir="ltr"] .toggle-switch-container {
+  margin-left: 0;
+  margin-right: 10px;
+}
+
+/* Ensure light/dark toggle behaves correctly in English (LTR) mode */
+html[lang="en"] .toggle-switch {
+  flex-direction: row;
+}
+
+html[lang="en"] .toggle-switch label:before {
+  left: 2px;
+  right: auto;
+}
+
+html[lang="en"] .toggle-switch input:checked + label:before {
+  transform: translateX(30px);
+}
+
+html[lang="en"] .toggle-switch label:after {
+  left: 5px;
+  right: auto;
+}
+
+html[lang="en"] .toggle-switch input:checked + label:after {
+  transform: translateX(30px);
+}
+
+/* Fix for button icons alignment */
+html[dir="ltr"] button i + span,
+html[dir="ltr"] .btn i + span,
+html[dir="ltr"] a i + span {
+  margin-left: 5px;
+  margin-right: 0;
+}
+
+/* Fix for form controls with icons */
+html[dir="ltr"] .form-control-icon {
+  right: auto;
+  left: 10px;
+}
+
+/* Fix for input groups */
+html[dir="ltr"] .input-group-prepend {
+  margin-right: 0;
+  margin-left: -1px;
+}
+
+html[dir="ltr"] .input-group-append {
+  margin-left: 0;
+  margin-right: -1px;
+}
+
+/* Fix for checkboxes and radio buttons */
+html[dir="ltr"] input[type="checkbox"] + label,
+html[dir="ltr"] input[type="radio"] + label {
+  margin-left: 0;
+  margin-right: 5px;
+  padding-left: 0;
+  padding-right: 25px;
+}
+
+/* Fix for icons in form controls */
+html[dir="ltr"] .form-control-feedback {
+  right: auto;
+  left: 10px;
+}
+
+/* Fix for alert messages */
+html[dir="ltr"] .alert {
+  padding-left: 15px;
+  padding-right: 40px;
+  text-align: left;
+}
+
+html[dir="ltr"] .alert-dismissible .close {
+  right: auto;
+  left: 10px;
+}
+
+/* Fix for modal close button */
+html[dir="ltr"] .modal .close {
+  right: auto;
+  left: 15px;
+}
+
+/* Fix for sidebar toggle button */
+html[dir="ltr"] .sidebar-toggle {
+  transform: scaleX(-1);
+}
+
+/* Fix for admin panel specific components */
+
+/* Stats cards */
+html[dir="ltr"] .stat-card {
+  flex-direction: row;
+}
+
+html[dir="ltr"] .stat-icon {
+  margin-right: 15px;
+  margin-left: 0;
+}
+
+html[dir="ltr"] .stat-details {
+  text-align: left;
+}
+
+/* Orders list */
+html[dir="ltr"] .orders-list .order-item {
+  padding-left: 15px;
+  padding-right: 0;
+}
+
+html[dir="ltr"] .orders-list .order-item .order-details {
+  margin-left: 35px;
+}
+
+/* Product cards */
+html[dir="ltr"] .product-card .product-actions {
+  right: auto;
+  left: 10px;
+}
+
+html[dir="ltr"] .product-card .product-price {
+  text-align: left;
+}
+
+/* Voucher cards */
+html[dir="ltr"] .voucher-card .voucher-actions {
+  right: auto;
+  left: 10px;
+}
+
+/* Best products list */
+html[dir="ltr"] .best-products-list li {
+  padding-left: 0;
+  padding-right: 15px;
+}
+
+html[dir="ltr"] .best-products-list li .product-rank {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+/* Form inputs with symbols */
+html[dir="ltr"] .discount-input input,
+html[dir="ltr"] .points-input-group input {
+  padding-right: 10px;
+  padding-left: 40px;
+}
+
+html[dir="ltr"] .discount-input .percentage-symbol,
+html[dir="ltr"] .points-input-group .points-label {
+  right: auto;
+  left: 10px;
+}
+html[dir="ltr"] .price-input .currency-symbol {
+  right: auto;
+}
+
+html[dir="ltr"] .price-input input,
+html[lang="en"] .price-input input {
+  padding-left: 24px;
+  padding-right: 10px;
+}
+
+/* Admin tabs */
+html[dir="ltr"] .admin-tab {
+  padding-right: 15px;
+  padding-left: 20px;
+  text-align: left;
+}
+
+/* Loyalty cards */
+html[dir="ltr"] .loyalty-card-header i {
+  margin-right: 10;
+  margin-left: 0px;
+}
+html[dir="ltr"] #reset-points-customer,
+#adjust-points-customer,
+#free-item-product,
+#voucher-category,
+#selected-role,
+#product-category {
+  padding-left: 32px;
+}
+html[dir="ltr"] #points-exchange-rate,
+#adjust-points-value,
+#min-points-for-discount,
+#free-item-points {
+  padding-left: 55px;
+}
+
+html[dir="ltr"] .free-item-details {
+  padding-left: 10px;
+}
+
+/* Reservation table */
+html[dir="ltr"] .reservations-table th,
+html[dir="ltr"] .reservations-table td {
+  text-align: left;
+}
+
+/* Customer accounts table */
+html[dir="ltr"] .accounts-table th,
+html[dir="ltr"] .accounts-table td {
+  text-align: left;
+}
+
+/* Admin settings form */
+html[dir="ltr"] .settings-form .form-group {
+  text-align: left;
+}
+
+/* Fix for toggle password buttons */
+html[dir="ltr"] .password-input-group .toggle-password {
+  right: auto;
+  left: 10px;
+}
+
+/* Date range modal */
+html[dir="ltr"] .date-range-presets {
+  flex-direction: row;
+}
+
+html[dir="ltr"] .date-inputs-container {
+  flex-direction: row;
+}
+
+html[dir="ltr"] .date-range-actions {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+/* ID card modal */
+html[dir="ltr"] .id-card-controls {
+  flex-direction: row;
+}
+
+html[dir="ltr"] .verification-item .label {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+/* Role management modal */
+html[dir="ltr"] .roles-list .role-item {
+  text-align: left;
+}
+
+html[dir="ltr"] .roles-list .role-item .role-actions {
+  right: auto;
+  left: 10px;
+}
+
+/* Responsive design fixes */
+@media (max-width: 768px) {
+  html[dir="ltr"] .admin-content {
+    margin-left: 0;
+  }
+
+  html[dir="ltr"] .header-container {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  html[dir="ltr"] .admin-tabs {
+    transform: translateX(-100%);
+  }
+
+  html[dir="ltr"] .admin-tabs.active {
+    transform: translateX(0);
+  }
+
+  html[dir="ltr"] .sidebar-open-btn {
+    display: block;
+  }
+
+  html[dir="ltr"] .sidebar-overlay.active {
+    left: 0;
+    right: 0;
+  }
+
+  /* Mobile form layouts */
+  html[dir="ltr"] .form-row {
+    flex-direction: column;
+  }
+
+  html[dir="ltr"] .date-inputs-container {
+    flex-direction: column;
+  }
+}
+
+/* Fix for RTL-specific margins that need to be flipped in LTR mode */
+html[dir="ltr"] *[style*="margin-right"] {
+  margin-left: var(--margin-right-value, inherit);
+  margin-right: 0;
+}
+
+/* General fix for any elements with explicit RTL margins */
+html[dir="ltr"] [class*="mr-"] {
+  margin-left: var(--margin-right-value, inherit);
+  margin-right: 0;
+}
+
+html[dir="ltr"] [class*="ml-"] {
+  margin-right: var(--margin-left-value, inherit);
+  margin-left: 0;
+}
+
+/* LTR (Left-to-Right) styles for English language */
+
+html[lang="en"] .sales-chart-container .summary-title::before {
+  margin-left: 0;
+  margin-right: 10px;
+}
+
+/* Position order-item::before on right side for LTR direction */
+html[dir="ltr"] .order-item::before {
+  left: auto !important;
+  right: 0 !important;
+}
+
+/* Update background gradients for order items in LTR mode */
+html[dir="ltr"] .order-item.completed {
+  background: linear-gradient(
+    to left,
+    rgba(40, 167, 69, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+html[dir="ltr"] .order-item.pending {
+  background: linear-gradient(
+    to left,
+    rgba(255, 193, 7, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+html[dir="ltr"] .order-item.processing {
+  background: linear-gradient(
+    to left,
+    rgba(23, 162, 184, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+html[dir="ltr"] .order-item.cancelled {
+  background: linear-gradient(
+    to left,
+    rgba(220, 53, 69, 0.05),
+    transparent 20%
+  ) !important;
+}
+
+/* Same for LTR direction */
+html[dir="ltr"] .order-item.completed {
+  border-left: none;
+  border-right: 4px solid #28a745;
+}
+
+html[dir="ltr"] .order-item.pending {
+  border-left: none;
+  border-right: 4px solid #ffc107;
+}
+
+html[dir="ltr"] .order-item.cancelled {
+  border-left: none;
+  border-right: 4px solid #dc3545;
+}
+
+/* Position order-status-badge on left side for English language */
+html[lang="en"] .order-status-badge {
+  right: auto;
+  left: 8px;
+}
+
+/* Same for LTR direction */
+html[dir="ltr"] .order-status-badge {
+  right: auto;
+  left: 1px;
+}
+html[dir="ltr"] .order-status-badge i {
+  margin-right: 0;
+}
+
+/* Order Summary LTR Styles */
+html[lang="en"] .order-summary,
+html[dir="ltr"] .order-summary {
+  direction: ltr;
+  text-align: left;
+}
+
+html[lang="en"] .summary-row,
+html[dir="ltr"] .summary-row {
+  flex-direction: row;
+}
+
+html[lang="en"] .summary-label,
+html[dir="ltr"] .summary-label {
+  text-align: left;
+}
+
+html[lang="en"] .summary-value,
+html[dir="ltr"] .summary-value {
+  text-align: right;
+}
+
+html[lang="en"] .order-items-list,
+html[dir="ltr"] .order-items-list {
+  padding-right: 0;
+  padding-left: 5px;
+}
+
+html[lang="en"] .item-image-container,
+html[dir="ltr"] .item-image-container {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+/* Order Details Modal LTR Styles */
+html[lang="en"] .order-details-modal-body,
+html[dir="ltr"] .order-details-modal-body {
+  direction: ltr;
+  text-align: left;
+}
+
+html[lang="en"] .order-detail-item,
+html[dir="ltr"] .order-detail-item {
+  flex-direction: row;
+}
+
+html[lang="en"] .item-header,
+html[dir="ltr"] .item-header {
+  flex-direction: row;
+}
+
+html[lang="en"] .item-name-qty,
+html[dir="ltr"] .item-name-qty {
+  text-align: left;
+}
+
+html[lang="en"] .item-price-info,
+html[dir="ltr"] .item-price-info {
+  text-align: right;
+}
+
+html[lang="en"] .item-addon,
+html[dir="ltr"] .item-addon {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+html[lang="en"] .addon-name,
+html[dir="ltr"] .addon-name {
+  text-align: left;
+}
+
+html[lang="en"] .addon-price,
+html[dir="ltr"] .addon-price {
+  text-align: right;
+}
+
+html[lang="en"] .order-details-modal-footer,
+html[dir="ltr"] .order-details-modal-footer {
+  justify-content: flex-end;
+}
+
+/* Order Comments and Notes LTR Styles */
+html[lang="en"] .order-comment-section,
+html[dir="ltr"] .order-comment-section {
+  direction: ltr;
+  text-align: left;
+}
+
+html[lang="en"] .order-comment,
+html[dir="ltr"] .order-comment {
+  flex-direction: row;
+}
+
+html[lang="en"] .comment-icon,
+html[dir="ltr"] .comment-icon {
+  margin-right: 15px;
+  margin-left: 0;
+}
+
+html[lang="en"] .comment-text,
+html[dir="ltr"] .comment-text {
+  text-align: left;
+}
+
+html[lang="en"] .item-notes,
+html[dir="ltr"] .item-notes {
+  text-align: left;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Order Status Badges LTR Styles */
+html[lang="en"] .order-status-badge,
+html[dir="ltr"] .order-status-badge {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+html[lang="en"] .order-status-badge i,
+html[dir="ltr"] .order-status-badge i {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+/* Order Info Cards LTR Styles */
+html[lang="en"] .order-info-card,
+html[dir="ltr"] .order-info-card {
+  text-align: left;
+}
+
+html[lang="en"] .info-icon,
+html[dir="ltr"] .info-icon {
+  margin-right: 15px;
+  margin-left: 0;
+}
+
+html[lang="en"] .info-content,
+html[dir="ltr"] .info-content {
+  text-align: left;
+}
+
+html[lang="en"] .info-label,
+html[dir="ltr"] .info-label {
+  text-align: left;
+}
+
+html[lang="en"] .info-value,
+html[dir="ltr"] .info-value {
+  text-align: left;
+}
+
+/* Order Items Section LTR Styles */
+html[lang="en"] .order-items-section h4,
+html[dir="ltr"] .order-items-section h4 {
+  text-align: left;
+}
+
+html[lang="en"] .order-summary-section h4,
+html[dir="ltr"] .order-summary-section h4 {
+  text-align: left;
+}
+
+/* Fix scrollbars for LTR */
+html[lang="en"] .order-items-list::-webkit-scrollbar,
+html[dir="ltr"] .order-items-list::-webkit-scrollbar {
+  right: auto;
+  left: 0;
+}
+
+/* Order Status Badge English Text */
+html[lang="en"] .order-details-modal .status-badge.completed:before,
+html[dir="ltr"] .order-details-modal .status-badge.completed:before {
+  content: "Completed";
+}
+
+html[lang="en"] .order-details-modal .status-badge.pending:before,
+html[dir="ltr"] .order-details-modal .status-badge.pending:before {
+  content: "Pending";
+}
+
+html[lang="en"] .order-details-modal .status-badge.processing:before,
+html[dir="ltr"] .order-details-modal .status-badge.processing:before {
+  content: "Processing";
+}
+
+html[lang="en"] .order-details-modal .status-badge.cancelled:before,
+html[dir="ltr"] .order-details-modal .status-badge.cancelled:before {
+  content: "Cancelled";
+}
+
+/* Hide original text in status badges when in English/LTR mode */
+html[lang="en"] .order-details-modal .status-badge,
+html[dir="ltr"] .order-details-modal .status-badge {
+  font-size: 0;
+}
+
+html[lang="en"] .order-details-modal .status-badge:before,
+html[dir="ltr"] .order-details-modal .status-badge:before {
+  font-size: 0.85rem;
+}
+
+html[lang="en"] .order-details-modal .status-badge i,
+html[dir="ltr"] .order-details-modal .status-badge i {
+  font-size: 0.85rem;
+  margin-right: 5px;
+}
+
+/* Order Details Modal Header LTR Styles */
+html[lang="en"] .order-details-modal-header,
+html[dir="ltr"] .order-details-modal-header {
+  flex-direction: row;
+  text-align: left;
+  padding: 20px 25px;
+  justify-content: flex-start; /* Align items to the start (left) */
+}
+
+html[lang="en"] .order-details-modal-header h3,
+html[dir="ltr"] .order-details-modal-header h3 {
+  text-align: left;
+  margin-right: auto; /* Push other elements to the right */
+  order: 0; /* Ensure h3 comes first in the flex container */
+}
+
+html[lang="en"] .order-details-modal-header h3 i,
+html[dir="ltr"] .order-details-modal-header h3 i {
+  margin-right: 10px;
+  margin-left: 0;
+}
+
+html[lang="en"] .order-details-modal-close,
+html[dir="ltr"] .order-details-modal-close {
+  left: auto;
+  right: 20px;
+  order: -1; /* Ensure close button comes after the h3 */
+}
+
+/* Order ID Badge English Text and Positioning */
+html[lang="en"] .order-details-modal .order-id-badge,
+html[dir="ltr"] .order-details-modal .order-id-badge {
+  margin-right: 0;
+  margin-left: 8px;
+  order: -1;
+  direction: ltr;
+}
+
+html[lang="en"] .order-details-modal .order-id-badge::after,
+html[dir="ltr"] .order-details-modal .order-id-badge::after {
+  content: "";
+  display: none;
+}
+
+/* LTR Styles for Admin Panel */
+body.ltr-layout {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Voucher Modal LTR Styles */
+body.ltr-layout #voucher-modal .modal-content {
+  text-align: left;
+}
+
+body.ltr-layout #voucher-modal .form-group label {
+  text-align: left;
+}
+
+body.ltr-layout #voucher-modal .code-input-group {
+  flex-direction: row;
+}
+
+body.ltr-layout #voucher-modal .code-input-group button {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+body.ltr-layout #voucher-modal .price-input {
+  flex-direction: row;
+}
+
+body.ltr-layout #voucher-modal .price-input .currency-symbol {
+   right: 0;
+}
+
+body.ltr-layout #voucher-modal .discount-input {
+  flex-direction: row;
+}
+
+body.ltr-layout #voucher-modal .form-hint {
+  text-align: left;
+}
+
+body.ltr-layout #voucher-modal .form-actions {
+  text-align: right;
+}
+
+body.ltr-layout #voucher-modal .close-modal {
+  right: 15px;
+  left: auto;
+}
+
+/* Ensure proper alignment of form elements in LTR mode */
+body.ltr-layout .form-group {
+  text-align: left;
+}
+
+body.ltr-layout select,
+body.ltr-layout input[type="text"],
+body.ltr-layout input[type="number"],
+body.ltr-layout input[type="date"] {
+  text-align: left;
+}
+
+/* Fix for RTL icons in LTR mode */
+body.ltr-layout #voucher-modal .fa-sync-alt,
+body.ltr-layout #voucher-modal .fa-save {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+/* ID Card Modal LTR Styles */
+html[lang="en"] .id-verification-status {
+  direction: ltr;
+  text-align: left;
+}
+
+html[lang="en"] .verification-indicator {
+  text-align: left;
+  flex-direction: row;
+  align-items: center;
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  box-shadow: 0 2px 5px rgba(255, 193, 7, 0.1);
+}
+
+html[lang="en"] .verification-indicator::before {
+  right: auto;
+  left: 0;
+  background-color: #ffc107;
+}
+
+html[lang="en"] .verification-indicator i {
+  margin-left: 0;
+  margin-right: 12px;
+}
+
+html[lang="en"] .status-content {
+  text-align: left;
+}
+
+html[lang="en"] .verification-details {
+  text-align: left;
+}
+
+html[lang="en"] .verification-item {
+  text-align: left;
+  flex-direction: row;
+}
+
+html[lang="en"] .verification-item .label {
+  text-align: left;
+}
+
+html[lang="en"] .verification-item .label::before {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+html[lang="en"] .verification-item .value {
+  text-align: right;
+}
+
+html[lang="en"] .verification-actions {
+  flex-direction: row;
+}
+
+html[lang="en"] .verify-btn i {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+html[lang="en"] .id-card-download-btn i {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+html[lang="en"] .id-badge {
+  margin-right: 0;
+  margin-left: 6px;
+}
+
+html[lang="en"] .accounts-table th:first-child {
+  border-top-left-radius: 12px;
+}
+
+html[lang="en"] .accounts-table th:last-child {
+  border-top-right-radius: 12px;
+}

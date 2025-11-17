@@ -1,0 +1,53 @@
+{
+  "name": "Digital Menu",
+  "short_name": "Digital Menu",
+  "description": "Digital Menu System for Restaurants",
+  "start_url": "/public/pages/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#42d158",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Menu",
+      "short_name": "Menu",
+      "description": "View the menu",
+      "url": "/public/pages/index.html",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Cashier",
+      "short_name": "Cashier",
+      "description": "Open cashier system",
+      "url": "/public/pages/cashier.html",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "categories": ["food", "restaurant", "menu"],
+  "lang": "ar",
+  "dir": "rtl"
+}

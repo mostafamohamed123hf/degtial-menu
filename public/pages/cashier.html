@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title data-i18n="cashierPageTitle">نظام الكاشير | Digital Menu</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../../admin/css/admin.css" />
+    <link rel="stylesheet" href="../css/cashier.css" />
+    <link rel="stylesheet" href="../css/rating.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>" />
+    <meta
+      name="description"
+      content="Cashier system for Digital Menu - Manage orders and payments" />
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet" />
+
+    <!-- Inline script to prevent language flash -->
+    <script>
+      (function () {
+        var savedLang = localStorage.getItem("public-language") || "ar";
+        var html = document.documentElement;
+
+        if (savedLang === "en") {
+          html.setAttribute("lang", "en");
+          html.setAttribute("dir", "ltr");
+        } else {
+          html.setAttribute("lang", "ar");
+          html.setAttribute("dir", "rtl");
+        }
+      })();
+    </script>
+
+    <!-- Hide content until translations are applied -->
+    <style>
+      body:not(.i18n-ready) {
+        opacity: 0;
+      }
+      body.i18n-ready {
+        opacity: 1;
+        transition: opacity 0.15s ease-in;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Access Denied Modal -->
+    <div class="access-denied-overlay" id="access-denied-overlay">
+      <div class="access-denied-modal">
+        <div class="access-denied-icon">
+          <i class="fas fa-lock"></i>
+        </div>
+        <h2 class="access-denied-title" data-i18n="accessDenied">
+          Access Denied
+        </h2>
+        <p class="access-denied-message" id="access-denied-message"></p>
+        <button class="access-denied-button" id="access-denied-button">
+          <i class="fas fa-sign-in-alt"></i>
+          <span data-i18n="goToLogin">Go to Login</span>
+        </button>
+      </div>
+    </div>
+
+    <header>
+      <div class="header-container">
+        <div class="back-button">
+          <a href="index.html" title="الصفحة الرئيسية"
+            ><i class="fas fa-home"></i
+          ></a>
+        </div>
+        <h1 class="page-title" data-i18n="cashierSystem">نظام الكاشير</h1>
+        <div class="header-actions">
+          <button
+            id="notification-toggle-btn"
+            class="header-action-btn"
+            data-i18n-title="notificationsOn">
+            <i class="fas fa-bell"></i>
+          </button>
+          <div class="toggle-switch">
+            <div class="toggle-switch-container">
+              <input type="checkbox" id="switch" checked />
+              <label for="switch"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="cashier-content">
+      <!-- Orders Dashboard -->
+      <section class="cashier-section" id="active-orders-section">
+        <div class="section-header">
+          <h2 class="section-title" data-i18n="activeOrders">الطلبات النشطة</h2>
+        </div>
+
+        <div class="orders-grid" id="orders-grid">
+          <!-- Active orders will be loaded here dynamically -->
+          <div class="no-orders-message" id="no-orders-message">
+            <i class="fas fa-receipt"></i>
+            <p data-i18n="noActiveOrders">لا توجد طلبات نشطة حالياً</p>
+            <small data-i18n="tableOrdersWillAppear"
+              >طلبات الطاولات ستظهر هنا عند إدخال رقم الطاولة</small
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Order Processing -->
+      <section class="cashier-section" id="quick-processing-section">
+        <div class="section-header">
+          <h2 class="section-title" data-i18n="quickManagement">إدارة سريعة</h2>
+        </div>
+
+        <div class="quick-actions">
+          <div class="qr-scan-container">
+            <div class="manual-table-entry">
+              <input
+                type="number"
+                id="table-number-input"
+                min="1"
+                placeholder="رقم الطاولة"
+                data-i18n-placeholder="tableNumber" />
+              <button class="check-table-button" id="check-table-button">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="cashier-actions">
+            <button class="create-order-button" id="create-order-button">
+              <i class="fas fa-plus-circle"></i>
+              <span data-i18n="createNewOrder">إنشاء طلب جديد</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reservations Section -->
+      <section class="cashier-section" id="reservations-section">
+        <div class="section-header">
+          <h2 class="section-title" data-i18n="todayReservations">
+            حجوزات اليوم
+          </h2>
+          <div class="reservation-date-picker">
+            <input
+              type="date"
+              id="reservation-date"
+              class="reservation-date-input" />
+            <button id="refresh-reservations" class="refresh-button">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="reservations-container">
+          <div class="reservations-grid" id="reservations-grid">
+            <!-- Reservations will be loaded here dynamically -->
+            <div class="no-reservations-message" id="no-reservations-message">
+              <i class="fas fa-calendar-alt"></i>
+              <p data-i18n="noReservationsForDate">
+                لا توجد حجوزات لليوم المحدد
+              </p>
+              <small data-i18n="reservationsWillAppear"
+                >ستظهر هنا جميع الحجوزات المتاحة في اليوم المحدد</small
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent Activity -->
+      <section class="cashier-section" id="recent-activity-section">
+        <div class="recent-activity-header">
+          <h2 class="section-title" data-i18n="recentActivity">
+            النشاط الأخير
+          </h2>
+          <!-- Reset button will be added here dynamically -->
+        </div>
+
+        <div class="activity-list" id="activity-list">
+          <!-- Recent activity will be loaded here -->
+          <div class="empty-message">
+            <i class="fas fa-history"></i>
+            <p data-i18n="noRecentActivity">لا يوجد نشاط حديث</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal" id="order-details-modal">
+      <div class="modal-content">
+        <span class="close-modal" id="close-order-modal">&times;</span>
+        <h2 id="order-details-title" data-i18n="orderDetails">تفاصيل الطلب</h2>
+
+        <div class="order-details-container">
+          <!-- Order info will be added dynamically -->
+
+          <div class="order-items-table">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th data-i18n="item">الصنف</th>
+                  <th data-i18n="price">السعر</th>
+                  <th data-i18n="quantity">الكمية</th>
+                  <th data-i18n="total">الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody id="order-items">
+                <!-- Order items will be loaded here -->
+              </tbody>
+            </table>
+
+            <table class="totals-table">
+              <tr>
+                <td data-i18n="subtotal">المجموع الفرعي:</td>
+                <td id="order-subtotal"></td>
+              </tr>
+              <tr id="tax-row">
+                <td data-i18n="tax">الضريبة:</td>
+                <td id="order-tax"></td>
+              </tr>
+              <tr id="service-tax-row">
+                <td data-i18n="serviceTax">ضريبة الخدمة:</td>
+                <td id="order-service-tax"></td>
+              </tr>
+              <tr id="discount-row">
+                <td data-i18n="discount">الخصم:</td>
+                <td id="order-discount"></td>
+              </tr>
+              <tr id="loyalty-discount-row">
+                <td>
+                  <span data-i18n="loyaltyDiscount">خصم نقاط الولاء</span
+                  ><span id="loyalty-discount-info"></span>:
+                </td>
+                <td id="order-loyalty-discount"></td>
+              </tr>
+              <tr class="grand-total">
+                <td data-i18n="total">الإجمالي:</td>
+                <td id="order-total"></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="order-actions">
+            <button class="complete-order-button" id="complete-order-button">
+              <i class="fas fa-check-circle"></i>
+              <span data-i18n="completeOrderAndBill"
+                >إنهاء الطلب وإصدار الفاتورة</span
+              >
+            </button>
+            <button class="print-receipt-button" id="print-receipt-button">
+              <i class="fas fa-print"></i>
+              <span data-i18n="printReceipt">طباعة الإيصال</span>
+            </button>
+            <button
+              class="print-kitchen-receipt-button"
+              id="print-kitchen-receipt-button">
+              <i class="fas fa-utensils"></i>
+              <span data-i18n="printKitchenReceipt">طباعة إيصال المطبخ</span>
+            </button>
+            <button class="cancel-order-button" id="cancel-order-button">
+              <i class="fas fa-ban"></i>
+              <span data-i18n="cancelOrder">إلغاء الطلب</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create New Order Modal -->
+    <div class="modal" id="create-order-modal">
+      <div class="modal-content new-order-modal-content">
+        <span class="close-modal" id="close-create-order-modal">&times;</span>
+        <h2 id="create-order-title" data-i18n="createNewOrder">
+          إنشاء طلب جديد
+        </h2>
+
+        <div class="new-order-container">
+          <!-- Table Number Selection -->
+          <div class="order-table-selection">
+            <label for="new-order-table-number" data-i18n="tableNumber"
+              >رقم الطاولة</label
+            >
+            <input
+              type="number"
+              id="new-order-table-number"
+              min="1"
+              placeholder="أدخل رقم الطاولة"
+              data-i18n-placeholder="enterTableNumber"
+              required />
+          </div>
+
+          <!-- Products and Offers Tabs -->
+          <div class="order-items-tabs">
+            <div class="tabs-header">
+              <button
+                class="tab-btn active"
+                id="products-tab"
+                data-tab="products">
+                <i class="fas fa-box"></i>
+                <span data-i18n="selectProducts">اختر المنتجات</span>
+              </button>
+              <button class="tab-btn" id="offers-tab" data-tab="offers">
+                <i class="fas fa-tag"></i>
+                <span data-i18n="availableOffers">العروض المتاحة</span>
+              </button>
+            </div>
+
+            <!-- Products Section -->
+            <div
+              class="order-products-section tab-content active"
+              id="products-content">
+              <div class="products-header">
+                <div class="category-filter">
+                  <button class="category-btn active" data-category="all">
+                    <span data-i18n="allCategories">جميع الفئات</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="products-grid" id="new-order-products-grid">
+                <!-- Products will be loaded here dynamically -->
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span data-i18n="loadingProducts"
+                    >جاري تحميل المنتجات...</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Offers Section -->
+            <div class="order-offers-section tab-content" id="offers-content">
+              <div class="offers-grid" id="new-order-offers-grid">
+                <!-- Offers will be loaded here dynamically -->
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span data-i18n="loadingOffers">جاري تحميل العروض...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cart Section -->
+          <div class="order-cart-section">
+            <h3 data-i18n="orderCart" data-count="0">سلة الطلب</h3>
+            <div class="cart-items" id="new-order-cart-items">
+              <div class="empty-cart-message">
+                <i class="fas fa-shopping-cart"></i>
+                <p data-i18n="emptyCart">السلة فارغة</p>
+              </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="order-summary">
+              <div class="summary-row">
+                <span data-i18n="subtotal">المجموع الفرعي:</span>
+                <span id="new-order-subtotal">0.00 جنيه</span>
+              </div>
+              <div class="summary-row">
+                <span data-i18n="tax">الضريبة:</span>
+                <span id="new-order-tax">0.00 جنيه</span>
+              </div>
+              <div class="summary-row">
+                <span data-i18n="serviceTax">ضريبة الخدمة:</span>
+                <span id="new-order-service-tax">0.00 جنيه</span>
+              </div>
+              <div class="summary-row total-row">
+                <span data-i18n="total">الإجمالي:</span>
+                <span id="new-order-total">0.00 جنيه</span>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="submit-order-button" id="submit-new-order-button">
+              <i class="fas fa-check-circle"></i>
+              <span data-i18n="submitOrder">تأكيد الطلب</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Addons Modal -->
+    <div class="modal" id="product-addons-modal">
+      <div class="modal-content addons-modal-content">
+        <span class="close-modal" id="close-addons-modal">&times;</span>
+        <h2 id="addons-product-name">اختر الإضافات</h2>
+
+        <div class="addons-container" id="addons-container">
+          <!-- Addons will be loaded here dynamically -->
+        </div>
+
+        <div class="modal-footer addons-footer">
+          <div class="addons-total-price">
+            <span class="addons-total-price-label" data-i18n="total"
+              >الإجمالي</span
+            >
+            <span class="addons-total-price-value" id="addons-total-price"
+              >0.00 جنيه</span
+            >
+          </div>
+          <div class="addon-quantity-selector">
+            <label for="addon-quantity" data-i18n="quantity">الكمية:</label>
+            <button class="quantity-btn" id="addon-quantity-minus">
+              <i class="fas fa-minus"></i>
+            </button>
+            <input type="number" id="addon-quantity" value="1" min="1" />
+            <button class="quantity-btn" id="addon-quantity-plus">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <button class="add-to-cart-button" id="add-to-cart-button">
+            <i class="fas fa-cart-plus"></i>
+            <span data-i18n="addToCart">إضافة إلى السلة</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- New notification system -->
+    <div class="cashier-notifications" id="cashier-notifications"></div>
+
+    <!-- Fixed notifications system -->
+    <div id="fixed-notifications"></div>
+
+    <!-- Audio for notifications -->
+    <audio
+      id="notification-sound"
+      src="../../sounds/notification.mp3"
+      preload="auto"></audio>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/i18n.js"></script>
+    <script src="../js/global-settings-loader.js"></script>
+    <script src="../js/cashier.js"></script>
+  </body>
+</html>
