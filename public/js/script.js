@@ -4062,6 +4062,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   function checkForTableNumber() {
     const urlParams = new URLSearchParams(window.location.search);
     const tableNumber = urlParams.get("table");
+    const qid = urlParams.get("qid");
     function hasValidSession(table) {
       try {
         const token = sessionStorage.getItem("orderSessionToken") || "";
@@ -4077,7 +4078,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         return false;
       }
     }
-    function requestSession(table) {
+    function requestSession(table, qidParam) {
       try {
         const baseUrl =
           window.API_BASE_URL ||
@@ -4087,7 +4088,12 @@ document.addEventListener("DOMContentLoaded", async function () {
               hostname === "localhost" || hostname === "127.0.0.1";
             return isLocal ? "http://localhost:5000" : origin;
           })();
-        fetch(`${baseUrl}/api/table/session?table=${table}`)
+        const sessionUrl = qidParam
+          ? `${baseUrl}/api/table/session?table=${table}&qid=${encodeURIComponent(
+              qidParam
+            )}`
+          : `${baseUrl}/api/table/session?table=${table}`;
+        fetch(sessionUrl)
           .then((r) => r.json())
           .then((d) => {
             if (d && d.success && d.token) {
@@ -4101,6 +4107,15 @@ document.addEventListener("DOMContentLoaded", async function () {
                   : "تم تفعيل الطلب لمدة 20 دقيقة";
               if (typeof showToast === "function") {
                 showToast(msg, "success", 3000);
+              }
+            } else if (!qidParam) {
+              const lang = localStorage.getItem("public-language") || "ar";
+              const warn =
+                lang === "en"
+                  ? "QR validation required. Please open via table QR"
+                  : "يتطلب التحقق عبر رمز QR. يرجى فتح الصفحة عبر رمز الطاولة";
+              if (typeof showToast === "function") {
+                showToast(warn, "warning", 3000);
               }
             }
           })
@@ -4203,6 +4218,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (!localStorage.getItem(firstScanKey)) {
         localStorage.setItem(firstScanKey, "1");
       }
+      // If a QR token is present in the URL, request a session immediately
+      if (qid) {
+        requestSession(tableNumber, qid);
+      } else if (!hasValidSession(tableNumber)) {
+        // If no QR token and no valid session, keep the scan button visible
+      }
     }
   }
 
@@ -4250,10 +4271,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             running = false;
             const raw = codes[0].rawValue || "";
             let scannedTable = null;
+            let scannedQid = null;
             try {
               const u = new URL(raw, window.location.origin);
               const p = new URLSearchParams(u.search);
               scannedTable = p.get("table");
+              scannedQid = p.get("qid");
             } catch (_) {}
             if (scannedTable && String(scannedTable) === String(currentTable)) {
               try {
@@ -4265,9 +4288,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                       hostname === "localhost" || hostname === "127.0.0.1";
                     return isLocal ? "http://localhost:5000" : origin;
                   })();
-                const r = await fetch(
-                  `${baseUrl}/api/table/session?table=${currentTable}`
-                );
+                const sessionUrl = scannedQid
+                  ? `${baseUrl}/api/table/session?table=${currentTable}&qid=${encodeURIComponent(
+                      scannedQid
+                    )}`
+                  : `${baseUrl}/api/table/session?table=${currentTable}`;
+                const r = await fetch(sessionUrl);
                 const d = await r.json();
                 if (d && d.success && d.token) {
                   sessionStorage.setItem("orderSessionToken", d.token);
@@ -4279,6 +4305,13 @@ document.addEventListener("DOMContentLoaded", async function () {
                       : "تم تفعيل الطلب لمدة 20 دقيقة";
                   if (typeof showToast === "function")
                     showToast(okMsg, "success", 3000);
+                } else if (!scannedQid) {
+                  const errMsg =
+                    lang === "en"
+                      ? "QR validation required. Use the official table QR"
+                      : "يتطلب التحقق عبر رمز QR الرسمي للطاولة";
+                  if (typeof showToast === "function")
+                    showToast(errMsg, "error", 3000);
                 }
               } catch (_) {}
               stop();
