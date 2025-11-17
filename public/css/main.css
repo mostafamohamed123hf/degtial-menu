@@ -6646,6 +6646,11 @@ html[dir="rtl"] input::placeholder {
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* Always keep Scan QR button visible */
+.language-switcher#scan-qr-btn {
+  display: flex !important;
+}
+
 .language-switcher:hover {
   background-color: rgba(66, 209, 88, 0.2);
   border-color: rgba(66, 209, 88, 0.5);

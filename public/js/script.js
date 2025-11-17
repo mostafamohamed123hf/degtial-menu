@@ -4408,6 +4408,24 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Initialize the offers section
   loadOffers();
   checkForTableNumber();
+  (function ensureScanButtonVisible() {
+    const btn = document.getElementById("scan-qr-btn");
+    if (!btn) return;
+    btn.style.display = "block";
+    try {
+      const observer = new MutationObserver(() => {
+        if (btn.style.display === "none" || getComputedStyle(btn).display === "none") {
+          btn.style.display = "block";
+        }
+      });
+      observer.observe(btn, { attributes: true, attributeFilter: ["style", "class"] });
+    } catch (_) {}
+    setInterval(() => {
+      if (btn.style.display === "none" || getComputedStyle(btn).display === "none") {
+        btn.style.display = "block";
+      }
+    }, 15000);
+  })();
   initReservationForm();
 
   // Restore active sidebar item
