@@ -4154,14 +4154,6 @@ document.addEventListener("DOMContentLoaded", async function () {
           link.href = `${base}?table=${tableNumber}`;
         });
 
-        const scanBtn = document.getElementById("scan-qr-btn");
-        if (scanBtn) {
-          const lang = localStorage.getItem("public-language") || "ar";
-          scanBtn.textContent = lang === "en" ? "Scan QR" : "مسح QR";
-          scanBtn.style.display = "block";
-          scanBtn.onclick = () => openQrScanModal(tableNumber);
-        }
-
         const firstScanKey = `firstScan:${tableNumber}`;
         if (!localStorage.getItem(firstScanKey)) {
           localStorage.setItem(firstScanKey, "1");
@@ -4180,7 +4172,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (scanBtn) {
         const lang = localStorage.getItem("public-language") || "ar";
         scanBtn.textContent = lang === "en" ? "Scan QR" : "مسح QR";
-        scanBtn.style.display = "block";
+        scanBtn.style.display = !hasValidSession(tableNumber)
+          ? "block"
+          : "none";
         scanBtn.onclick = () => openQrScanModal(tableNumber);
       }
 
@@ -4205,8 +4199,6 @@ document.addEventListener("DOMContentLoaded", async function () {
               "tableDisplayHiddenUntil",
               hiddenUntil.toString()
             );
-            const sb = document.getElementById("scan-qr-btn");
-            if (sb) sb.style.display = "block";
           }, 500);
         }, 30000);
       }, 300);
@@ -4235,11 +4227,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  setInterval(() => {
-    const scanBtn = document.getElementById("scan-qr-btn");
-    if (scanBtn) scanBtn.style.display = "block";
-  }, 10000);
-
   async function openQrScanModal(currentTable) {
     const modal = document.getElementById("qr-scan-modal");
     const video = document.getElementById("qr-video");
@@ -4256,18 +4243,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         const t = stream && stream.getTracks ? stream.getTracks() : [];
         t.forEach((x) => x.stop());
       } catch (_) {}
-      try {
-        video.srcObject = null;
-      } catch (_) {}
       modal.style.display = "none";
     }
     closeBtn.onclick = stop;
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) stop();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") stop();
-    }, { once: true });
     if (!("BarcodeDetector" in window)) {
       const msg =
         lang === "en"
@@ -4331,9 +4309,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                 } else {
                   const errMsg =
                     lang === "en"
-                      ? (scannedQid
-                          ? "Invalid or expired QR. Ask staff for a new QR"
-                          : "QR validation required. Use the official table QR")
+                      ? scannedQid
+                        ? "Invalid or expired QR. Ask staff for a new QR"
+                        : "QR validation required. Use the official table QR"
                       : scannedQid
                       ? "رمز QR غير صالح أو منتهي. اطلب رمزًا جديدًا من الموظف"
                       : "يتطلب التحقق عبر رمز QR الرسمي للطاولة";
@@ -4348,7 +4326,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     ? "Network error. Please try scanning again"
                     : "خطأ في الشبكة. يرجى المحاولة مرة أخرى";
                 hint.textContent = errMsg;
-                if (typeof showToast === "function") showToast(errMsg, "error", 3000);
+                if (typeof showToast === "function")
+                  showToast(errMsg, "error", 3000);
                 running = true;
               }
             } else {
@@ -4408,24 +4387,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Initialize the offers section
   loadOffers();
   checkForTableNumber();
-  (function ensureScanButtonVisible() {
-    const btn = document.getElementById("scan-qr-btn");
-    if (!btn) return;
-    btn.style.display = "block";
-    try {
-      const observer = new MutationObserver(() => {
-        if (btn.style.display === "none" || getComputedStyle(btn).display === "none") {
-          btn.style.display = "block";
-        }
-      });
-      observer.observe(btn, { attributes: true, attributeFilter: ["style", "class"] });
-    } catch (_) {}
-    setInterval(() => {
-      if (btn.style.display === "none" || getComputedStyle(btn).display === "none") {
-        btn.style.display = "block";
-      }
-    }, 15000);
-  })();
   initReservationForm();
 
   // Restore active sidebar item

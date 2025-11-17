@@ -1480,7 +1480,8 @@ html[dir="ltr"] .banner-content::after {
 }
 
 @keyframes pulse-badge {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 12px rgba(66, 209, 88, 0.4);
   }
@@ -1491,7 +1492,8 @@ html[dir="ltr"] .banner-content::after {
 }
 
 @keyframes rotate-gift {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(0deg);
   }
   25% {
@@ -1525,16 +1527,19 @@ html[dir="ltr"] .banner-content::after {
 }
 
 @keyframes glow-text {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow: 0 0 5px rgba(66, 209, 88, 0.5);
   }
   50% {
-    text-shadow: 0 0 10px rgba(66, 209, 88, 0.8), 0 0 15px rgba(66, 209, 88, 0.6);
+    text-shadow: 0 0 10px rgba(66, 209, 88, 0.8),
+      0 0 15px rgba(66, 209, 88, 0.6);
   }
 }
 
 @keyframes bounce-icon {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -2086,7 +2091,11 @@ body.light-mode .table-indicator {
   justify-content: center;
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, rgba(29, 45, 80, 0.95), rgba(19, 59, 92, 0.85));
+  background: linear-gradient(
+    135deg,
+    rgba(29, 45, 80, 0.95),
+    rgba(19, 59, 92, 0.85)
+  );
   border-radius: 12px;
   backdrop-filter: blur(10px);
 }
@@ -2246,8 +2255,8 @@ body.light-mode .table-indicator {
   padding: 10px 18px;
   width: fit-content;
   border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 
-              0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   font-size: 12px;
   font-weight: 700;
   z-index: 2;
@@ -2257,15 +2266,16 @@ body.light-mode .table-indicator {
 }
 
 @keyframes timer-glow {
-  0%, 100% {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 
-                0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-                0 0 20px rgba(59, 130, 246, 0.3);
+  0%,
+  100% {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+      0 0 20px rgba(59, 130, 246, 0.3);
   }
   50% {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 
-                0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-                0 0 30px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+      0 0 30px rgba(59, 130, 246, 0.5);
   }
 }
 
@@ -2277,7 +2287,8 @@ body.light-mode .table-indicator {
 }
 
 @keyframes clock-tick {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -2550,21 +2561,20 @@ body.light-mode .offer-timer {
   color: #1e293b;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border: 2px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15), 
-              0 0 0 1px rgba(59, 130, 246, 0.1) inset;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15),
+    0 0 0 1px rgba(59, 130, 246, 0.1) inset;
   animation: timer-glow-light 3s ease-in-out infinite;
 }
 
 @keyframes timer-glow-light {
-  0%, 100% {
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15), 
-                0 0 0 1px rgba(59, 130, 246, 0.1) inset,
-                0 0 20px rgba(59, 130, 246, 0.2);
+  0%,
+  100% {
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15),
+      0 0 0 1px rgba(59, 130, 246, 0.1) inset, 0 0 20px rgba(59, 130, 246, 0.2);
   }
   50% {
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2), 
-                0 0 0 1px rgba(59, 130, 246, 0.15) inset,
-                0 0 30px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2),
+      0 0 0 1px rgba(59, 130, 246, 0.15) inset, 0 0 30px rgba(59, 130, 246, 0.3);
   }
 }
 
@@ -3040,7 +3050,7 @@ body.light-mode .offers-hero-banner .floating-circle-3 {
     .offer-discounted-price {
       font-size: 20px;
     }
-    
+
     .offer-banner-content {
       padding: 0px 12px;
     }
@@ -6646,11 +6656,6 @@ html[dir="rtl"] input::placeholder {
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* Always keep Scan QR button visible */
-.language-switcher#scan-qr-btn {
-  display: flex !important;
-}
-
 .language-switcher:hover {
   background-color: rgba(66, 209, 88, 0.2);
   border-color: rgba(66, 209, 88, 0.5);
@@ -6812,7 +6817,7 @@ html[lang="en"] .offer-info p {
 }
 
 .footer-section h4::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   bottom: 0;
@@ -6978,7 +6983,14 @@ html[dir="rtl"] .footer-link:hover {
 }
 
 .social-link.instagram:hover {
-  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  background: linear-gradient(
+    45deg,
+    #f09433 0%,
+    #e6683c 25%,
+    #dc2743 50%,
+    #cc2366 75%,
+    #bc1888 100%
+  );
 }
 
 .social-link.x-twitter:hover {
