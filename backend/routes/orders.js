@@ -7,6 +7,27 @@ const mongoose = require("mongoose");
 const { protectCustomer } = require("../middleware/customerAuth");
 const GlobalSettings = require("../models/GlobalSettings");
 const PointsHistory = require("../models/PointsHistory");
+const jwt = require("jsonwebtoken");
+
+function validateOrderSession(req, tableNumber) {
+  const token = req.headers["x-order-session"] || "";
+  if (!token) {
+    return { ok: false, message: "Order session required" };
+  }
+  try {
+    const secret = process.env.JWT_SECRET || "your_default_jwt_secret";
+    const decoded = jwt.verify(token, secret);
+    if (!decoded || decoded.type !== "order_session") {
+      return { ok: false, message: "Invalid session" };
+    }
+    if (decoded.tableNumber !== String(tableNumber || "")) {
+      return { ok: false, message: "Session table mismatch" };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: "Expired or invalid session" };
+  }
+}
 
 // Add GET endpoint to get all orders (for cashier page)
 router.get("/", async (req, res) => {
@@ -108,6 +129,11 @@ router.post("/guest", async (req, res) => {
       });
     }
 
+    const sessionCheck = validateOrderSession(req, tableNumber);
+    if (!sessionCheck.ok) {
+      return res.status(403).json({ success: false, message: sessionCheck.message });
+    }
+
     // Check if mongoose is properly imported
     if (!mongoose || !mongoose.Types || !mongoose.Types.ObjectId) {
       console.error("Mongoose not properly imported");
@@ -203,6 +229,11 @@ router.post("/", protectCustomer, async (req, res) => {
       tableNumber,
       status,
     } = req.body;
+
+    const sessionCheck = validateOrderSession(req, tableNumber);
+    if (!sessionCheck.ok) {
+      return res.status(403).json({ success: false, message: sessionCheck.message });
+    }
 
     // Make sure the customer is authenticated
     if (!req.customer || !req.customer._id) {

@@ -3652,48 +3652,77 @@ document.addEventListener("DOMContentLoaded", function () {
     // Clear the container
     container.innerHTML = "";
 
-    // Create URL with table number for the QR code
+    // Create URL with table number and secure QR token
     const currentUrl = window.location.href;
     const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf("/") + 1);
-    const menuUrl = baseUrl + `index.html?table=${tableNumber}`;
-
-    // Generate QR code
-    const qr = qrcode(0, "M");
-    qr.addData(menuUrl);
-    qr.make();
-
-    // Create QR code image element
-    const qrImg = document.createElement("img");
-    qrImg.src = qr.createDataURL();
-    qrImg.alt = `${getTranslation("tableWord")} ${tableNumber}`;
-    qrImg.classList.add("qr-code-image");
-
-    // Add table info
-    const tableInfo = document.createElement("div");
-    tableInfo.classList.add("table-info");
-    tableInfo.innerHTML = `<i class="fas fa-utensils"></i> ${getTranslation(
-      "tableWord"
-    )} ${getCurrentLanguage() === "ar" ? "رقم " : "#"}${tableNumber}`;
-
-    // Append to container
-    container.appendChild(qrImg);
-    container.appendChild(tableInfo);
-
-    // If generating the preview, add a save button
-    if (isPreview) {
-      const saveBtn = document.createElement("button");
-      saveBtn.classList.add("generate-qr-button");
-      saveBtn.innerHTML = `<i class="fas fa-save"></i> ${getTranslation(
-        "saveQr"
-      )}`;
-      saveBtn.style.marginTop = "15px";
-
-      saveBtn.addEventListener("click", () => {
-        saveQRCode(tableNumber, qrImg.src);
-      });
-
-      container.appendChild(saveBtn);
+    const API_BASE_URL = window.API_BASE_URL || (function () {
+      const { hostname, origin } = window.location;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      return isLocal ? "http://localhost:5000" : origin;
+    })();
+    const token = localStorage.getItem("adminToken");
+    let menuUrl = baseUrl + `index.html?table=${tableNumber}`;
+    if (token) {
+      try {
+        // Request a signed QR id from the server (admin-only)
+        // eslint-disable-next-line no-undef
+        const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+        // Note: synchronous build flow with async fetch inside is acceptable here
+        // because QR is generated immediately after
+      } catch (_) {}
     }
+    // Try to fetch qid synchronously via async/await in an IIFE
+    (async () => {
+      try {
+        if (token) {
+          const r = await fetch(`${API_BASE_URL}/api/table/qr-token?table=${tableNumber}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const d = await r.json();
+          if (d && d.success && d.qid) {
+            menuUrl = baseUrl + `index.html?table=${tableNumber}&qid=${encodeURIComponent(d.qid)}`;
+          }
+        }
+      } catch (_) {}
+      // Generate QR code
+      const qr = qrcode(0, "M");
+      qr.addData(menuUrl);
+      qr.make();
+
+      // Create QR code image element
+      const qrImg = document.createElement("img");
+      qrImg.src = qr.createDataURL();
+      qrImg.alt = `${getTranslation("tableWord")} ${tableNumber}`;
+      qrImg.classList.add("qr-code-image");
+
+      // Add table info
+      const tableInfo = document.createElement("div");
+      tableInfo.classList.add("table-info");
+      tableInfo.innerHTML = `<i class="fas fa-utensils"></i> ${getTranslation(
+        "tableWord"
+      )} ${getCurrentLanguage() === "ar" ? "رقم " : "#"}${tableNumber}`;
+
+      // Append to container
+      container.appendChild(qrImg);
+      container.appendChild(tableInfo);
+
+      // If generating the preview, add a save button
+      if (isPreview) {
+        const saveBtn = document.createElement("button");
+        saveBtn.classList.add("generate-qr-button");
+        saveBtn.innerHTML = `<i class="fas fa-save"></i> ${getTranslation(
+          "saveQr"
+        )}`;
+        saveBtn.style.marginTop = "15px";
+
+        saveBtn.addEventListener("click", () => {
+          saveQRCode(tableNumber, qrImg.src);
+        });
+
+        container.appendChild(saveBtn);
+      }
+    })();
   }
 
   function saveQRCode(tableNumber, qrImageSrc) {

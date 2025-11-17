@@ -1186,6 +1186,24 @@ document.addEventListener("DOMContentLoaded", async function () {
       // Get table number (if any)
       const tableNumber = getTableNumber();
 
+      const sessionToken = sessionStorage.getItem("orderSessionToken") || "";
+      const sessionExpiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+      const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+      const nowMs = Date.now();
+      const expMs = sessionExpiresAt ? new Date(sessionExpiresAt).getTime() : 0;
+      const validSession = !!sessionToken && expMs > nowMs && String(sessionTable || "") === String(tableNumber || "");
+      if (!validSession) {
+        const lang = localStorage.getItem("public-language") || "ar";
+        const msg = lang === "en" ? "Please scan the table QR to start ordering (20 min)." : "يرجى مسح رمز الطاولة لبدء الطلب (20 دقيقة).";
+        showCustomToast(msg, "warning");
+        checkoutBtn.disabled = false;
+        const checkoutText = typeof getTranslation === 'function' 
+          ? getTranslation('checkout') 
+          : 'إتمام الطلب';
+        checkoutBtn.innerHTML = `<span data-i18n="checkout">${checkoutText}</span> <i class=\"fas fa-check\"></i>`;
+        return;
+      }
+
       // Create order data object
       const orderData = {
         items,
@@ -1235,6 +1253,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              "X-Order-Session": sessionToken,
             },
             body: JSON.stringify({
               items: orderData.items,
@@ -1490,6 +1509,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Order-Session": sessionStorage.getItem("orderSessionToken") || "",
         },
         body: JSON.stringify(requestPayload),
         // Add a timeout to prevent long waits

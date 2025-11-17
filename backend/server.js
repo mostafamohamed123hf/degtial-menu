@@ -27,6 +27,7 @@ const uploadRoutes = require("./routes/upload");
 const roleRoutes = require("./routes/roles");
 const adminPointsRoutes = require("./routes/admin-points");
 const globalSettingsRoutes = require("./routes/globalSettings");
+const tableRoutes = require("./routes/table");
 
 // Initialize express app
 const app = express();
@@ -315,6 +316,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/admin/points", adminPointsRoutes);
 app.use("/api/global-settings", globalSettingsRoutes);
+app.use("/api/table", tableRoutes);
 
 // Debug route to list all registered routes
 app.get("/api/debug/routes", (req, res) => {

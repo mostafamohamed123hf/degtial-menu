@@ -63,6 +63,8 @@
           <i class="fas fa-bars"></i>
         </div>
         <div id="table-number-display" class="table-number-display"></div>
+        
+        <button id="scan-qr-btn" class="language-switcher" style="display:none"></button>
         <button id="language-switcher" class="language-switcher">
           English
         </button>
@@ -536,6 +538,13 @@
             <div class="orders-grid"></div>
           </div>
         </section>
+      </div>
+    </div>
+    <div id="qr-scan-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;">
+      <div style="position: relative; width: 90%; max-width: 420px; background: var(--card-bg, #fff); border-radius: 16px; padding: 16px;">
+        <button id="qr-close-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 22px; cursor: pointer">×</button>
+        <video id="qr-video" playsinline style="width: 100%; border-radius: 12px; background: #000"></video>
+        <div class="qr-hint" style="margin-top: 10px; text-align: center; font-weight: 600"></div>
       </div>
     </div>
 

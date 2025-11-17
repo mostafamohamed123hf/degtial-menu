@@ -4060,6 +4060,41 @@ document.addEventListener("DOMContentLoaded", async function () {
   function checkForTableNumber() {
     const urlParams = new URLSearchParams(window.location.search);
     const tableNumber = urlParams.get("table");
+    function hasValidSession(table) {
+      try {
+        const token = sessionStorage.getItem("orderSessionToken") || "";
+        const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+        const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+        const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+        return !!token && expMs > Date.now() && String(sessionTable || "") === String(table || "");
+      } catch (_) {
+        return false;
+      }
+    }
+    function requestSession(table) {
+      try {
+        const baseUrl = window.API_BASE_URL || (function () {
+          const { hostname, origin } = window.location;
+          const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+          return isLocal ? "http://localhost:5000" : origin;
+        })();
+        fetch(`${baseUrl}/api/table/session?table=${table}`)
+          .then((r) => r.json())
+          .then((d) => {
+            if (d && d.success && d.token) {
+              sessionStorage.setItem("orderSessionToken", d.token);
+              sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
+              sessionStorage.setItem("orderSessionTable", table);
+              const lang = localStorage.getItem("public-language") || "ar";
+              const msg = lang === "en" ? "Ordering enabled for 20 minutes" : "تم تفعيل الطلب لمدة 20 دقيقة";
+              if (typeof showToast === "function") {
+                showToast(msg, "success", 3000);
+              }
+            }
+          })
+          .catch(() => {});
+      } catch (_) {}
+    }
 
     if (tableNumber) {
       // Get the table number display element
@@ -4092,6 +4127,11 @@ document.addEventListener("DOMContentLoaded", async function () {
           link.href = `${base}?table=${tableNumber}`;
         });
 
+        const firstScanKey = `firstScan:${tableNumber}`;
+        if (!localStorage.getItem(firstScanKey)) {
+          localStorage.setItem(firstScanKey, "1");
+        }
+
         return;
       }
 
@@ -4100,6 +4140,16 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <i class="fas fa-concierge-bell"></i>
                 <span>طاولة ${tableNumber}</span>
             `;
+
+      
+
+      const scanBtn = document.getElementById("scan-qr-btn");
+      if (scanBtn) {
+        const lang = localStorage.getItem("public-language") || "ar";
+        scanBtn.textContent = lang === "en" ? "Scan QR" : "مسح QR";
+        scanBtn.style.display = !hasValidSession(tableNumber) ? "block" : "none";
+        scanBtn.onclick = () => openQrScanModal(tableNumber);
+      }
 
       // Display with animation
       setTimeout(() => {
@@ -4136,6 +4186,79 @@ document.addEventListener("DOMContentLoaded", async function () {
         const base = "/pages/cart.html";
         link.href = `${base}?table=${tableNumber}`;
       });
+
+      const firstScanKey = `firstScan:${tableNumber}`;
+      if (!localStorage.getItem(firstScanKey)) {
+        localStorage.setItem(firstScanKey, "1");
+      }
+    }
+  }
+
+  async function openQrScanModal(currentTable) {
+    const modal = document.getElementById("qr-scan-modal");
+    const video = document.getElementById("qr-video");
+    const closeBtn = document.getElementById("qr-close-btn");
+    const hint = modal.querySelector(".qr-hint");
+    const lang = localStorage.getItem("public-language") || "ar";
+    hint.textContent = lang === "en" ? "Point camera at the table QR" : "وجّه الكاميرا نحو رمز الطاولة";
+    let stream;
+    async function stop() {
+      try { const t = stream && stream.getTracks ? stream.getTracks() : []; t.forEach(x=>x.stop()); } catch(_) {}
+      modal.style.display = "none";
+    }
+    closeBtn.onclick = stop;
+    if (!("BarcodeDetector" in window)) {
+      const msg = lang === "en" ? "QR scanning not supported on this browser" : "مسح QR غير مدعوم في هذا المتصفح";
+      if (typeof showToast === "function") showToast(msg, "warning", 3000);
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+      await video.play();
+      modal.style.display = "flex";
+      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      let running = true;
+      const tick = async () => {
+        if (!running) return;
+        try {
+          const codes = await detector.detect(video);
+          if (codes && codes.length) {
+            running = false;
+            const raw = codes[0].rawValue || "";
+            let scannedTable = null;
+            try {
+              const u = new URL(raw, window.location.origin);
+              const p = new URLSearchParams(u.search);
+              scannedTable = p.get("table");
+            } catch(_) {}
+            if (scannedTable && String(scannedTable) === String(currentTable)) {
+              try {
+                const baseUrl = window.API_BASE_URL || (function(){ const { hostname, origin } = window.location; const isLocal = hostname === "localhost" || hostname === "127.0.0.1"; return isLocal ? "http://localhost:5000" : origin; })();
+                const r = await fetch(`${baseUrl}/api/table/session?table=${currentTable}`);
+                const d = await r.json();
+                if (d && d.success && d.token) {
+                  sessionStorage.setItem("orderSessionToken", d.token);
+                  sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
+                  sessionStorage.setItem("orderSessionTable", currentTable);
+                  const okMsg = lang === "en" ? "Ordering enabled for 20 minutes" : "تم تفعيل الطلب لمدة 20 دقيقة";
+                  if (typeof showToast === "function") showToast(okMsg, "success", 3000);
+                }
+              } catch(_) {}
+              stop();
+            } else {
+              const err = lang === "en" ? "Please scan the QR of the same table" : "يرجى مسح رمز نفس الطاولة";
+              if (typeof showToast === "function") showToast(err, "error", 3000);
+              running = true;
+            }
+          }
+        } catch(_) {}
+        if (running) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    } catch(_) {
+      const msg = lang === "en" ? "Camera access denied" : "تم رفض الوصول للكاميرا";
+      if (typeof showToast === "function") showToast(msg, "error", 3000);
     }
   }
 
