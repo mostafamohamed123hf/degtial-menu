@@ -4205,6 +4205,8 @@ document.addEventListener("DOMContentLoaded", async function () {
               "tableDisplayHiddenUntil",
               hiddenUntil.toString()
             );
+            const sb = document.getElementById("scan-qr-btn");
+            if (sb) sb.style.display = "block";
           }, 500);
         }, 30000);
       }, 300);
@@ -4233,6 +4235,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
+  setInterval(() => {
+    const scanBtn = document.getElementById("scan-qr-btn");
+    if (scanBtn) scanBtn.style.display = "block";
+  }, 10000);
+
   async function openQrScanModal(currentTable) {
     const modal = document.getElementById("qr-scan-modal");
     const video = document.getElementById("qr-video");
@@ -4249,9 +4256,18 @@ document.addEventListener("DOMContentLoaded", async function () {
         const t = stream && stream.getTracks ? stream.getTracks() : [];
         t.forEach((x) => x.stop());
       } catch (_) {}
+      try {
+        video.srcObject = null;
+      } catch (_) {}
       modal.style.display = "none";
     }
     closeBtn.onclick = stop;
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) stop();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") stop();
+    }, { once: true });
     if (!("BarcodeDetector" in window)) {
       const msg =
         lang === "en"
