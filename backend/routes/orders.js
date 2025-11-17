@@ -1051,6 +1051,7 @@ router.get("/most-ordered-products", async (req, res) => {
         $group: {
           _id: "$items.id",
           name: { $first: "$items.name" },
+          nameEn: { $first: "$items.nameEn" },
           image: { $first: "$items.image" },
           totalOrdered: { $sum: "$items.quantity" },
           averagePrice: { $avg: "$items.price" },
@@ -1066,6 +1067,7 @@ router.get("/most-ordered-products", async (req, res) => {
           _id: 0,
           id: "$_id",
           name: 1,
+          nameEn: 1,
           image: 1,
           totalOrdered: 1,
           averagePrice: { $round: ["$averagePrice", 2] },
@@ -1101,35 +1103,37 @@ router.get("/api/orders/most-ordered-products", async (req, res) => {
     const limit = parseInt(req.query.limit) || 5;
 
     // Aggregate to find the most ordered products
-    const mostOrderedProducts = await Order.aggregate([
-      // Unwind the items array to get individual items
-      { $unwind: "$items" },
-      // Group by product id and sum quantities
-      {
-        $group: {
-          _id: "$items.id",
-          name: { $first: "$items.name" },
-          image: { $first: "$items.image" },
-          totalOrdered: { $sum: "$items.quantity" },
-          averagePrice: { $avg: "$items.price" },
-        },
+  const mostOrderedProducts = await Order.aggregate([
+    // Unwind the items array to get individual items
+    { $unwind: "$items" },
+    // Group by product id and sum quantities
+    {
+      $group: {
+        _id: "$items.id",
+        name: { $first: "$items.name" },
+        nameEn: { $first: "$items.nameEn" },
+        image: { $first: "$items.image" },
+        totalOrdered: { $sum: "$items.quantity" },
+        averagePrice: { $avg: "$items.price" },
       },
+    },
       // Sort by total ordered in descending order
       { $sort: { totalOrdered: -1 } },
       // Limit to the requested number of products
       { $limit: limit },
-      // Project the fields we want to return
-      {
-        $project: {
-          _id: 0,
-          id: "$_id",
-          name: 1,
-          image: 1,
-          totalOrdered: 1,
-          averagePrice: { $round: ["$averagePrice", 2] },
-        },
+    // Project the fields we want to return
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        name: 1,
+        nameEn: 1,
+        image: 1,
+        totalOrdered: 1,
+        averagePrice: { $round: ["$averagePrice", 2] },
       },
-    ]);
+    },
+  ]);
 
     res.status(200).json({
       success: true,
