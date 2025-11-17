@@ -4154,6 +4154,14 @@ document.addEventListener("DOMContentLoaded", async function () {
           link.href = `${base}?table=${tableNumber}`;
         });
 
+        const scanBtn = document.getElementById("scan-qr-btn");
+        if (scanBtn) {
+          const lang = localStorage.getItem("public-language") || "ar";
+          scanBtn.textContent = lang === "en" ? "Scan QR" : "مسح QR";
+          scanBtn.style.display = "block";
+          scanBtn.onclick = () => openQrScanModal(tableNumber);
+        }
+
         const firstScanKey = `firstScan:${tableNumber}`;
         if (!localStorage.getItem(firstScanKey)) {
           localStorage.setItem(firstScanKey, "1");
@@ -4172,9 +4180,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (scanBtn) {
         const lang = localStorage.getItem("public-language") || "ar";
         scanBtn.textContent = lang === "en" ? "Scan QR" : "مسح QR";
-        scanBtn.style.display = !hasValidSession(tableNumber)
-          ? "block"
-          : "none";
+        scanBtn.style.display = "block";
         scanBtn.onclick = () => openQrScanModal(tableNumber);
       }
 
