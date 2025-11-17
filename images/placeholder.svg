@@ -1,14 +1,6 @@
-<<<<<<< HEAD
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="80" height="80" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="80" height="80" fill="#1c2741"/>
   <text x="40" y="40" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#a0a0a0">No Image</text>
   <rect x="0" y="0" width="80" height="80" fill="none" stroke="#a0a0a0" stroke-width="2"/>
-=======
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="80" height="80" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="80" height="80" fill="#1c2741"/>
-  <text x="40" y="40" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#a0a0a0">No Image</text>
-  <rect x="0" y="0" width="80" height="80" fill="none" stroke="#a0a0a0" stroke-width="2"/>
->>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
 </svg> 

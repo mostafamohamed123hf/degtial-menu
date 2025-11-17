@@ -1056,15 +1056,6 @@ function applyTranslations() {
 
   // Update page title based on current page
   const currentPath = document.location.pathname;
-<<<<<<< HEAD
-  if (currentPath.includes("/cashier.html")) {
-    document.title = getTranslation("cashierPageTitle");
-  } else if (currentPath.includes("/cart.html")) {
-    document.title = getTranslation("cartPageTitle");
-  } else if (currentPath.includes("/profile.html")) {
-    document.title = getTranslation("profilePageTitle");
-  } else if (currentPath.includes("/register.html")) {
-=======
   if (currentPath.includes("/cashier.html") || currentPath.includes("/pages/cashier.html")) {
     document.title = getTranslation("cashierPageTitle");
   } else if (currentPath.includes("/cart.html") || currentPath.includes("/pages/cart.html")) {
@@ -1072,7 +1063,6 @@ function applyTranslations() {
   } else if (currentPath.includes("/profile.html") || currentPath.includes("/pages/profile.html")) {
     document.title = getTranslation("profilePageTitle");
   } else if (currentPath.includes("/register.html") || currentPath.includes("/pages/register.html")) {
->>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
     document.title = getTranslation("pageTitle");
   } else if (
     currentPath.includes("/index.html") ||
@@ -1154,15 +1144,6 @@ function switchLanguage() {
 
   // Update document title based on current page
   const currentPath = document.location.pathname;
-<<<<<<< HEAD
-  if (currentPath.includes("/cashier.html")) {
-    document.title = getTranslation("cashierPageTitle");
-  } else if (currentPath.includes("/cart.html")) {
-    document.title = getTranslation("cartPageTitle");
-  } else if (currentPath.includes("/profile.html")) {
-    document.title = getTranslation("profilePageTitle");
-  } else if (currentPath.includes("/register.html")) {
-=======
   if (currentPath.includes("/cashier.html") || currentPath.includes("/pages/cashier.html")) {
     document.title = getTranslation("cashierPageTitle");
   } else if (currentPath.includes("/cart.html") || currentPath.includes("/pages/cart.html")) {
@@ -1170,7 +1151,6 @@ function switchLanguage() {
   } else if (currentPath.includes("/profile.html") || currentPath.includes("/pages/profile.html")) {
     document.title = getTranslation("profilePageTitle");
   } else if (currentPath.includes("/register.html") || currentPath.includes("/pages/register.html")) {
->>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
     document.title = getTranslation("pageTitle");
   } else if (
     currentPath.includes("/index.html") ||
@@ -1259,15 +1239,6 @@ function initI18n() {
 
   // Set up specific page titles
   const currentPath = document.location.pathname;
-<<<<<<< HEAD
-  if (currentPath.includes("/cashier.html")) {
-    document.title = getTranslation("cashierPageTitle");
-  } else if (currentPath.includes("/cart.html")) {
-    document.title = getTranslation("cartPageTitle");
-  } else if (currentPath.includes("/profile.html")) {
-    document.title = getTranslation("profilePageTitle");
-  } else if (currentPath.includes("/register.html")) {
-=======
   if (currentPath.includes("/cashier.html") || currentPath.includes("/pages/cashier.html")) {
     document.title = getTranslation("cashierPageTitle");
   } else if (currentPath.includes("/cart.html") || currentPath.includes("/pages/cart.html")) {
@@ -1275,7 +1246,6 @@ function initI18n() {
   } else if (currentPath.includes("/profile.html") || currentPath.includes("/pages/profile.html")) {
     document.title = getTranslation("profilePageTitle");
   } else if (currentPath.includes("/register.html") || currentPath.includes("/pages/register.html")) {
->>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
     document.title = getTranslation("pageTitle");
   } else if (
     currentPath.includes("/index.html") ||

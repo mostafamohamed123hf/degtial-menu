@@ -70,15 +70,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Current ID being viewed
   let currentIdData = null;
 
-<<<<<<< HEAD
-  const API_URL = "http://localhost:5000/api/reservations";
-=======
   const API_URL = (function () {
     const { hostname, origin } = window.location;
     const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
     return `${isLocal ? "http://localhost:5000" : origin}/api/reservations`;
   })();
->>>>>>> e17e82634e94e59ba130b332d7929f60eb408654
 
   // Load reservations on page load
   loadReservations();
