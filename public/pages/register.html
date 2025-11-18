@@ -14,23 +14,23 @@
     <meta
       name="description"
       content="تسجيل حساب جديد في ديجيتال منيو لطلب الطعام عبر الإنترنت" />
-    
+
     <!-- Inline script to prevent language flash -->
     <script>
-      (function() {
-        var savedLang = localStorage.getItem('public-language') || 'ar';
+      (function () {
+        var savedLang = localStorage.getItem("public-language") || "ar";
         var html = document.documentElement;
-        
-        if (savedLang === 'en') {
-          html.setAttribute('lang', 'en');
-          html.setAttribute('dir', 'ltr');
+
+        if (savedLang === "en") {
+          html.setAttribute("lang", "en");
+          html.setAttribute("dir", "ltr");
         } else {
-          html.setAttribute('lang', 'ar');
-          html.setAttribute('dir', 'rtl');
+          html.setAttribute("lang", "ar");
+          html.setAttribute("dir", "rtl");
         }
       })();
     </script>
-    
+
     <style>
       /* Hide content until translations are applied */
       body:not(.i18n-ready) {
@@ -958,13 +958,6 @@
           <i class="fas fa-arrow-right"></i>
           <span data-i18n="backToHome">العودة للصفحة الرئيسية</span>
         </button>
-
-        <div class="toggle-switch" style="position: absolute; top: 20px; left: 20px; z-index: 2;">
-          <div class="toggle-switch-container">
-            <input type="checkbox" id="switch" class="theme-toggle" data-theme-switch="true" />
-            <label for="switch"></label>
-          </div>
-        </div>
 
         <!-- Login Form Container -->
         <div class="login-container">
