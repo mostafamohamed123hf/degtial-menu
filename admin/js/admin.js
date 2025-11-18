@@ -3666,53 +3666,58 @@ document.addEventListener("DOMContentLoaded", function () {
   // QR Code Generator Functions
   function initQRCodeGenerator() {
     const existingInit = document.querySelector(".qr-list-container.qr-generator-initialized");
-    if (existingInit) return;
-
     const createQRBtn = document.getElementById("create-qr-btn");
     const qrPreview = document.getElementById("qr-preview");
     const qrListContainer = document.querySelector(".qr-list-container");
-    if (!createQRBtn || !qrListContainer) return;
+    if (!createQRBtn || !qrListContainer || !qrPreview) return;
+    if (existingInit) return;
     qrListContainer.classList.add("qr-generator-initialized");
 
     // Load saved QR codes from local storage
     loadSavedQRCodes();
 
-    // Create QR Code button event listener
-    createQRBtn.addEventListener("click", () => {
-      const tableNumber = document.getElementById("table-number").value;
-      if (!tableNumber || isNaN(tableNumber) || tableNumber < 1) {
-        showNotification(getTranslation("enterValidTableNumber"), "error");
-        return;
-      }
+    // Create QR Code button event listener (bind once)
+    if (createQRBtn.dataset.bound !== "1") {
+      createQRBtn.dataset.bound = "1";
+      createQRBtn.addEventListener("click", () => {
+        const tableNumber = document.getElementById("table-number").value;
+        if (!tableNumber || isNaN(tableNumber) || tableNumber < 1) {
+          showNotification(getTranslation("enterValidTableNumber"), "error");
+          return;
+        }
 
-      const savedQRCodes = JSON.parse(localStorage.getItem("qrCodes")) || [];
-      const exists = savedQRCodes.some(
-        (qr) => String(qr.tableNumber) === String(tableNumber)
-      );
-      if (exists) {
-        const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-        const msg = lang === "ar" ? "كود QR موجود بالفعل لهذه الطاولة" : "QR code already exists for this table";
-        showNotification(`${msg} ${tableNumber}`, "error");
-        return;
-      }
+        const savedQRCodes = JSON.parse(localStorage.getItem("qrCodes")) || [];
+        const exists = savedQRCodes.some(
+          (qr) => String(qr.tableNumber) === String(tableNumber)
+        );
+        if (exists) {
+          const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
+          const msg = lang === "ar" ? "كود QR موجود بالفعل لهذه الطاولة" : "QR code already exists for this table";
+          showNotification(`${msg} ${tableNumber}`, "error");
+          return;
+        }
 
-      generateQRCode(tableNumber, qrPreview, true);
-    });
+        generateQRCode(tableNumber, qrPreview, true);
+      });
+    }
 
-    // Event delegation for QR list actions (print, delete)
-    qrListContainer.addEventListener("click", (e) => {
-      const target = e.target.closest("button");
-      if (!target) return;
+    // Event delegation for QR list actions (bind once)
+    if (qrListContainer.dataset.bound !== "1") {
+      qrListContainer.dataset.bound = "1";
+      qrListContainer.addEventListener("click", (e) => {
+        const target = e.target.closest("button");
+        if (!target) return;
 
-      const qrItem = target.closest(".qr-table-item");
-      const tableNumber = qrItem.dataset.table;
+        const qrItem = target.closest(".qr-table-item");
+        const tableNumber = qrItem.dataset.table;
 
-      if (target.classList.contains("print-qr")) {
-        printQRCode(tableNumber);
-      } else if (target.classList.contains("delete-qr")) {
-        deleteQRCode(tableNumber, qrItem);
-      }
-    });
+        if (target.classList.contains("print-qr")) {
+          printQRCode(tableNumber);
+        } else if (target.classList.contains("delete-qr")) {
+          deleteQRCode(tableNumber, qrItem);
+        }
+      });
+    }
   }
 
   function generateQRCode(tableNumber, container, isPreview = false) {
