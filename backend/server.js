@@ -33,6 +33,9 @@ const tableRoutes = require("./routes/table");
 const app = express();
 const server = http.createServer(app);
 
+// Trust first proxy (required for accurate IP detection behind Vercel/Proxies)
+app.set("trust proxy", 1);
+
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
