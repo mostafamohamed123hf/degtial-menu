@@ -959,138 +959,95 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function loadProducts() {
     try {
-      // Initialize API service
       const apiService = new ApiService();
 
-      // Fetch products from MongoDB
-      console.log("Fetching products from MongoDB");
+      // Cache-first: render cached products immediately
+      const cached = localStorage.getItem("products");
+      if (cached) {
+        try {
+          products = JSON.parse(cached);
+          renderProducts();
+        } catch (_) {}
+      }
 
-      // The API service now has its own timeout, so we don't need Promise.race
-      const response = await apiService.getProducts();
+      // Fetch fresh data with shorter timeout
+      const response = await apiService.request(
+        "products",
+        "GET",
+        null,
+        { signal: AbortSignal.timeout(10000) }
+      );
 
-      if (response && response.success) {
+      if (response && response.success && Array.isArray(response.data)) {
         products = response.data;
-        console.log("Products loaded from MongoDB:", products);
-
-        // Update UI
+        localStorage.setItem("products", JSON.stringify(products));
         renderProducts();
-      } else {
-        console.warn(
-          "No products found in MongoDB or error occurred:",
-          response?.error || response?.message
-        );
-
-        // Show appropriate error message based on error type
-        if (response?.error === "timeout") {
-          showAdminNotification(
-            getTranslation("serverConnectionError") ||
-              "Cannot connect to server. Please ensure the backend server is running on http://localhost:5000",
-            "error",
-            5000
-          );
-        } else if (response?.error === "network") {
-          showAdminNotification(
-            getTranslation("serverConnectionError") ||
-              "Network error. Please check your connection.",
-            "error",
-            5000
-          );
-        } else {
-          showAdminNotification(
-            getTranslation("noProducts") || "No products found in database",
-            "warning",
-            3000
-          );
-        }
-
-        // Provide a fallback - empty products array
+      } else if (!cached) {
         products = [];
         renderProducts();
       }
     } catch (error) {
-      console.error("Error loading products:", error);
-
-      // Handle the error gracefully without crashing
-      showAdminNotification(
-        "Error loading products. Please refresh the page or check if the server is running.",
-        "error",
-        5000
-      );
-
-      // Provide a fallback - empty products array
-      products = [];
-      // Still try to render any cached products
-      renderProducts();
+      const cached = localStorage.getItem("products");
+      if (cached) {
+        try {
+          products = JSON.parse(cached);
+          renderProducts();
+        } catch (_) {}
+      }
     }
   }
 
   async function loadOrders() {
     try {
-      // Initialize API service
       const apiService = new ApiService();
 
-      // Fetch orders from the API
-      console.log("Fetching orders from API");
-      const response = await apiService.request("orders", "GET");
-
-      if (response && response.success) {
-        orders = response.data;
-        console.log("Orders loaded from API:", orders.length);
-
-        // Update UI
-        updateStats();
-      } else {
-        console.warn(
-          "No orders found in API or error occurred:",
-          response?.error
-        );
-
-        // Fallback to localStorage if API fails
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          orders = JSON.parse(savedOrders);
-          console.log("Orders loaded from localStorage:", orders.length);
-          updateStats();
-        }
-      }
-    } catch (error) {
-      console.error("Error loading orders:", error);
-
-      // Fallback to localStorage
+      // Cache-first
       const savedOrders = localStorage.getItem("orders");
       if (savedOrders) {
-        orders = JSON.parse(savedOrders);
-        console.log(
-          "Orders loaded from localStorage (fallback):",
-          orders.length
-        );
+        try {
+          orders = JSON.parse(savedOrders);
+          updateStats();
+        } catch (_) {}
       }
-      updateStats();
-    }
+
+      // Fetch fresh with timeout and explicit limit
+      const response = await apiService.request(
+        "orders?limit=50",
+        "GET",
+        null,
+        { signal: AbortSignal.timeout(10000) }
+      );
+
+      if (response && response.success && Array.isArray(response.data)) {
+        orders = response.data;
+        localStorage.setItem("orders", JSON.stringify(orders));
+        updateStats();
+      }
+    } catch (_) {}
   }
 
   function loadVouchers() {
-    // First load from localStorage as a fallback
     const savedVouchers = localStorage.getItem("vouchers");
     if (savedVouchers) {
-      vouchers = JSON.parse(savedVouchers);
+      try {
+        vouchers = JSON.parse(savedVouchers);
+        renderVouchers();
+        updateStats();
+      } catch (_) {}
     }
 
-    // Then try to load from MongoDB
     try {
       const apiService = new ApiService();
-
       apiService
-        .request("vouchers")
+        .request("vouchers", "GET", null, { signal: AbortSignal.timeout(10000) })
         .then((response) => {
           if (response.success && response.data && response.data.length > 0) {
-            // Convert backend voucher format to frontend format
             vouchers = response.data.map((backendVoucher) => {
               return {
                 id: backendVoucher.id || generateUniqueId(),
-                _id: backendVoucher._id, // Store MongoDB ID
+                _id: backendVoucher._id,
                 code: backendVoucher.code,
-                discount: backendVoucher.value, // Backend 'value' is frontend 'discount'
+                discount: backendVoucher.value,
                 minOrderAmount: backendVoucher.minOrderValue || 0,
                 category:
                   backendVoucher.applicableCategories?.length > 0
@@ -1104,23 +1061,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 isActive: backendVoucher.isActive,
               };
             });
-
-            // Update localStorage with the latest data
             localStorage.setItem("vouchers", JSON.stringify(vouchers));
-
-            // Re-render vouchers list
             renderVouchers();
-
-            // Update stats
             updateStats();
           }
         })
-        .catch((error) => {
-          console.error("Error loading vouchers from database:", error);
-        });
-    } catch (error) {
-      console.error("Error initializing API service:", error);
-    }
+        .catch(() => {});
+    } catch (_) {}
   }
 
   function loadTaxSettings() {
