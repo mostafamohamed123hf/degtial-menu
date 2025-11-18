@@ -30,35 +30,38 @@ function getTranslation(key) {
 window.globalSettings = {
   loaded: false,
   currency: "EGP",
-  currencyCode: "EGP"
+  currencyCode: "EGP",
 };
 
 // Load global settings from API
 async function loadAdminGlobalSettings() {
   try {
-    const API_BASE_URL = (typeof window !== "undefined" && window.API_BASE_URL)
-      ? `${window.API_BASE_URL}/api`
-      : ((typeof window !== "undefined" &&
+    const API_BASE_URL =
+      typeof window !== "undefined" && window.API_BASE_URL
+        ? `${window.API_BASE_URL}/api`
+        : typeof window !== "undefined" &&
           (window.location.hostname === "localhost" ||
-            window.location.hostname === "127.0.0.1"))
-            ? "http://localhost:5000/api"
-            : "/api");
+            window.location.hostname === "127.0.0.1")
+        ? "http://localhost:5000/api"
+        : "/api";
     const response = await fetch(`${API_BASE_URL}/global-settings`);
     const result = await response.json();
-    
+
     if (result.success && result.data) {
       window.globalSettings = {
         ...result.data,
         currencyCode: result.data.currency, // Ensure currencyCode is set for English display
-        loaded: true
+        loaded: true,
       };
       console.log("Admin global settings loaded:", window.globalSettings);
-      
+
       // Dispatch event to notify other scripts
-      window.dispatchEvent(new CustomEvent("admin-global-settings-loaded", {
-        detail: window.globalSettings
-      }));
-      
+      window.dispatchEvent(
+        new CustomEvent("admin-global-settings-loaded", {
+          detail: window.globalSettings,
+        })
+      );
+
       return window.globalSettings;
     }
   } catch (error) {
@@ -90,8 +93,10 @@ function showAdminNotification(
   onClick = null
 ) {
   // Remove any existing notifications to prevent stacking
-  const existingNotifications = document.querySelectorAll(".admin-bottom-notification");
-  existingNotifications.forEach(notif => {
+  const existingNotifications = document.querySelectorAll(
+    ".admin-bottom-notification"
+  );
+  existingNotifications.forEach((notif) => {
     notif.remove();
   });
 
@@ -271,8 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ordersDateFilter.addEventListener("change", function () {
       updateRecentOrders();
       showToast(
-        getTranslation("ordersFilterApplied") ||
-          "تم تطبيق التصفية على الطلبات",
+        getTranslation("ordersFilterApplied") || "تم تطبيق التصفية على الطلبات",
         "info"
       );
 
@@ -293,8 +297,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ordersStatusFilter.addEventListener("change", function () {
       updateRecentOrders();
       showToast(
-        getTranslation("ordersStatusUpdated") ||
-          "تم تحديث حالة الطلبات",
+        getTranslation("ordersStatusUpdated") || "تم تحديث حالة الطلبات",
         "info"
       );
 
@@ -379,7 +382,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const averageOrderValueElement = document.getElementById(
     "average-order-value"
   );
-  const dashboardTotalOffersElement = document.getElementById("dashboard-total-offers");
+  const dashboardTotalOffersElement = document.getElementById(
+    "dashboard-total-offers"
+  );
 
   // DOM Elements - Tax Settings
   const taxRateInput = document.getElementById("tax-rate");
@@ -666,7 +671,10 @@ document.addEventListener("DOMContentLoaded", function () {
           // Show notification that discount is active (only once per page load)
           if (!discountNotificationShown) {
             showNotification(
-              getTranslation("globalDiscountActive").replace("{percent}", discountPercent),
+              getTranslation("globalDiscountActive").replace(
+                "{percent}",
+                discountPercent
+              ),
               "info"
             );
             discountNotificationShown = true;
@@ -720,7 +728,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Remove old event listeners by cloning the input element
       const newFileUploadInput = fileUploadInput.cloneNode(true);
-      fileUploadInput.parentNode.replaceChild(newFileUploadInput, fileUploadInput);
+      fileUploadInput.parentNode.replaceChild(
+        newFileUploadInput,
+        fileUploadInput
+      );
 
       // Handle file selection (only one listener now)
       newFileUploadInput.addEventListener("change", function (e) {
@@ -820,10 +831,7 @@ document.addEventListener("DOMContentLoaded", function () {
         previewImg.style.display = "block";
         noPreviewDiv.style.display = "none";
         productImageFinal.value = imageUrl;
-        showNotification(
-          getTranslation("imageLoadedForPreview"),
-          "success"
-        );
+        showNotification(getTranslation("imageLoadedForPreview"), "success");
       } else {
         console.log("Unknown image URL format:", imageUrl);
         // Unknown URL format
@@ -887,50 +895,64 @@ document.addEventListener("DOMContentLoaded", function () {
         maxWidth: 800,
         maxHeight: 800,
         quality: 0.85,
-        outputFormat: 'jpeg'
+        outputFormat: "jpeg",
       });
 
       console.log("Image compressed successfully, uploading to server...");
-      statusText.textContent = getTranslation("uploadingImage") || "جاري رفع الصورة...";
+      statusText.textContent =
+        getTranslation("uploadingImage") || "جاري رفع الصورة...";
 
       const response = await fetch(`${API_BASE_URL}/upload/image`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ imageData: compressedDataUrl })
+        body: JSON.stringify({ imageData: compressedDataUrl }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to upload image');
+        throw new Error(errorData.message || "Failed to upload image");
       }
 
       const result = await response.json();
       if (!result.success || !result.imageUrl) {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
 
-      const baseUrl = API_BASE_URL.replace('/api', '');
+      const baseUrl = API_BASE_URL.replace("/api", "");
       const imageUrl = `${baseUrl}${result.imageUrl}`;
       previewImg.src = imageUrl;
       previewImg.style.display = "block";
       noPreviewDiv.style.display = "none";
       productImageFinal.value = result.imageUrl;
-      statusText.textContent = getTranslation("imageUploadedSuccessStatus") || "تم رفع الصورة بنجاح";
-      showNotification(getTranslation("imageUploadedSuccess") || "تم رفع الصورة بنجاح", "success");
+      statusText.textContent =
+        getTranslation("imageUploadedSuccessStatus") || "تم رفع الصورة بنجاح";
+      showNotification(
+        getTranslation("imageUploadedSuccess") || "تم رفع الصورة بنجاح",
+        "success"
+      );
     } catch (error) {
       if (compressedDataUrl) {
         previewImg.src = compressedDataUrl;
         previewImg.style.display = "block";
         noPreviewDiv.style.display = "none";
         productImageFinal.value = compressedDataUrl;
-        statusText.textContent = getTranslation("imageStoredInlineStatus") || "تم حفظ الصورة ضمن البيانات";
-        showNotification(getTranslation("imageStoredInline") || "تم حفظ الصورة ضمن البيانات", "success");
+        statusText.textContent =
+          getTranslation("imageStoredInlineStatus") ||
+          "تم حفظ الصورة ضمن البيانات";
+        showNotification(
+          getTranslation("imageStoredInline") || "تم حفظ الصورة ضمن البيانات",
+          "success"
+        );
       } else {
         wrapper.classList.add("error");
-        statusText.textContent = error.message || getTranslation("unexpectedErrorProcessingFile");
-        showNotification(getTranslation("errorUploadingImage") || "فشل رفع الصورة", "error");
+        statusText.textContent =
+          error.message || getTranslation("unexpectedErrorProcessingFile");
+        showNotification(
+          getTranslation("errorUploadingImage") || "فشل رفع الصورة",
+          "error"
+        );
       }
     }
   }
@@ -957,17 +979,19 @@ document.addEventListener("DOMContentLoaded", function () {
           "No products found in MongoDB or error occurred:",
           response?.error || response?.message
         );
-        
+
         // Show appropriate error message based on error type
         if (response?.error === "timeout") {
           showAdminNotification(
-            getTranslation("serverConnectionError") || "Cannot connect to server. Please ensure the backend server is running on http://localhost:5000",
+            getTranslation("serverConnectionError") ||
+              "Cannot connect to server. Please ensure the backend server is running on http://localhost:5000",
             "error",
             5000
           );
         } else if (response?.error === "network") {
           showAdminNotification(
-            getTranslation("serverConnectionError") || "Network error. Please check your connection.",
+            getTranslation("serverConnectionError") ||
+              "Network error. Please check your connection.",
             "error",
             5000
           );
@@ -978,14 +1002,14 @@ document.addEventListener("DOMContentLoaded", function () {
             3000
           );
         }
-        
+
         // Provide a fallback - empty products array
         products = [];
         renderProducts();
       }
     } catch (error) {
       console.error("Error loading products:", error);
-      
+
       // Handle the error gracefully without crashing
       showAdminNotification(
         "Error loading products. Please refresh the page or check if the server is running.",
@@ -1246,9 +1270,7 @@ document.addEventListener("DOMContentLoaded", function () {
         totalVouchersElement.textContent = vouchers.length;
 
         const averageOrderValue =
-          stats.totalOrders > 0
-            ? stats.totalEarnings / stats.totalOrders
-            : 0;
+          stats.totalOrders > 0 ? stats.totalEarnings / stats.totalOrders : 0;
         const formattedAverageOrderValue = averageOrderValue
           .toFixed(2)
           .replace(/\d(?=(\d{3})+\.)/g, "$&,");
@@ -1435,13 +1457,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to update dashboard offer statistics
   async function updateDashboardOfferStats() {
     try {
-      const API_BASE_URL = (typeof window !== "undefined" && window.API_BASE_URL)
-        ? `${window.API_BASE_URL}/api`
-        : ((typeof window !== "undefined" &&
+      const API_BASE_URL =
+        typeof window !== "undefined" && window.API_BASE_URL
+          ? `${window.API_BASE_URL}/api`
+          : typeof window !== "undefined" &&
             (window.location.hostname === "localhost" ||
-              window.location.hostname === "127.0.0.1"))
-              ? "http://localhost:5000/api"
-              : "/api");
+              window.location.hostname === "127.0.0.1")
+          ? "http://localhost:5000/api"
+          : "/api";
       const response = await fetch(`${API_BASE_URL}/offers`, {
         headers: {
           "Content-Type": "application/json",
@@ -1491,26 +1514,30 @@ document.addEventListener("DOMContentLoaded", function () {
     DZD: { en: "DZD", ar: "دينار" },
     LYD: { en: "LYD", ar: "دينار" },
     SDG: { en: "SDG", ar: "جنيه" },
-    YER: { en: "YER", ar: "ريال" }
+    YER: { en: "YER", ar: "ريال" },
   };
 
   // Function to get currency text based on current language and global settings
   function getCurrencyText() {
     const currentLang = localStorage.getItem("admin-language") || "ar";
-    
+
     // Try to get currency from global settings first
-    if (window.globalSettings && window.globalSettings.loaded && window.globalSettings.currency) {
+    if (
+      window.globalSettings &&
+      window.globalSettings.loaded &&
+      window.globalSettings.currency
+    ) {
       const currencyCode = window.globalSettings.currency;
       const translation = currencyTranslations[currencyCode];
-      
+
       if (translation) {
         return translation[currentLang] || translation.en;
       }
-      
+
       // Fallback to currency code if no translation found
       return currencyCode;
     }
-    
+
     // Fallback to default if global settings not loaded
     return currentLang === "ar" ? "جنيه" : "EGP";
   }
@@ -1603,9 +1630,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Clear container
     recentOrdersContainer.innerHTML = "";
 
-    let filteredOrders = Array.isArray(recentOrders)
-      ? [...recentOrders]
-      : [];
+    let filteredOrders = Array.isArray(recentOrders) ? [...recentOrders] : [];
 
     const selectedStatus = ordersStatusFilter
       ? ordersStatusFilter.value
@@ -1931,7 +1956,7 @@ document.addEventListener("DOMContentLoaded", function () {
       let priceDisplay = "";
       const productPrice = parseFloat(product.price) || 0;
       const productDiscountedPrice = parseFloat(product.discountedPrice) || 0;
-      
+
       if (product.discountedPrice && productDiscountedPrice > 0) {
         priceDisplay = `
           <div class="product-price discounted">
@@ -2075,7 +2100,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
     }
-
   }
 
   // Toggle product selection
@@ -2091,7 +2115,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Select all products
   function selectAllProducts(isSelected) {
     if (isSelected) {
-      products.forEach(product => selectedProducts.add(product.id));
+      products.forEach((product) => selectedProducts.add(product.id));
     } else {
       selectedProducts.clear();
     }
@@ -2101,7 +2125,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Update products bulk actions bar
   function updateProductsBulkActionsBar() {
     const bulkActionsBar = document.getElementById("products-bulk-actions-bar");
-    const selectedCountSpan = document.getElementById("products-selected-count");
+    const selectedCountSpan = document.getElementById(
+      "products-selected-count"
+    );
     const selectAllCheckbox = document.getElementById("select-all-products");
 
     if (bulkActionsBar && selectedCountSpan) {
@@ -2125,13 +2151,14 @@ document.addEventListener("DOMContentLoaded", function () {
     if (selectedProducts.size === 0) return;
 
     const currentLang = localStorage.getItem("admin-language") || "ar";
-    const confirmMessage = currentLang === "en" 
-      ? `Are you sure you want to delete ${selectedProducts.size} product(s)?`
-      : `هل أنت متأكد من حذف ${selectedProducts.size} منتج؟`;
+    const confirmMessage =
+      currentLang === "en"
+        ? `Are you sure you want to delete ${selectedProducts.size} product(s)?`
+        : `هل أنت متأكد من حذف ${selectedProducts.size} منتج؟`;
 
     if (confirm(confirmMessage)) {
-      selectedProducts.forEach(productId => {
-        const index = products.findIndex(p => p.id === productId);
+      selectedProducts.forEach((productId) => {
+        const index = products.findIndex((p) => p.id === productId);
         if (index !== -1) {
           products.splice(index, 1);
         }
@@ -2142,9 +2169,10 @@ document.addEventListener("DOMContentLoaded", function () {
       renderProducts();
       updateStats();
 
-      const successMessage = currentLang === "en" 
-        ? "Products deleted successfully"
-        : "تم حذف المنتجات بنجاح";
+      const successMessage =
+        currentLang === "en"
+          ? "Products deleted successfully"
+          : "تم حذف المنتجات بنجاح";
       showAdminNotification(successMessage, "success");
     }
   }
@@ -2323,7 +2351,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Update category dropdown with latest categories
-    if (typeof window.categoriesManager !== 'undefined' && window.categoriesManager.updateProductCategoryDropdowns) {
+    if (
+      typeof window.categoriesManager !== "undefined" &&
+      window.categoriesManager.updateProductCategoryDropdowns
+    ) {
       window.categoriesManager.updateProductCategoryDropdowns();
     }
 
@@ -2518,7 +2549,10 @@ document.addEventListener("DOMContentLoaded", function () {
       );
     } catch (error) {
       console.error("Error saving product:", error);
-      showNotification(getTranslation("errorSavingProduct").replace("{error}", error.message), "error");
+      showNotification(
+        getTranslation("errorSavingProduct").replace("{error}", error.message),
+        "error"
+      );
     }
   }
 
@@ -2577,7 +2611,13 @@ document.addEventListener("DOMContentLoaded", function () {
       );
     } catch (error) {
       console.error("Error deleting product:", error);
-      showNotification(getTranslation("errorDeletingProduct").replace("{error}", error.message), "error");
+      showNotification(
+        getTranslation("errorDeletingProduct").replace(
+          "{error}",
+          error.message
+        ),
+        "error"
+      );
     }
   }
 
@@ -2602,7 +2642,10 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       console.error("Error updating products UI:", error);
       showNotification(
-        getTranslation("errorUpdatingProductsUI").replace("{error}", error.message),
+        getTranslation("errorUpdatingProductsUI").replace(
+          "{error}",
+          error.message
+        ),
         "error"
       );
       return false;
@@ -2721,20 +2764,14 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to save tax settings:", errorData);
-        showNotification(
-          getTranslation("taxSettingsSaveFailed"),
-          "error"
-        );
+        showNotification(getTranslation("taxSettingsSaveFailed"), "error");
         return;
       }
 
       console.log("Tax settings saved to database successfully");
     } catch (error) {
       console.error("Error saving tax settings to database:", error);
-      showNotification(
-        getTranslation("taxSettingsSaveError"),
-        "error"
-      );
+      showNotification(getTranslation("taxSettingsSaveError"), "error");
     }
   }
 
@@ -2765,7 +2802,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const itemTotal = itemPrice * itemQuantity;
         const displayName = (() => {
           const currentLang = getCurrentLanguage();
-          if (currentLang === 'en' && item.nameEn) {
+          if (currentLang === "en" && item.nameEn) {
             return item.nameEn;
           } else if (item.nameAr) {
             return item.nameAr;
@@ -2773,14 +2810,16 @@ document.addEventListener("DOMContentLoaded", function () {
             return item.name || "منتج";
           }
         })();
-        report += `- ${displayName} × ${itemQuantity} = ${itemTotal.toFixed(2)} جنية\n`;
+        report += `- ${displayName} × ${itemQuantity} = ${itemTotal.toFixed(
+          2
+        )} جنية\n`;
       });
 
       // Safely convert values to numbers with fallbacks
       const subtotal = parseFloat(order.subtotal) || 0;
       const tax = parseFloat(order.tax) || 0;
       const total = parseFloat(order.total) || 0;
-      
+
       report += `المجموع الفرعي: ${subtotal.toFixed(2)} جنية\n`;
       report += `الضريبة: ${tax.toFixed(2)} جنية\n`;
       report += `المجموع النهائي: ${total.toFixed(2)} جنية\n\n`;
@@ -2874,25 +2913,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getCategoryName(categoryValue) {
     const currentLang = getCurrentLanguage();
-    
+
     // Try to get categories from localStorage
-    const savedCategories = localStorage.getItem('categories');
+    const savedCategories = localStorage.getItem("categories");
     if (savedCategories) {
       try {
         const categories = JSON.parse(savedCategories);
-        const foundCategory = categories.find(cat => cat.value === categoryValue || cat.id === categoryValue);
-        
+        const foundCategory = categories.find(
+          (cat) => cat.value === categoryValue || cat.id === categoryValue
+        );
+
         if (foundCategory) {
           // Return the appropriate language name
-          return currentLang === 'en' && foundCategory.nameEn 
-            ? foundCategory.nameEn 
+          return currentLang === "en" && foundCategory.nameEn
+            ? foundCategory.nameEn
             : foundCategory.name;
         }
       } catch (error) {
-        console.error('Error parsing categories:', error);
+        console.error("Error parsing categories:", error);
       }
     }
-    
+
     // Fallback to the category value itself if not found
     return categoryValue;
   }
@@ -3190,7 +3231,6 @@ document.addEventListener("DOMContentLoaded", function () {
             deleteVoucher(voucher.id);
           });
       });
-
     }
   }
 
@@ -3207,7 +3247,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Select all vouchers
   function selectAllVouchers(isSelected) {
     if (isSelected) {
-      vouchers.forEach(voucher => selectedVouchers.add(voucher.id));
+      vouchers.forEach((voucher) => selectedVouchers.add(voucher.id));
     } else {
       selectedVouchers.clear();
     }
@@ -3217,7 +3257,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Update vouchers bulk actions bar
   function updateVouchersBulkActionsBar() {
     const bulkActionsBar = document.getElementById("vouchers-bulk-actions-bar");
-    const selectedCountSpan = document.getElementById("vouchers-selected-count");
+    const selectedCountSpan = document.getElementById(
+      "vouchers-selected-count"
+    );
     const selectAllCheckbox = document.getElementById("select-all-vouchers");
 
     if (bulkActionsBar && selectedCountSpan) {
@@ -3240,8 +3282,8 @@ document.addEventListener("DOMContentLoaded", function () {
   function bulkActivateVouchers() {
     if (selectedVouchers.size === 0) return;
 
-    selectedVouchers.forEach(voucherId => {
-      const voucher = vouchers.find(v => v.id === voucherId);
+    selectedVouchers.forEach((voucherId) => {
+      const voucher = vouchers.find((v) => v.id === voucherId);
       if (voucher) {
         voucher.isActive = true;
       }
@@ -3252,9 +3294,10 @@ document.addEventListener("DOMContentLoaded", function () {
     renderVouchers();
 
     const currentLang = localStorage.getItem("admin-language") || "ar";
-    const successMessage = currentLang === "en" 
-      ? "Vouchers activated successfully"
-      : "تم تفعيل القسائم بنجاح";
+    const successMessage =
+      currentLang === "en"
+        ? "Vouchers activated successfully"
+        : "تم تفعيل القسائم بنجاح";
     showAdminNotification(successMessage, "success");
   }
 
@@ -3262,8 +3305,8 @@ document.addEventListener("DOMContentLoaded", function () {
   function bulkDeactivateVouchers() {
     if (selectedVouchers.size === 0) return;
 
-    selectedVouchers.forEach(voucherId => {
-      const voucher = vouchers.find(v => v.id === voucherId);
+    selectedVouchers.forEach((voucherId) => {
+      const voucher = vouchers.find((v) => v.id === voucherId);
       if (voucher) {
         voucher.isActive = false;
       }
@@ -3274,9 +3317,10 @@ document.addEventListener("DOMContentLoaded", function () {
     renderVouchers();
 
     const currentLang = localStorage.getItem("admin-language") || "ar";
-    const successMessage = currentLang === "en" 
-      ? "Vouchers deactivated successfully"
-      : "تم إلغاء تفعيل القسائم بنجاح";
+    const successMessage =
+      currentLang === "en"
+        ? "Vouchers deactivated successfully"
+        : "تم إلغاء تفعيل القسائم بنجاح";
     showAdminNotification(successMessage, "success");
   }
 
@@ -3285,13 +3329,14 @@ document.addEventListener("DOMContentLoaded", function () {
     if (selectedVouchers.size === 0) return;
 
     const currentLang = localStorage.getItem("admin-language") || "ar";
-    const confirmMessage = currentLang === "en" 
-      ? `Are you sure you want to delete ${selectedVouchers.size} voucher(s)?`
-      : `هل أنت متأكد من حذف ${selectedVouchers.size} قسيمة؟`;
+    const confirmMessage =
+      currentLang === "en"
+        ? `Are you sure you want to delete ${selectedVouchers.size} voucher(s)?`
+        : `هل أنت متأكد من حذف ${selectedVouchers.size} قسيمة؟`;
 
     if (confirm(confirmMessage)) {
-      selectedVouchers.forEach(voucherId => {
-        const index = vouchers.findIndex(v => v.id === voucherId);
+      selectedVouchers.forEach((voucherId) => {
+        const index = vouchers.findIndex((v) => v.id === voucherId);
         if (index !== -1) {
           vouchers.splice(index, 1);
         }
@@ -3302,9 +3347,10 @@ document.addEventListener("DOMContentLoaded", function () {
       renderVouchers();
       updateStats();
 
-      const successMessage = currentLang === "en" 
-        ? "Vouchers deleted successfully"
-        : "تم حذف القسائم بنجاح";
+      const successMessage =
+        currentLang === "en"
+          ? "Vouchers deleted successfully"
+          : "تم حذف القسائم بنجاح";
       showAdminNotification(successMessage, "success");
     }
   }
@@ -3453,7 +3499,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Show notification
     showNotification(
-      voucherId ? getTranslation("voucherEditedSuccess") : getTranslation("voucherAddedSuccess"),
+      voucherId
+        ? getTranslation("voucherEditedSuccess")
+        : getTranslation("voucherAddedSuccess"),
       "success"
     );
   }
@@ -3505,7 +3553,10 @@ document.addEventListener("DOMContentLoaded", function () {
               updateStats();
 
               // Show notification
-              showNotification(getTranslation("voucherDeletedSuccess"), "success");
+              showNotification(
+                getTranslation("voucherDeletedSuccess"),
+                "success"
+              );
             } else {
               showNotification(getTranslation("errorDeletingVoucher"), "error");
             }
@@ -3528,12 +3579,15 @@ document.addEventListener("DOMContentLoaded", function () {
             updateStats();
 
             // Show notification
-            showNotification(getTranslation("voucherDeletedLocally"), "warning");
+            showNotification(
+              getTranslation("voucherDeletedLocally"),
+              "warning"
+            );
           });
       } else {
         // Voucher only exists locally (no MongoDB _id), delete it locally only
         console.log("Voucher only exists locally, deleting from localStorage");
-        
+
         // Remove from local array
         vouchers = vouchers.filter((v) => v.id !== voucherId);
 
@@ -3655,18 +3709,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // Create URL with table number and secure QR token
     const currentUrl = window.location.href;
     const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf("/") + 1);
-    const API_BASE_URL = window.API_BASE_URL || (function () {
-      const { hostname, origin } = window.location;
-      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-      return isLocal ? "http://localhost:5000" : origin;
-    })();
+    const API_BASE_URL =
+      window.API_BASE_URL ||
+      (function () {
+        const { hostname, origin } = window.location;
+        const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+        return isLocal ? "http://localhost:5000" : origin;
+      })();
     const token = localStorage.getItem("adminToken");
     let menuUrl = baseUrl + `index.html?table=${tableNumber}`;
     if (token) {
       try {
         // Request a signed QR id from the server (admin-only)
         // eslint-disable-next-line no-undef
-        const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        };
         // Note: synchronous build flow with async fetch inside is acceptable here
         // because QR is generated immediately after
       } catch (_) {}
@@ -3675,13 +3734,20 @@ document.addEventListener("DOMContentLoaded", function () {
     (async () => {
       try {
         if (token) {
-          const r = await fetch(`${API_BASE_URL}/api/table/qr-token?table=${tableNumber}`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const r = await fetch(
+            `${API_BASE_URL}/api/table/qr-token?table=${tableNumber}`,
+            {
+              method: "GET",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           const d = await r.json();
           if (d && d.success && d.qid) {
-            menuUrl = baseUrl + `index.html?table=${tableNumber}&qid=${encodeURIComponent(d.qid)}`;
+            menuUrl =
+              baseUrl +
+              `index.html?table=${tableNumber}&qid=${encodeURIComponent(
+                d.qid
+              )}`;
           }
         }
       } catch (_) {}
@@ -3737,11 +3803,17 @@ document.addEventListener("DOMContentLoaded", function () {
     if (existingIndex !== -1) {
       // Update existing QR code
       savedQRCodes[existingIndex] = { tableNumber, qrImageSrc };
-      showNotification(getTranslation("qrCodeUpdated").replace("{table}", tableNumber), "success");
+      showNotification(
+        getTranslation("qrCodeUpdated").replace("{table}", tableNumber),
+        "success"
+      );
     } else {
       // Add new QR code
       savedQRCodes.push({ tableNumber, qrImageSrc });
-      showNotification(getTranslation("qrCodeSaved").replace("{table}", tableNumber), "success");
+      showNotification(
+        getTranslation("qrCodeSaved").replace("{table}", tableNumber),
+        "success"
+      );
     }
 
     // Save to localStorage
@@ -3790,7 +3862,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 <img src="${qrImageSrc}" alt="QR Code for Table ${tableNumber}">
             </div>
             <div class="qr-table-footer">
-                <span class="table-number">${getTranslation("tableNumberLabel") || getTranslation("tableNumber") || "طاولة"} ${tableNumber}</span>
+                <span class="table-number">${
+                  getTranslation("tableNumberLabel") ||
+                  getTranslation("tableNumber") ||
+                  "طاولة"
+                } ${tableNumber}</span>
                 <div class="qr-actions">
                     <button class="print-qr" title="طباعة"><i class="fas fa-print"></i></button>
                     <button class="delete-qr" title="حذف"><i class="fas fa-trash"></i></button>
@@ -3811,23 +3887,88 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    // Create print window
+    const printWindow = window.open("", "_blank");
     const tableNumberLabel =
       getTranslation("tableNumberLabel") ||
       (getCurrentLanguage() === "ar" ? "رقم الطاولة:" : "Table Number:");
-    const html = `
+
+    const htmlContent = `
             <html>
             <head>
                 <title>طباعة رمز QR للطاولة ${tableNumber}</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-                    body { font-family: 'Cairo', Arial, sans-serif; text-align: center; direction: rtl; margin: 0; padding: 0; background-color: #f8f9fa; }
-                    .qr-container { max-width: 400px; margin: 0 auto; padding: 20px; background-color: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-top: 30px; }
-                    .restaurant-name { font-size: 28px; font-weight: bold; margin-bottom: 5px; color: #42d158; }
-                    .table-number { font-size: 22px; margin-bottom: 20px; background-color: #42d158; color: white; padding: 8px 15px; border-radius: 30px; display: inline-block; }
-                    .qr-image { max-width: 100%; height: auto; border: 10px solid white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
-                    .instructions { margin-top: 20px; font-size: 18px; color: #666; line-height: 1.5; }
-                    .footer { margin-top: 30px; font-size: 14px; color: #999; }
-                    @media print { @page { size: 100mm 150mm; margin: 0; } body { margin: 0.5cm; } .print-button { display: none; } }
+                    
+                    body {
+                        font-family: 'Cairo', Arial, sans-serif;
+                        text-align: center;
+                        direction: rtl;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f8f9fa;
+                    }
+                    
+                    .qr-container {
+                        max-width: 400px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        background-color: white;
+                        border-radius: 15px;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+                        margin-top: 30px;
+                    }
+                    
+                    .restaurant-name {
+                        font-size: 28px;
+                        font-weight: bold;
+                        margin-bottom: 5px;
+                        color: #42d158;
+                    }
+                    
+                    .table-number {
+                        font-size: 22px;
+                        margin-bottom: 20px;
+                        background-color: #42d158;
+                        color: white;
+                        padding: 8px 15px;
+                        border-radius: 30px;
+                        display: inline-block;
+                    }
+                    
+                    .qr-image {
+                        max-width: 100%;
+                        height: auto;
+                        border: 10px solid white;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                        margin-bottom: 20px;
+                    }
+                    
+                    .instructions {
+                        margin-top: 20px;
+                        font-size: 18px;
+                        color: #666;
+                        line-height: 1.5;
+                    }
+                    
+                    .footer {
+                        margin-top: 30px;
+                        font-size: 14px;
+                        color: #999;
+                    }
+                    @media print {
+                        @page {
+                            size: 100mm 150mm;
+                            margin: 0;
+                        }
+                        body {
+                            margin: 0.5cm;
+                        }
+                        .print-button {
+                            display: none;
+                        }
+                    }
                 </style>
             </head>
             <body>
@@ -3840,24 +3981,41 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button class="print-button" onclick="window.print(); setTimeout(function(){ window.close(); }, 500);">طباعة</button>
                 </div>
                 <script>
-                    window.onload = function() { setTimeout(function() { document.querySelector('.print-button').click(); }, 500); };
+                    // Auto print when loaded
+                    window.onload = function() {
+                        setTimeout(function() {
+                            document.querySelector('.print-button').click();
+                        }, 500);
+                    };
                 </script>
             </body>
-            </html>`;
-    const w = window.open("", "_blank");
-    if (!w || !w.document) {
-      const msg = getCurrentLanguage() === "ar"
-        ? "يرجى السماح بالنوافذ المنبثقة للطباعة"
-        : "Please allow pop-ups to print";
-      showNotification(msg, "error");
-      return;
+            </html>
+        `;
+    if (printWindow && printWindow.document) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } else {
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow ? iframe.contentWindow.document : iframe.contentDocument;
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
     }
-    w.document.write(html);
-    w.document.close();
   }
 
   function deleteQRCode(tableNumber, qrItem) {
-    if (confirm(getTranslation("confirmDeleteQRCode").replace("{table}", tableNumber))) {
+    if (
+      confirm(
+        getTranslation("confirmDeleteQRCode").replace("{table}", tableNumber)
+      )
+    ) {
       // Get saved QR codes from localStorage
       let savedQRCodes = JSON.parse(localStorage.getItem("qrCodes")) || [];
 
@@ -3877,7 +4035,10 @@ document.addEventListener("DOMContentLoaded", function () {
         loadSavedQRCodes();
       }
 
-      showNotification(getTranslation("qrCodeDeleted").replace("{table}", tableNumber), "success");
+      showNotification(
+        getTranslation("qrCodeDeleted").replace("{table}", tableNumber),
+        "success"
+      );
     }
   }
 
@@ -3905,7 +4066,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // Confirm with the user before applying the discount
     if (
       !confirm(
-        getTranslation("confirmApplyDiscount").replace("{percent}", discountPercentage)
+        getTranslation("confirmApplyDiscount").replace(
+          "{percent}",
+          discountPercentage
+        )
       )
     ) {
       return;
@@ -3937,7 +4101,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Show notification
       showNotification(
-        getTranslation("discountAppliedSuccess").replace("{percent}", discountPercentage),
+        getTranslation("discountAppliedSuccess").replace(
+          "{percent}",
+          discountPercentage
+        ),
         "success"
       );
 
@@ -3953,16 +4120,20 @@ document.addEventListener("DOMContentLoaded", function () {
       dispatchDiscountChangeEvent();
     } catch (error) {
       console.error("Error applying discount:", error);
-      showNotification(getTranslation("errorApplyingDiscount").replace("{error}", error.message), "error");
+      showNotification(
+        getTranslation("errorApplyingDiscount").replace(
+          "{error}",
+          error.message
+        ),
+        "error"
+      );
     }
   }
 
   async function resetGlobalDiscount() {
     try {
       // Confirm with the user before resetting the prices
-      if (
-        !confirm(getTranslation("confirmCancelDiscount"))
-      ) {
+      if (!confirm(getTranslation("confirmCancelDiscount"))) {
         return;
       }
 
@@ -3980,7 +4151,10 @@ document.addEventListener("DOMContentLoaded", function () {
       await loadProducts();
 
       // Show notification
-      showNotification(getTranslation("discountCancelledPricesRestored"), "success");
+      showNotification(
+        getTranslation("discountCancelledPricesRestored"),
+        "success"
+      );
 
       // Update the discount container UI
       const discountContainer = document.querySelector(
@@ -3994,7 +4168,13 @@ document.addEventListener("DOMContentLoaded", function () {
       dispatchDiscountChangeEvent();
     } catch (error) {
       console.error("Error resetting discount:", error);
-      showNotification(getTranslation("errorCancellingDiscount").replace("{error}", error.message), "error");
+      showNotification(
+        getTranslation("errorCancellingDiscount").replace(
+          "{error}",
+          error.message
+        ),
+        "error"
+      );
     }
   }
 
@@ -4174,7 +4354,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (currentLang === "en") {
         requiredLabel.textContent = "Required";
       } else {
-        requiredLabel.textContent = window.getTranslation("required") || "إجباري";
+        requiredLabel.textContent =
+          window.getTranslation("required") || "إجباري";
       }
     } else {
       requiredLabel.textContent = "إجباري";
@@ -4201,7 +4382,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (currentLang === "en") {
         singleChoiceLabel.textContent = "Single Choice";
       } else {
-        singleChoiceLabel.textContent = window.getTranslation("singleChoice") || "خيار واحد فقط";
+        singleChoiceLabel.textContent =
+          window.getTranslation("singleChoice") || "خيار واحد فقط";
       }
     } else {
       singleChoiceLabel.textContent = "خيار واحد فقط";
@@ -4214,8 +4396,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     singleChoiceDiv.appendChild(singleChoiceLabel);
     singleChoiceDiv.appendChild(singleChoiceCheckbox);
-
-
 
     // Create delete button
     const deleteBtn = document.createElement("button");
@@ -4396,8 +4576,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // Create actions
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "addon-option-actions";
-
-
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
@@ -4668,13 +4846,15 @@ document.addEventListener("DOMContentLoaded", function () {
           body.classList.remove("sidebar-expanded");
           localStorage.setItem("sidebarExpanded", "false");
         }
-        
+
         // Hide admin submenus when clicking on other tabs
-        const globalSettingsSubmenu = document.getElementById("global-settings-submenu");
+        const globalSettingsSubmenu = document.getElementById(
+          "global-settings-submenu"
+        );
         if (globalSettingsSubmenu && !this.id.includes("global-settings")) {
           globalSettingsSubmenu.classList.remove("show");
         }
-        
+
         const productsSubmenu = document.getElementById("products-submenu");
         if (productsSubmenu && !this.id.includes("products")) {
           productsSubmenu.classList.remove("show");
@@ -4914,9 +5094,9 @@ document.addEventListener("DOMContentLoaded", function () {
                       <div class="item-addon">
                         <span class="addon-name">• ${(() => {
                           const currentLang = getCurrentLanguage();
-                          if (currentLang === 'en' && option.nameEn) {
+                          if (currentLang === "en" && option.nameEn) {
                             return option.nameEn;
-                          } else if (currentLang === 'en' && option.titleEn) {
+                          } else if (currentLang === "en" && option.titleEn) {
                             return option.titleEn;
                           } else {
                             return option.name || option.title || "إضافة";
@@ -4942,13 +5122,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 addonsHTML += `
                   <div class="item-addon">
                     <span class="addon-name">• ${(() => {
-                    const currentLang = getCurrentLanguage();
-                    if (currentLang === 'en' && section.nameEn) {
-                      return section.nameEn;
-                    } else {
-                      return section.name || "إضافة";
-                    }
-                  })()}</span>
+                      const currentLang = getCurrentLanguage();
+                      if (currentLang === "en" && section.nameEn) {
+                        return section.nameEn;
+                      } else {
+                        return section.name || "إضافة";
+                      }
+                    })()}</span>
                     ${
                       addonPrice > 0
                         ? `<span class="addon-price">+${addonPrice.toFixed(
@@ -4971,9 +5151,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="item-addon">
                   <span class="addon-name">• ${(() => {
                     const currentLang = getCurrentLanguage();
-                    if (currentLang === 'en' && addon.nameEn) {
+                    if (currentLang === "en" && addon.nameEn) {
                       return addon.nameEn;
-                    } else if (currentLang === 'en' && addon.titleEn) {
+                    } else if (currentLang === "en" && addon.titleEn) {
                       return addon.titleEn;
                     } else {
                       return addon.name || addon.title || "إضافة";
@@ -5005,7 +5185,7 @@ document.addEventListener("DOMContentLoaded", function () {
               <div class="item-addon">
                 <span class="addon-name">• ${(() => {
                   const currentLang = getCurrentLanguage();
-                  if (currentLang === 'en' && addon.nameEn) {
+                  if (currentLang === "en" && addon.nameEn) {
                     return addon.nameEn;
                   } else {
                     return addon.name || "إضافة";
@@ -5040,7 +5220,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   item.image
                     ? `<img src="${item.image}" alt="${(() => {
                         const currentLang = getCurrentLanguage();
-                        if (currentLang === 'en' && item.nameEn) {
+                        if (currentLang === "en" && item.nameEn) {
                           return item.nameEn;
                         } else if (item.nameAr) {
                           return item.nameAr;
@@ -5054,7 +5234,7 @@ document.addEventListener("DOMContentLoaded", function () {
               <div class="item-name-qty">
                 <span class="item-name">${(() => {
                   const currentLang = getCurrentLanguage();
-                  if (currentLang === 'en' && item.nameEn) {
+                  if (currentLang === "en" && item.nameEn) {
                     return item.nameEn;
                   } else if (item.nameAr) {
                     return item.nameAr;
@@ -6389,7 +6569,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showToast("حدث خطأ أثناء تحميل الصفحة", "error");
       }
     }
-    
+
     // Initialize products submenu toggle
     const productsTab = document.getElementById("products-tab");
     if (productsTab) {
@@ -6401,118 +6581,126 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
     }
-    
+
     // Handle products submenu clicks
-    const productsSubtabs = document.querySelectorAll("#products-submenu .admin-subtab");
-    productsSubtabs.forEach(subtab => {
+    const productsSubtabs = document.querySelectorAll(
+      "#products-submenu .admin-subtab"
+    );
+    productsSubtabs.forEach((subtab) => {
       subtab.addEventListener("click", function (e) {
         e.preventDefault();
         const targetSection = this.getAttribute("data-target");
-        
+
         // Remove active class from all products subtabs
-        productsSubtabs.forEach(st => st.classList.remove("active"));
-        
+        productsSubtabs.forEach((st) => st.classList.remove("active"));
+
         // Add active class to clicked subtab
         this.classList.add("active");
-        
+
         // Hide all sections
         const sections = document.querySelectorAll(".admin-section");
-        sections.forEach(section => {
+        sections.forEach((section) => {
           section.style.display = "none";
         });
-        
+
         // Show the target section
         const sectionElement = document.getElementById(targetSection);
         if (sectionElement) {
           sectionElement.style.display = "block";
         }
-        
+
         // Close sidebar on mobile after clicking subtab
         if (window.innerWidth <= 1140) {
           document.body.classList.remove("sidebar-expanded");
           localStorage.setItem("sidebarExpanded", "false");
         }
-        
+
         // Scroll to top
         window.scrollTo(0, 0);
       });
     });
-    
+
     // Initialize submenu mode toggle
     const submenuModeToggle = document.getElementById("submenu-mode-toggle");
-    const submenuModeEnabled = localStorage.getItem("submenuModeEnabled") !== "false"; // Default is true
-    
+    const submenuModeEnabled =
+      localStorage.getItem("submenuModeEnabled") !== "false"; // Default is true
+
     // Apply saved preference
     applySubmenuMode(submenuModeEnabled);
-    
+
     if (submenuModeToggle) {
-      submenuModeToggle.addEventListener("click", function() {
-        const currentMode = localStorage.getItem("submenuModeEnabled") !== "false";
+      submenuModeToggle.addEventListener("click", function () {
+        const currentMode =
+          localStorage.getItem("submenuModeEnabled") !== "false";
         const newMode = !currentMode;
-        
+
         localStorage.setItem("submenuModeEnabled", newMode);
         applySubmenuMode(newMode);
-        
+
         // Show notification
         if (typeof showToast === "function") {
-          const message = newMode ? "Submenu mode enabled" : "Submenu mode disabled";
+          const message = newMode
+            ? "Submenu mode enabled"
+            : "Submenu mode disabled";
           showToast(message, "success");
         }
       });
     }
   });
-  
+
   // Function to apply submenu mode
   function applySubmenuMode(enabled) {
     const submenuModeToggle = document.getElementById("submenu-mode-toggle");
     const productsTab = document.getElementById("products-tab");
     const globalSettingsTab = document.getElementById("global-settings-tab");
     const productsSubmenu = document.getElementById("products-submenu");
-    const globalSettingsSubmenu = document.getElementById("global-settings-submenu");
+    const globalSettingsSubmenu = document.getElementById(
+      "global-settings-submenu"
+    );
     const standaloneTabs = document.querySelectorAll(".standalone-tab");
     const toggleableSubtabs = document.querySelectorAll(".toggleable-subtab");
-    
+
     if (enabled) {
       // Enable submenu mode
       if (submenuModeToggle) submenuModeToggle.classList.add("active");
-      
+
       // Show submenus and add has-submenu class
       if (productsTab) productsTab.classList.add("has-submenu");
       if (globalSettingsTab) globalSettingsTab.classList.add("has-submenu");
       if (productsSubmenu) productsSubmenu.style.display = "";
       if (globalSettingsSubmenu) globalSettingsSubmenu.style.display = "";
-      
+
       // Show toggleable items in submenus
-      toggleableSubtabs.forEach(subtab => {
+      toggleableSubtabs.forEach((subtab) => {
         subtab.style.display = "";
       });
-      
+
       // Hide standalone tabs
-      standaloneTabs.forEach(tab => {
+      standaloneTabs.forEach((tab) => {
         tab.style.display = "none";
       });
     } else {
       // Disable submenu mode
       if (submenuModeToggle) submenuModeToggle.classList.remove("active");
-      
+
       // Products tab: remove has-submenu class and hide submenu completely
       if (productsTab) productsTab.classList.remove("has-submenu");
       if (productsSubmenu) {
         productsSubmenu.classList.remove("show");
         productsSubmenu.style.display = "none";
       }
-      
+
       // Global Settings: keep submenu visible but remove has-submenu class
       if (globalSettingsTab) globalSettingsTab.classList.remove("has-submenu");
       if (globalSettingsSubmenu) globalSettingsSubmenu.classList.remove("show");
-      
+
       // Hide toggleable subtabs within submenus
-      toggleableSubtabs.forEach(subtab => {
+      toggleableSubtabs.forEach((subtab) => {
         subtab.style.display = "none";
       });
-      
+
       // Show standalone tabs
-      standaloneTabs.forEach(tab => {
+      standaloneTabs.forEach((tab) => {
         tab.style.display = "block";
       });
     }
@@ -7363,7 +7551,8 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log(
               `[DEBUG] Found matching product for ${orderedProduct.name}`
             );
-            const catalogArabicName = matchingProduct.name || orderedProduct.name;
+            const catalogArabicName =
+              matchingProduct.name || orderedProduct.name;
             const catalogEnglishName =
               matchingProduct.nameEn && matchingProduct.nameEn.trim() !== ""
                 ? matchingProduct.nameEn
@@ -8537,7 +8726,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function updateBestProductNames(language) {
-  const effectiveLanguage = language || localStorage.getItem("admin-language") || "ar";
+  const effectiveLanguage =
+    language || localStorage.getItem("admin-language") || "ar";
 
   const nameElements = document.querySelectorAll(".best-product-name");
   nameElements.forEach((element) => {
@@ -8604,59 +8794,79 @@ document.addEventListener("languageChanged", function (event) {
 // Enhanced Product Modal Functions
 function enhanceProductModalExperience() {
   // Auto-suggest English names based on Arabic input
-  document.addEventListener('input', function(e) {
-    if (e.target.classList.contains('addon-section-title') && !e.target.classList.contains('addon-section-title-en')) {
+  document.addEventListener("input", function (e) {
+    if (
+      e.target.classList.contains("addon-section-title") &&
+      !e.target.classList.contains("addon-section-title-en")
+    ) {
       const arabicInput = e.target;
-      const englishInput = arabicInput.parentElement.querySelector('.addon-section-title-en');
-      
+      const englishInput = arabicInput.parentElement.querySelector(
+        ".addon-section-title-en"
+      );
+
       if (englishInput && !englishInput.value) {
         // Simple transliteration suggestions (can be enhanced with a proper translation API)
         const suggestions = {
-          'اختر الصلصة': 'Choose Sauce',
-          'اختر الحجم': 'Choose Size',
-          'إضافات': 'Add-ons',
-          'مشروبات': 'Drinks',
-          'حلويات': 'Desserts',
-          'سلطات': 'Salads'
+          "اختر الصلصة": "Choose Sauce",
+          "اختر الحجم": "Choose Size",
+          إضافات: "Add-ons",
+          مشروبات: "Drinks",
+          حلويات: "Desserts",
+          سلطات: "Salads",
         };
-        
+
         if (suggestions[arabicInput.value]) {
-          englishInput.placeholder = `Suggestion: ${suggestions[arabicInput.value]}`;
+          englishInput.placeholder = `Suggestion: ${
+            suggestions[arabicInput.value]
+          }`;
         }
       }
     }
-    
-    if (e.target.classList.contains('addon-option-name') && !e.target.classList.contains('addon-option-name-en')) {
+
+    if (
+      e.target.classList.contains("addon-option-name") &&
+      !e.target.classList.contains("addon-option-name-en")
+    ) {
       const arabicInput = e.target;
-      const englishInput = arabicInput.parentElement.querySelector('.addon-option-name-en');
-      
+      const englishInput = arabicInput.parentElement.querySelector(
+        ".addon-option-name-en"
+      );
+
       if (englishInput && !englishInput.value) {
         const suggestions = {
-          'كبير': 'Large',
-          'متوسط': 'Medium',
-          'صغير': 'Small',
-          'حار': 'Spicy',
-          'عادي': 'Regular',
-          'بدون': 'Without',
-          'إضافي': 'Extra'
+          كبير: "Large",
+          متوسط: "Medium",
+          صغير: "Small",
+          حار: "Spicy",
+          عادي: "Regular",
+          بدون: "Without",
+          إضافي: "Extra",
         };
-        
+
         if (suggestions[arabicInput.value]) {
-          englishInput.placeholder = `Suggestion: ${suggestions[arabicInput.value]}`;
+          englishInput.placeholder = `Suggestion: ${
+            suggestions[arabicInput.value]
+          }`;
         }
       }
     }
   });
-  
+
   // Add visual indicators for completed English translations
-  document.addEventListener('input', function(e) {
-    if (e.target.classList.contains('addon-section-title-en') || e.target.classList.contains('addon-option-name-en')) {
-      const indicator = e.target.parentElement.querySelector('.translation-indicator');
+  document.addEventListener("input", function (e) {
+    if (
+      e.target.classList.contains("addon-section-title-en") ||
+      e.target.classList.contains("addon-option-name-en")
+    ) {
+      const indicator = e.target.parentElement.querySelector(
+        ".translation-indicator"
+      );
       if (e.target.value.trim()) {
         if (!indicator) {
-          const checkmark = document.createElement('span');
-          checkmark.className = 'translation-indicator';
-          checkmark.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745; margin-left: 8px;"></i>';
+          const checkmark = document.createElement("span");
+          checkmark.className = "translation-indicator";
+          checkmark.innerHTML =
+            '<i class="fas fa-check-circle" style="color: #28a745; margin-left: 8px;"></i>';
           e.target.parentElement.appendChild(checkmark);
         }
       } else {
@@ -8666,51 +8876,51 @@ function enhanceProductModalExperience() {
       }
     }
   });
-  
+
   // Enhanced price input functionality
-  const priceInput = document.getElementById('product-price');
+  const priceInput = document.getElementById("product-price");
   if (priceInput) {
     // Format price on input
-    priceInput.addEventListener('input', function(e) {
+    priceInput.addEventListener("input", function (e) {
       let value = e.target.value;
-      
+
       // Remove any non-numeric characters except decimal point
-      value = value.replace(/[^0-9.]/g, '');
-      
+      value = value.replace(/[^0-9.]/g, "");
+
       // Ensure only one decimal point
-      const parts = value.split('.');
+      const parts = value.split(".");
       if (parts.length > 2) {
-        value = parts[0] + '.' + parts.slice(1).join('');
+        value = parts[0] + "." + parts.slice(1).join("");
       }
-      
+
       // Limit to 2 decimal places
       if (parts[1] && parts[1].length > 2) {
-        value = parts[0] + '.' + parts[1].substring(0, 2);
+        value = parts[0] + "." + parts[1].substring(0, 2);
       }
-      
+
       e.target.value = value;
     });
-    
+
     // Format price on blur (add .00 if needed)
-    priceInput.addEventListener('blur', function(e) {
+    priceInput.addEventListener("blur", function (e) {
       let value = parseFloat(e.target.value);
       if (!isNaN(value)) {
         e.target.value = value.toFixed(2);
       }
     });
-    
+
     // Add visual feedback for valid/invalid prices
-    priceInput.addEventListener('input', function(e) {
-      const priceContainer = e.target.closest('.price-input');
+    priceInput.addEventListener("input", function (e) {
+      const priceContainer = e.target.closest(".price-input");
       const value = parseFloat(e.target.value);
-      
+
       if (priceContainer) {
         if (isNaN(value) || value <= 0) {
-          priceContainer.classList.add('invalid');
-          priceContainer.classList.remove('valid');
+          priceContainer.classList.add("invalid");
+          priceContainer.classList.remove("valid");
         } else {
-          priceContainer.classList.add('valid');
-          priceContainer.classList.remove('invalid');
+          priceContainer.classList.add("valid");
+          priceContainer.classList.remove("invalid");
         }
       }
     });
@@ -8718,24 +8928,28 @@ function enhanceProductModalExperience() {
 }
 
 // Initialize enhanced experience when DOM is loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', enhanceProductModalExperience);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", enhanceProductModalExperience);
 } else {
   enhanceProductModalExperience();
 }
 
 // Listen for language changes to update dynamically created addon labels
-document.addEventListener('languageChanged', function(event) {
-  console.log('Language changed, updating addon section labels');
-  
+document.addEventListener("languageChanged", function (event) {
+  console.log("Language changed, updating addon section labels");
+
   // Update all addon section labels with data-i18n attributes
-  const addonLabels = document.querySelectorAll('.addon-section-toggle label[data-i18n]');
-  addonLabels.forEach(label => {
-    const key = label.getAttribute('data-i18n');
-    const currentLang = window.getCurrentLanguage ? window.getCurrentLanguage() : 'ar';
-    
-    if (currentLang === 'en' && label.hasAttribute('data-i18n-en')) {
-      label.textContent = label.getAttribute('data-i18n-en');
+  const addonLabels = document.querySelectorAll(
+    ".addon-section-toggle label[data-i18n]"
+  );
+  addonLabels.forEach((label) => {
+    const key = label.getAttribute("data-i18n");
+    const currentLang = window.getCurrentLanguage
+      ? window.getCurrentLanguage()
+      : "ar";
+
+    if (currentLang === "en" && label.hasAttribute("data-i18n-en")) {
+      label.textContent = label.getAttribute("data-i18n-en");
     } else if (window.getTranslation) {
       label.textContent = window.getTranslation(key);
     }
@@ -8746,25 +8960,25 @@ document.addEventListener('languageChanged', function(event) {
 // Categories Management
 // ============================================
 
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
   let categories = [];
   let editingCategoryId = null;
   let selectedCategories = new Set();
 
   // DOM Elements
-  const categoriesList = document.getElementById('categories-list');
-  const addCategoryBtn = document.getElementById('add-category-btn');
-  const categoryModal = document.getElementById('category-modal');
-  const closeCategoryModal = document.getElementById('close-category-modal');
-  const categoryForm = document.getElementById('category-form');
-  const categoryModalTitle = document.getElementById('category-modal-title');
+  const categoriesList = document.getElementById("categories-list");
+  const addCategoryBtn = document.getElementById("add-category-btn");
+  const categoryModal = document.getElementById("category-modal");
+  const closeCategoryModal = document.getElementById("close-category-modal");
+  const categoryForm = document.getElementById("category-form");
+  const categoryModalTitle = document.getElementById("category-modal-title");
 
   // Initialize categories management
   function initCategories() {
     if (!categoriesList || !addCategoryBtn || !categoryModal) {
-      console.warn('Categories management elements not found');
+      console.warn("Categories management elements not found");
       return;
     }
 
@@ -8772,46 +8986,46 @@ document.addEventListener('languageChanged', function(event) {
     loadCategories();
 
     // Event listeners
-    addCategoryBtn.addEventListener('click', openAddCategoryModal);
-    closeCategoryModal.addEventListener('click', closeCategoryModalHandler);
-    categoryForm.addEventListener('submit', handleCategorySubmit);
+    addCategoryBtn.addEventListener("click", openAddCategoryModal);
+    closeCategoryModal.addEventListener("click", closeCategoryModalHandler);
+    categoryForm.addEventListener("submit", handleCategorySubmit);
 
     // Icon picker functionality
-    const iconInput = document.getElementById('category-icon');
-    const iconPreview = document.getElementById('category-icon-preview');
-    const cancelCategoryBtn = document.getElementById('cancel-category-btn');
-    
+    const iconInput = document.getElementById("category-icon");
+    const iconPreview = document.getElementById("category-icon-preview");
+    const cancelCategoryBtn = document.getElementById("cancel-category-btn");
+
     // Update icon preview when input changes
     if (iconInput && iconPreview) {
-      iconInput.addEventListener('input', function() {
-        const iconClass = this.value.trim() || 'fas fa-th-large';
+      iconInput.addEventListener("input", function () {
+        const iconClass = this.value.trim() || "fas fa-th-large";
         iconPreview.innerHTML = `<i class="${iconClass}"></i>`;
       });
     }
 
     // Quick icon picker buttons
-    const quickIconBtns = document.querySelectorAll('.quick-icon-btn');
-    quickIconBtns.forEach(btn => {
-      btn.addEventListener('click', function() {
+    const quickIconBtns = document.querySelectorAll(".quick-icon-btn");
+    quickIconBtns.forEach((btn) => {
+      btn.addEventListener("click", function () {
         const iconClass = this.dataset.icon;
         if (iconInput) {
           iconInput.value = iconClass;
           iconPreview.innerHTML = `<i class="${iconClass}"></i>`;
         }
-        
+
         // Update selected state
-        quickIconBtns.forEach(b => b.classList.remove('selected'));
-        this.classList.add('selected');
+        quickIconBtns.forEach((b) => b.classList.remove("selected"));
+        this.classList.add("selected");
       });
     });
 
     // Cancel button
     if (cancelCategoryBtn) {
-      cancelCategoryBtn.addEventListener('click', closeCategoryModalHandler);
+      cancelCategoryBtn.addEventListener("click", closeCategoryModalHandler);
     }
 
     // Close modal when clicking outside
-    window.addEventListener('click', function(e) {
+    window.addEventListener("click", function (e) {
       if (e.target === categoryModal) {
         closeCategoryModalHandler();
       }
@@ -8822,7 +9036,7 @@ document.addEventListener('languageChanged', function(event) {
   async function loadCategories() {
     try {
       // First load from localStorage as fallback
-      const savedCategories = localStorage.getItem('categories');
+      const savedCategories = localStorage.getItem("categories");
       if (savedCategories) {
         categories = JSON.parse(savedCategories);
         renderCategories();
@@ -8830,19 +9044,19 @@ document.addEventListener('languageChanged', function(event) {
 
       // Then try to load from API (if available)
       const apiService = new ApiService();
-      const response = await apiService.request('categories', 'GET');
+      const response = await apiService.request("categories", "GET");
 
       if (response && response.success && response.data) {
         categories = response.data;
-        localStorage.setItem('categories', JSON.stringify(categories));
+        localStorage.setItem("categories", JSON.stringify(categories));
         renderCategories();
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error("Error loading categories:", error);
       // If no saved categories, initialize with default ones
       if (categories.length === 0) {
         categories = getDefaultCategories();
-        localStorage.setItem('categories', JSON.stringify(categories));
+        localStorage.setItem("categories", JSON.stringify(categories));
         renderCategories();
       }
     }
@@ -8858,13 +9072,13 @@ document.addEventListener('languageChanged', function(event) {
   function renderCategories() {
     if (!categoriesList) return;
 
-    categoriesList.innerHTML = '';
+    categoriesList.innerHTML = "";
 
     if (categories.length === 0) {
       categoriesList.innerHTML = `
         <div class="empty-state">
           <i class="fas fa-th-large"></i>
-          <p data-i18n="noCategories">${getTranslation('noCategories')}</p>
+          <p data-i18n="noCategories">${getTranslation("noCategories")}</p>
         </div>
       `;
       return;
@@ -8877,7 +9091,7 @@ document.addEventListener('languageChanged', function(event) {
       return orderA - orderB;
     });
 
-    sortedCategories.forEach(category => {
+    sortedCategories.forEach((category) => {
       const categoryCard = createCategoryCard(category);
       categoriesList.appendChild(categoryCard);
     });
@@ -8885,14 +9099,15 @@ document.addEventListener('languageChanged', function(event) {
 
   // Create category card element
   function createCategoryCard(category) {
-    const card = document.createElement('div');
-    card.className = 'category-card';
+    const card = document.createElement("div");
+    card.className = "category-card";
     card.dataset.categoryId = category.id;
 
-    const currentLang = localStorage.getItem('admin-language') || 'ar';
-    const categoryName = currentLang === 'en' && category.nameEn ? category.nameEn : category.name;
-    const icon = category.icon || 'fas fa-th-large';
-    const sortLabel = currentLang === 'en' ? 'Sort Order' : 'ترتيب العرض';
+    const currentLang = localStorage.getItem("admin-language") || "ar";
+    const categoryName =
+      currentLang === "en" && category.nameEn ? category.nameEn : category.name;
+    const icon = category.icon || "fas fa-th-large";
+    const sortLabel = currentLang === "en" ? "Sort Order" : "ترتيب العرض";
 
     card.innerHTML = `
       <div class="category-header">
@@ -8915,21 +9130,25 @@ document.addEventListener('languageChanged', function(event) {
       <div class="category-actions">
         <button class="edit-button" data-id="${category.id}">
           <i class="fas fa-edit"></i>
-          <span data-i18n="editCategory">${getTranslation('editCategory')}</span>
+          <span data-i18n="editCategory">${getTranslation(
+            "editCategory"
+          )}</span>
         </button>
         <button class="delete-button" data-id="${category.id}">
           <i class="fas fa-trash"></i>
-          <span data-i18n="deleteCategory">${getTranslation('deleteCategory')}</span>
+          <span data-i18n="deleteCategory">${getTranslation(
+            "deleteCategory"
+          )}</span>
         </button>
       </div>
     `;
 
     // Add event listeners
-    const editBtn = card.querySelector('.edit-button');
-    const deleteBtn = card.querySelector('.delete-button');
+    const editBtn = card.querySelector(".edit-button");
+    const deleteBtn = card.querySelector(".delete-button");
 
-    editBtn.addEventListener('click', () => openEditCategoryModal(category.id));
-    deleteBtn.addEventListener('click', () => deleteCategory(category.id));
+    editBtn.addEventListener("click", () => openEditCategoryModal(category.id));
+    deleteBtn.addEventListener("click", () => deleteCategory(category.id));
 
     return card;
   }
@@ -8938,71 +9157,73 @@ document.addEventListener('languageChanged', function(event) {
   function openAddCategoryModal() {
     editingCategoryId = null;
     categoryForm.reset();
-    categoryModalTitle.textContent = getTranslation('addNewCategory');
-    
+    categoryModalTitle.textContent = getTranslation("addNewCategory");
+
     // Reset icon preview
-    const iconPreview = document.getElementById('category-icon-preview');
+    const iconPreview = document.getElementById("category-icon-preview");
     if (iconPreview) {
       iconPreview.innerHTML = '<i class="fas fa-th-large"></i>';
     }
-    
+
     // Clear selected icon
-    document.querySelectorAll('.quick-icon-btn').forEach(btn => {
-      btn.classList.remove('selected');
+    document.querySelectorAll(".quick-icon-btn").forEach((btn) => {
+      btn.classList.remove("selected");
     });
-    
-    categoryModal.classList.add('show');
+
+    categoryModal.classList.add("show");
   }
 
   // Open edit category modal
   function openEditCategoryModal(categoryId) {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     if (!category) return;
 
     editingCategoryId = categoryId;
-    categoryModalTitle.textContent = getTranslation('editCategory');
+    categoryModalTitle.textContent = getTranslation("editCategory");
 
     // Fill form with category data
-    document.getElementById('category-id').value = category.id || '';
-    document.getElementById('category-name').value = category.name || '';
-    document.getElementById('category-name-en').value = category.nameEn || '';
-    document.getElementById('category-icon').value = category.icon || 'fas fa-th-large';
-    document.getElementById('category-sort-order').value = category.sortOrder || 0;
+    document.getElementById("category-id").value = category.id || "";
+    document.getElementById("category-name").value = category.name || "";
+    document.getElementById("category-name-en").value = category.nameEn || "";
+    document.getElementById("category-icon").value =
+      category.icon || "fas fa-th-large";
+    document.getElementById("category-sort-order").value =
+      category.sortOrder || 0;
 
     // Update icon preview
-    const iconPreview = document.getElementById('category-icon-preview');
+    const iconPreview = document.getElementById("category-icon-preview");
     if (iconPreview) {
-      const iconClass = category.icon || 'fas fa-th-large';
+      const iconClass = category.icon || "fas fa-th-large";
       iconPreview.innerHTML = `<i class="${iconClass}"></i>`;
     }
-    
+
     // Highlight selected icon if it's in quick picker
-    document.querySelectorAll('.quick-icon-btn').forEach(btn => {
-      btn.classList.remove('selected');
+    document.querySelectorAll(".quick-icon-btn").forEach((btn) => {
+      btn.classList.remove("selected");
       if (btn.dataset.icon === category.icon) {
-        btn.classList.add('selected');
+        btn.classList.add("selected");
       }
     });
 
-    categoryModal.classList.add('show');
+    categoryModal.classList.add("show");
   }
 
   // Close category modal
   function closeCategoryModalHandler() {
-    categoryModal.classList.remove('show');
+    categoryModal.classList.remove("show");
     setTimeout(() => {
       categoryForm.reset();
       editingCategoryId = null;
-      
+
       // Reset icon preview
-      const iconPreview = document.getElementById('category-icon-preview');
+      const iconPreview = document.getElementById("category-icon-preview");
       if (iconPreview) {
         iconPreview.innerHTML = '<i class="fas fa-th-large"></i>';
       }
-      
+
       // Clear selected icons
-      document.querySelectorAll('.quick-icon-btn').forEach(btn => {
-        btn.classList.remove('selected');
+      document.querySelectorAll(".quick-icon-btn").forEach((btn) => {
+        btn.classList.remove("selected");
       });
     }, 300);
   }
@@ -9010,7 +9231,9 @@ document.addEventListener('languageChanged', function(event) {
   // CATEGORY NOTIFICATION SYSTEM - Matches admin notification style
   function showCategoryNotification(message, type = "success") {
     // Remove any existing category notifications
-    const existingNotif = document.getElementById("category-notification-fixed");
+    const existingNotif = document.getElementById(
+      "category-notification-fixed"
+    );
     if (existingNotif) {
       existingNotif.remove();
     }
@@ -9048,24 +9271,35 @@ document.addEventListener('languageChanged', function(event) {
   async function handleCategorySubmit(e) {
     e.preventDefault();
 
-    const categoryName = document.getElementById('category-name').value.trim();
-    const categoryNameEn = document.getElementById('category-name-en').value.trim();
-    
+    const categoryName = document.getElementById("category-name").value.trim();
+    const categoryNameEn = document
+      .getElementById("category-name-en")
+      .value.trim();
+
     // Generate ID from category name (use English name if available, otherwise Arabic)
-    const generatedId = (categoryNameEn || categoryName).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const generatedId = (categoryNameEn || categoryName)
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
 
     const categoryData = {
       id: editingCategoryId || generatedId,
       name: categoryName,
       nameEn: categoryNameEn,
       value: generatedId,
-      icon: document.getElementById('category-icon').value.trim() || 'fas fa-th-large',
-      sortOrder: parseInt(document.getElementById('category-sort-order').value) || 0
+      icon:
+        document.getElementById("category-icon").value.trim() ||
+        "fas fa-th-large",
+      sortOrder:
+        parseInt(document.getElementById("category-sort-order").value) || 0,
     };
 
     // Validate
     if (!categoryData.name) {
-      showCategoryNotification(getTranslation('fillAllRequiredFields'), 'error');
+      showCategoryNotification(
+        getTranslation("fillAllRequiredFields"),
+        "error"
+      );
       return;
     }
 
@@ -9074,53 +9308,63 @@ document.addEventListener('languageChanged', function(event) {
 
       if (editingCategoryId) {
         // Update existing category
-        const response = await apiService.request(`categories/${editingCategoryId}`, 'PUT', categoryData);
-        
+        const response = await apiService.request(
+          `categories/${editingCategoryId}`,
+          "PUT",
+          categoryData
+        );
+
         if (response && response.success) {
-          const index = categories.findIndex(c => c.id === editingCategoryId);
+          const index = categories.findIndex((c) => c.id === editingCategoryId);
           if (index !== -1) {
             categories[index] = categoryData;
           }
-          showCategoryNotification(getTranslation('categoryUpdated'), 'success');
+          showCategoryNotification(
+            getTranslation("categoryUpdated"),
+            "success"
+          );
         } else {
-          throw new Error('Failed to update category');
+          throw new Error("Failed to update category");
         }
       } else {
         // Add new category
-        const response = await apiService.request('categories', 'POST', categoryData);
-        
+        const response = await apiService.request(
+          "categories",
+          "POST",
+          categoryData
+        );
+
         if (response && response.success) {
           categories.push(categoryData);
-          showCategoryNotification(getTranslation('categoryAdded'), 'success');
+          showCategoryNotification(getTranslation("categoryAdded"), "success");
         } else {
-          throw new Error('Failed to add category');
+          throw new Error("Failed to add category");
         }
       }
 
       // Save to localStorage
-      localStorage.setItem('categories', JSON.stringify(categories));
+      localStorage.setItem("categories", JSON.stringify(categories));
 
       // Update UI
       renderCategories();
       updateProductCategoryDropdowns();
       closeCategoryModalHandler();
-
     } catch (error) {
-      console.error('Error saving category:', error);
-      
+      console.error("Error saving category:", error);
+
       // Fallback to localStorage only
       if (editingCategoryId) {
-        const index = categories.findIndex(c => c.id === editingCategoryId);
+        const index = categories.findIndex((c) => c.id === editingCategoryId);
         if (index !== -1) {
           categories[index] = categoryData;
         }
-        showCategoryNotification(getTranslation('categoryUpdated'), 'success');
+        showCategoryNotification(getTranslation("categoryUpdated"), "success");
       } else {
         categories.push(categoryData);
-        showCategoryNotification(getTranslation('categoryAdded'), 'success');
+        showCategoryNotification(getTranslation("categoryAdded"), "success");
       }
 
-      localStorage.setItem('categories', JSON.stringify(categories));
+      localStorage.setItem("categories", JSON.stringify(categories));
       renderCategories();
       updateProductCategoryDropdowns();
       closeCategoryModalHandler();
@@ -9129,48 +9373,54 @@ document.addEventListener('languageChanged', function(event) {
 
   // Delete category
   async function deleteCategory(categoryId) {
-    if (!confirm(getTranslation('confirmDeleteCategory'))) {
+    if (!confirm(getTranslation("confirmDeleteCategory"))) {
       return;
     }
 
     try {
       const apiService = new ApiService();
-      const response = await apiService.request(`categories/${categoryId}`, 'DELETE');
+      const response = await apiService.request(
+        `categories/${categoryId}`,
+        "DELETE"
+      );
 
       if (response && response.success) {
-        categories = categories.filter(c => c.id !== categoryId);
-        showCategoryNotification(getTranslation('categoryDeleted'), 'success');
+        categories = categories.filter((c) => c.id !== categoryId);
+        showCategoryNotification(getTranslation("categoryDeleted"), "success");
       } else {
-        throw new Error('Failed to delete category');
+        throw new Error("Failed to delete category");
       }
     } catch (error) {
-      console.error('Error deleting category:', error);
-      
+      console.error("Error deleting category:", error);
+
       // Fallback to localStorage only
-      categories = categories.filter(c => c.id !== categoryId);
-      showCategoryNotification(getTranslation('categoryDeleted'), 'success');
+      categories = categories.filter((c) => c.id !== categoryId);
+      showCategoryNotification(getTranslation("categoryDeleted"), "success");
     }
 
-    localStorage.setItem('categories', JSON.stringify(categories));
+    localStorage.setItem("categories", JSON.stringify(categories));
     renderCategories();
     updateProductCategoryDropdowns();
   }
 
   // Update product category dropdowns
   function updateProductCategoryDropdowns() {
-    const productCategorySelect = document.getElementById('product-category');
-    const voucherCategorySelect = document.getElementById('voucher-category');
-    const currentLang = localStorage.getItem('admin-language') || 'ar';
+    const productCategorySelect = document.getElementById("product-category");
+    const voucherCategorySelect = document.getElementById("voucher-category");
+    const currentLang = localStorage.getItem("admin-language") || "ar";
 
     if (productCategorySelect) {
       const currentValue = productCategorySelect.value;
-      productCategorySelect.innerHTML = '';
+      productCategorySelect.innerHTML = "";
 
-      categories.forEach(category => {
-        const option = document.createElement('option');
+      categories.forEach((category) => {
+        const option = document.createElement("option");
         option.value = category.value;
         // Use the appropriate language based on current language setting
-        const categoryName = currentLang === 'en' && category.nameEn ? category.nameEn : category.name;
+        const categoryName =
+          currentLang === "en" && category.nameEn
+            ? category.nameEn
+            : category.name;
         option.textContent = categoryName;
         // Store both names as data attributes for language switching
         option.dataset.nameAr = category.name;
@@ -9179,21 +9429,25 @@ document.addEventListener('languageChanged', function(event) {
       });
 
       // Restore previous value if it exists
-      if (currentValue && categories.find(c => c.value === currentValue)) {
+      if (currentValue && categories.find((c) => c.value === currentValue)) {
         productCategorySelect.value = currentValue;
       }
     }
 
     if (voucherCategorySelect) {
       const currentValue = voucherCategorySelect.value;
-      const allCategoriesText = currentLang === 'en' ? 'All Categories' : 'جميع الفئات';
+      const allCategoriesText =
+        currentLang === "en" ? "All Categories" : "جميع الفئات";
       voucherCategorySelect.innerHTML = `<option value="all" data-i18n="allCategories" data-i18n-en="All Categories">${allCategoriesText}</option>`;
 
-      categories.forEach(category => {
-        const option = document.createElement('option');
+      categories.forEach((category) => {
+        const option = document.createElement("option");
         option.value = category.value;
         // Use the appropriate language based on current language setting
-        const categoryName = currentLang === 'en' && category.nameEn ? category.nameEn : category.name;
+        const categoryName =
+          currentLang === "en" && category.nameEn
+            ? category.nameEn
+            : category.name;
         option.textContent = categoryName;
         // Store both names as data attributes for language switching
         option.dataset.nameAr = category.name;
@@ -9209,20 +9463,21 @@ document.addEventListener('languageChanged', function(event) {
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCategories);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCategories);
   } else {
     initCategories();
   }
 
   // Listen for language change events to update category displays
-  document.addEventListener('languageChanged', function(event) {
-    console.log('Language changed, updating categories display');
-    const currentLang = event.detail?.language || localStorage.getItem('admin-language') || 'ar';
-    
+  document.addEventListener("languageChanged", function (event) {
+    console.log("Language changed, updating categories display");
+    const currentLang =
+      event.detail?.language || localStorage.getItem("admin-language") || "ar";
+
     // Update category option texts without rebuilding dropdowns
     updateCategoryOptionTexts(currentLang);
-    
+
     renderCategories();
     updateProductCategoryDropdowns();
   });
@@ -9230,12 +9485,14 @@ document.addEventListener('languageChanged', function(event) {
   // Function to update category option texts based on language
   function updateCategoryOptionTexts(lang) {
     // Update all select options that have category data attributes
-    const allOptions = document.querySelectorAll('option[data-name-ar][data-name-en]');
-    allOptions.forEach(option => {
+    const allOptions = document.querySelectorAll(
+      "option[data-name-ar][data-name-en]"
+    );
+    allOptions.forEach((option) => {
       const nameAr = option.dataset.nameAr;
       const nameEn = option.dataset.nameEn;
       if (nameAr && nameEn) {
-        option.textContent = lang === 'en' ? nameEn : nameAr;
+        option.textContent = lang === "en" ? nameEn : nameAr;
       }
     });
   }
@@ -9253,7 +9510,7 @@ document.addEventListener('languageChanged', function(event) {
   // Select all categories
   function selectAllCategories(isSelected) {
     if (isSelected) {
-      categories.forEach(category => selectedCategories.add(category.id));
+      categories.forEach((category) => selectedCategories.add(category.id));
     } else {
       selectedCategories.clear();
     }
@@ -9262,8 +9519,12 @@ document.addEventListener('languageChanged', function(event) {
 
   // Update categories bulk actions bar
   function updateCategoriesBulkActionsBar() {
-    const bulkActionsBar = document.getElementById("categories-bulk-actions-bar");
-    const selectedCountSpan = document.getElementById("categories-selected-count");
+    const bulkActionsBar = document.getElementById(
+      "categories-bulk-actions-bar"
+    );
+    const selectedCountSpan = document.getElementById(
+      "categories-selected-count"
+    );
     const selectAllCheckbox = document.getElementById("select-all-categories");
 
     if (bulkActionsBar && selectedCountSpan) {
@@ -9271,7 +9532,8 @@ document.addEventListener('languageChanged', function(event) {
         bulkActionsBar.style.display = "flex";
         selectedCountSpan.textContent = selectedCategories.size;
         if (selectAllCheckbox) {
-          selectAllCheckbox.checked = selectedCategories.size === categories.length;
+          selectAllCheckbox.checked =
+            selectedCategories.size === categories.length;
         }
       } else {
         bulkActionsBar.style.display = "none";
@@ -9287,27 +9549,29 @@ document.addEventListener('languageChanged', function(event) {
     if (selectedCategories.size === 0) return;
 
     const currentLang = localStorage.getItem("admin-language") || "ar";
-    const confirmMessage = currentLang === "en" 
-      ? `Are you sure you want to delete ${selectedCategories.size} category(ies)?`
-      : `هل أنت متأكد من حذف ${selectedCategories.size} فئة؟`;
+    const confirmMessage =
+      currentLang === "en"
+        ? `Are you sure you want to delete ${selectedCategories.size} category(ies)?`
+        : `هل أنت متأكد من حذف ${selectedCategories.size} فئة؟`;
 
     if (confirm(confirmMessage)) {
-      selectedCategories.forEach(categoryId => {
-        const index = categories.findIndex(c => c.id === categoryId);
+      selectedCategories.forEach((categoryId) => {
+        const index = categories.findIndex((c) => c.id === categoryId);
         if (index !== -1) {
           categories.splice(index, 1);
         }
       });
 
       selectedCategories.clear();
-      localStorage.setItem('categories', JSON.stringify(categories));
+      localStorage.setItem("categories", JSON.stringify(categories));
       renderCategories();
       updateProductCategoryDropdowns();
 
-      const successMessage = currentLang === "en" 
-        ? "Categories deleted successfully"
-        : "تم حذف الفئات بنجاح";
-      if (typeof showAdminNotification === 'function') {
+      const successMessage =
+        currentLang === "en"
+          ? "Categories deleted successfully"
+          : "تم حذف الفئات بنجاح";
+      if (typeof showAdminNotification === "function") {
         showAdminNotification(successMessage, "success");
       }
     }
@@ -9319,12 +9583,12 @@ document.addEventListener('languageChanged', function(event) {
     renderCategories,
     updateProductCategoryDropdowns,
     selectAllCategories,
-    bulkDeleteCategories
+    bulkDeleteCategories,
   };
 })();
 
 // Expose updateDashboardOfferStats globally for admin-offers.js
 // This is defined in the global scope above, so we can access it here
-if (typeof updateDashboardOfferStats !== 'undefined') {
+if (typeof updateDashboardOfferStats !== "undefined") {
   window.updateDashboardOfferStats = updateDashboardOfferStats;
 }
