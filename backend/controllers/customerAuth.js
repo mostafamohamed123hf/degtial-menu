@@ -1,6 +1,7 @@
 const Customer = require("../models/Customer");
 const crypto = require("crypto");
 const { validationResult } = require("express-validator");
+const nodemailer = require("nodemailer");
 
 // @desc    Register customer
 // @route   POST /api/customer/register
@@ -258,13 +259,11 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    // Get reset token
-    const resetToken = crypto.randomBytes(20).toString("hex");
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Hash token and set to resetPasswordToken field
     customer.resetPasswordToken = crypto
       .createHash("sha256")
-      .update(resetToken)
+      .update(resetCode)
       .digest("hex");
 
     // Set expire
@@ -272,15 +271,87 @@ exports.forgotPassword = async (req, res) => {
 
     await customer.save();
 
-    // This would normally send an email with the reset token
-    // Here we just return the token for testing purposes
+    try {
+      const host = process.env.SMTP_HOST || "";
+      const port = parseInt(process.env.SMTP_PORT || "0", 10) || 0;
+      const secure = (process.env.SMTP_SECURE || "false").toLowerCase() === "true";
+      const user = process.env.SMTP_USER || "";
+      const pass = process.env.SMTP_PASS || "";
+      const from = process.env.SMTP_FROM || "noreply@digital-menu.local";
+
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: user && pass ? { user, pass } : undefined,
+      });
+
+      const mailText = `رمز إعادة تعيين كلمة المرور الخاص بك هو: ${resetCode}\nهذا الرمز صالح لمدة 30 دقيقة.`;
+      const mailHtml = `<div style="font-family:Tahoma,Arial,sans-serif;line-height:1.6;direction:rtl;text-align:right">
+        <h2 style="margin:0 0 10px 0">إعادة تعيين كلمة المرور</h2>
+        <p>رمز التأكيد الخاص بك:</p>
+        <div style="font-size:24px;font-weight:bold;background:#f5f5f5;padding:12px;border-radius:8px;display:inline-block">${resetCode}</div>
+        <p style="margin-top:10px">هذا الرمز صالح لمدة 30 دقيقة.</p>
+      </div>`;
+
+      await transporter.sendMail({
+        from,
+        to: customer.email,
+        subject: "رمز إعادة تعيين كلمة المرور",
+        text: mailText,
+        html: mailHtml,
+      });
+    } catch (mailErr) {
+      console.error("Email send error:", mailErr.message);
+    }
+
     res.status(200).json({
       success: true,
-      resetToken,
-      message: "Password reset link sent to your email",
+      message: "Password reset code sent to your email",
     });
   } catch (err) {
     console.error("Error requesting password reset:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+// @desc    Reset password using token
+// @route   POST /api/customer/reset-password
+// @access  Public
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, code, password } = req.body;
+    if (!email || !code || !password || String(password).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid token or password",
+      });
+    }
+    const hashed = crypto.createHash("sha256").update(code).digest("hex");
+    const customer = await Customer.findOne({
+      email,
+      resetPasswordToken: hashed,
+      resetPasswordExpire: { $gt: Date.now() },
+    }).select("+password");
+    if (!customer) {
+      return res.status(400).json({
+        success: false,
+        message: "Token invalid or expired",
+      });
+    }
+    customer.password = password;
+    customer.resetPasswordToken = undefined;
+    customer.resetPasswordExpire = undefined;
+    await customer.save();
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (err) {
+    console.error("Error resetting password:", err);
     res.status(500).json({
       success: false,
       message: "Server Error",

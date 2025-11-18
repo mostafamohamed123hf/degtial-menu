@@ -10,6 +10,7 @@ const {
   forgotPassword,
   refreshToken,
   toggleAdminAccess,
+  resetPassword,
 } = require("../controllers/customerAuth");
 const {
   getCustomers,
@@ -290,6 +291,8 @@ router.get("/logout", protectCustomer, logout);
 
 // Forgot password
 router.post("/forgot-password", forgotPassword);
+
+router.post("/reset-password", resetPassword);
 
 // ADMIN ROUTES FOR CUSTOMER ACCOUNT MANAGEMENT
 // Protect and restrict to admin

@@ -512,4 +512,246 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("click", function () {
       window.location.href = "index.html";
     });
+
+  const forgotLink = document.querySelector(".forgot-password a");
+  if (forgotLink) {
+    forgotLink.addEventListener("click", function (e) {
+      e.preventDefault();
+      const existing = document.getElementById("forgot-modal");
+      if (existing) return;
+      const modal = document.createElement("div");
+      modal.id = "forgot-modal";
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.style.background = "rgba(0,0,0,0.5)";
+      modal.style.display = "flex";
+      modal.style.alignItems = "center";
+      modal.style.justifyContent = "center";
+      modal.style.zIndex = "2000";
+      const card = document.createElement("div");
+      card.style.background = "#131c32";
+      card.style.border = "1px solid rgba(255,255,255,0.08)";
+      card.style.borderRadius = "16px";
+      card.style.padding = "24px";
+      card.style.width = "100%";
+      card.style.maxWidth = "420px";
+      card.style.boxShadow = "0 20px 50px rgba(0,0,0,0.4)";
+      const title = document.createElement("div");
+      title.style.fontSize = "1.25rem";
+      title.style.marginBottom = "12px";
+      title.style.color = "#fff";
+      title.textContent = i18nAvailable
+        ? window.i18n.getTranslation("forgotPassword")
+        : "نسيت كلمة المرور";
+      const emailGroup = document.createElement("div");
+      emailGroup.style.marginBottom = "12px";
+      const emailInput = document.createElement("input");
+      emailInput.type = "email";
+      emailInput.id = "forgot-email";
+      emailInput.placeholder = i18nAvailable
+        ? window.i18n.getTranslation("emailPlaceholder")
+        : "أدخل بريدك الإلكتروني";
+      emailInput.style.width = "100%";
+      emailInput.style.padding = "10px";
+      emailInput.style.borderRadius = "8px";
+      emailInput.style.border = "1px solid rgba(255,255,255,0.1)";
+      emailInput.style.background = "#0a1020";
+      emailInput.style.color = "#fff";
+      emailGroup.appendChild(emailInput);
+      const sendBtn = document.createElement("button");
+      sendBtn.textContent = i18nAvailable
+        ? window.i18n.getTranslation("sendCode") || "إرسال الكود"
+        : "إرسال الكود";
+      sendBtn.className = "auth-button";
+      sendBtn.style.width = "100%";
+      const codeGroup = document.createElement("div");
+      codeGroup.style.marginTop = "12px";
+      codeGroup.style.display = "none";
+      const codeInput = document.createElement("input");
+      codeInput.type = "text";
+      codeInput.id = "reset-code";
+      codeInput.placeholder = i18nAvailable
+        ? window.i18n.getTranslation("enterCode") || "أدخل الكود الذي وصلك"
+        : "أدخل الكود الذي وصلك";
+      codeInput.style.width = "100%";
+      codeInput.style.padding = "10px";
+      codeInput.style.borderRadius = "8px";
+      codeInput.style.border = "1px solid rgba(255,255,255,0.1)";
+      codeInput.style.background = "#0a1020";
+      codeInput.style.color = "#fff";
+      const newPassInput = document.createElement("input");
+      newPassInput.type = "password";
+      newPassInput.id = "new-password-reset";
+      newPassInput.placeholder = i18nAvailable
+        ? window.i18n.getTranslation("newPassword") || "كلمة المرور الجديدة"
+        : "كلمة المرور الجديدة";
+      newPassInput.style.width = "100%";
+      newPassInput.style.marginTop = "8px";
+      newPassInput.style.padding = "10px";
+      newPassInput.style.borderRadius = "8px";
+      newPassInput.style.border = "1px solid rgba(255,255,255,0.1)";
+      newPassInput.style.background = "#0a1020";
+      newPassInput.style.color = "#fff";
+      const resetBtn = document.createElement("button");
+      resetBtn.textContent = i18nAvailable
+        ? window.i18n.getTranslation("resetPassword") || "تغيير كلمة المرور"
+        : "تغيير كلمة المرور";
+      resetBtn.className = "auth-button";
+      resetBtn.style.width = "100%";
+      resetBtn.style.marginTop = "10px";
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = i18nAvailable
+        ? window.i18n.getTranslation("close") || "إغلاق"
+        : "إغلاق";
+      closeBtn.className = "auth-link";
+      closeBtn.style.marginTop = "8px";
+      closeBtn.style.width = "100%";
+      codeGroup.appendChild(codeInput);
+      codeGroup.appendChild(newPassInput);
+      codeGroup.appendChild(resetBtn);
+      card.appendChild(title);
+      card.appendChild(emailGroup);
+      card.appendChild(sendBtn);
+      card.appendChild(codeGroup);
+      card.appendChild(closeBtn);
+      modal.appendChild(card);
+      document.body.appendChild(modal);
+      closeBtn.addEventListener("click", () => {
+        modal.remove();
+      });
+      sendBtn.addEventListener("click", () => {
+        const email = emailInput.value || "";
+        if (!isValidEmail(email)) {
+          showToast(
+            i18nAvailable
+              ? window.i18n.getTranslation("invalidEmail")
+              : "الرجاء إدخال بريد إلكتروني صحيح",
+            "error",
+            3000
+          );
+          return;
+        }
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        fetch("/api/customer/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d && d.success) {
+              showToast(
+                i18nAvailable
+                  ? window.i18n.getTranslation("resetCodeSent") ||
+                      "تم إرسال كود إعادة التعيين إلى بريدك"
+                  : "تم إرسال كود إعادة التعيين إلى بريدك",
+                "success",
+                3000
+              );
+              codeGroup.style.display = "block";
+              if (d.resetToken) {
+                try {
+                  const isLocal =
+                    location.hostname === "localhost" ||
+                    location.hostname === "127.0.0.1";
+                  if (isLocal) {
+                    codeInput.value = d.resetToken;
+                  }
+                } catch (_) {}
+              }
+            } else {
+              showToast(
+                d.message ||
+                  (i18nAvailable
+                    ? window.i18n.getTranslation("operationFailed")
+                    : "حدث خطأ"),
+                "error",
+                3000
+              );
+            }
+          })
+          .catch(() => {
+            showToast(
+              i18nAvailable
+                ? window.i18n.getTranslation("serverConnectionError") ||
+                    "خطأ في الاتصال بالخادم"
+                : "خطأ في الاتصال بالخادم",
+              "error",
+              3000
+            );
+          })
+          .finally(() => {
+            sendBtn.disabled = false;
+            sendBtn.textContent = i18nAvailable
+              ? window.i18n.getTranslation("sendCode") || "إرسال الكود"
+              : "إرسال الكود";
+          });
+      });
+      resetBtn.addEventListener("click", () => {
+        const email = emailInput.value || "";
+        const token = codeInput.value || "";
+        const newPass = newPassInput.value || "";
+        if (!email || !isValidEmail(email) || !token || newPass.length < 6) {
+          showToast(
+            i18nAvailable
+              ? window.i18n.getTranslation("fillAllFields")
+              : "يرجى ملء جميع الحقول المطلوبة",
+            "error",
+            3000
+          );
+          return;
+        }
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        fetch("/api/customer/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code: token, password: newPass }),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d && d.success) {
+              showToast(
+                i18nAvailable
+                  ? window.i18n.getTranslation("passwordChanged") ||
+                      "تم تغيير كلمة المرور بنجاح"
+                  : "تم تغيير كلمة المرور بنجاح",
+                "success",
+                2000
+              );
+              setTimeout(() => {
+                modal.remove();
+              }, 1500);
+            } else {
+              showToast(
+                d.message ||
+                  (i18nAvailable
+                    ? window.i18n.getTranslation("operationFailed")
+                    : "حدث خطأ"),
+                "error",
+                3000
+              );
+            }
+          })
+          .catch(() => {
+            showToast(
+              i18nAvailable
+                ? window.i18n.getTranslation("serverConnectionError") ||
+                    "خطأ في الاتصال بالخادم"
+                : "خطأ في الاتصال بالخادم",
+              "error",
+              3000
+            );
+          })
+          .finally(() => {
+            resetBtn.disabled = false;
+            resetBtn.textContent = i18nAvailable
+              ? window.i18n.getTranslation("resetPassword") ||
+                "تغيير كلمة المرور"
+              : "تغيير كلمة المرور";
+          });
+      });
+    });
+  }
 });
