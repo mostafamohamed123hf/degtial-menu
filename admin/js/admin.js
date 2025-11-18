@@ -3682,7 +3682,17 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      // Generate QR code and display in preview
+      const savedQRCodes = JSON.parse(localStorage.getItem("qrCodes")) || [];
+      const exists = savedQRCodes.some(
+        (qr) => String(qr.tableNumber) === String(tableNumber)
+      );
+      if (exists) {
+        const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
+        const msg = lang === "ar" ? "كود QR موجود بالفعل لهذه الطاولة" : "QR code already exists for this table";
+        showNotification(`${msg} ${tableNumber}`, "error");
+        return;
+      }
+
       generateQRCode(tableNumber, qrPreview, true);
     });
 
@@ -3801,12 +3811,10 @@ document.addEventListener("DOMContentLoaded", function () {
     );
 
     if (existingIndex !== -1) {
-      // Update existing QR code
-      savedQRCodes[existingIndex] = { tableNumber, qrImageSrc };
-      showNotification(
-        getTranslation("qrCodeUpdated").replace("{table}", tableNumber),
-        "success"
-      );
+      const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
+      const msg = lang === "ar" ? "كود QR موجود بالفعل لهذه الطاولة" : "QR code already exists for this table";
+      showNotification(`${msg} ${tableNumber}`, "error");
+      return;
     } else {
       // Add new QR code
       savedQRCodes.push({ tableNumber, qrImageSrc });
