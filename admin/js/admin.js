@@ -3980,34 +3980,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="footer">شكراً لاختياركم مطعمنا</div>
                     <button class="print-button" onclick="window.print(); setTimeout(function(){ window.close(); }, 500);">طباعة</button>
                 </div>
-                <script>
-                    // Auto print when loaded
-                    window.onload = function() {
-                        setTimeout(function() {
-                            document.querySelector('.print-button').click();
-                        }, 500);
-                    };
-                </script>
             </body>
             </html>
         `;
-    if (printWindow && printWindow.document) {
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-    } else {
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
-      document.body.appendChild(iframe);
-      const doc = iframe.contentWindow ? iframe.contentWindow.document : iframe.contentDocument;
-      doc.open();
-      doc.write(htmlContent);
-      doc.close();
+    if (!printWindow || !printWindow.document) {
+      const msg = getCurrentLanguage() === "ar" ? "يرجى السماح بفتح النوافذ المنبثقة للطباعة" : "Please allow pop-ups to open the print tab";
+      showNotification(msg, "warning");
+      return;
     }
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   }
 
   function deleteQRCode(tableNumber, qrItem) {
