@@ -33,9 +33,6 @@ const tableRoutes = require("./routes/table");
 const app = express();
 const server = http.createServer(app);
 
-// Trust first proxy (required for accurate IP detection behind Vercel/Proxies)
-app.set("trust proxy", 1);
-
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
@@ -253,37 +250,37 @@ app.get("/api/orders/most-ordered-products", async (req, res) => {
     const limit = parseInt(req.query.limit) || 5;
 
     // Aggregate to find the most ordered products
-  const mostOrderedProducts = await Order.aggregate([
-    // Unwind the items array to get individual items
-    { $unwind: "$items" },
-    // Group by product id and sum quantities
-    {
-      $group: {
-        _id: "$items.id",
-        name: { $first: "$items.name" },
-        nameEn: { $first: "$items.nameEn" },
-        image: { $first: "$items.image" },
-        totalOrdered: { $sum: "$items.quantity" },
-        averagePrice: { $avg: "$items.price" },
+    const mostOrderedProducts = await Order.aggregate([
+      // Unwind the items array to get individual items
+      { $unwind: "$items" },
+      // Group by product id and sum quantities
+      {
+        $group: {
+          _id: "$items.id",
+          name: { $first: "$items.name" },
+          nameEn: { $first: "$items.nameEn" },
+          image: { $first: "$items.image" },
+          totalOrdered: { $sum: "$items.quantity" },
+          averagePrice: { $avg: "$items.price" },
+        },
       },
-    },
       // Sort by total ordered in descending order
       { $sort: { totalOrdered: -1 } },
       // Limit to the requested number of products
       { $limit: limit },
-    // Project the fields we want to return
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        name: 1,
-        nameEn: 1,
-        image: 1,
-        totalOrdered: 1,
-        averagePrice: { $round: ["$averagePrice", 2] },
+      // Project the fields we want to return
+      {
+        $project: {
+          _id: 0,
+          id: "$_id",
+          name: 1,
+          nameEn: 1,
+          image: 1,
+          totalOrdered: 1,
+          averagePrice: { $round: ["$averagePrice", 2] },
+        },
       },
-    },
-  ]);
+    ]);
 
     console.log(
       `[DEBUG] Found ${mostOrderedProducts.length} most ordered products via emergency route`

@@ -272,42 +272,19 @@ exports.forgotPassword = async (req, res) => {
     await customer.save();
 
     try {
-      let host = process.env.SMTP_HOST || "";
-      let port = parseInt(process.env.SMTP_PORT || "0", 10) || 0;
-      let secure =
+      const host = process.env.SMTP_HOST || "";
+      const port = parseInt(process.env.SMTP_PORT || "0", 10) || 0;
+      const secure =
         (process.env.SMTP_SECURE || "false").toLowerCase() === "true";
       const user = process.env.SMTP_USER || "";
       const pass = process.env.SMTP_PASS || "";
       const from = process.env.SMTP_FROM || "noreply@digital-menu.local";
 
-      // Infer provider if host is missing
-      if (!host && user) {
-        if (/@gmail\.com$/i.test(user)) {
-          host = "smtp.gmail.com";
-          port = 465;
-          secure = true;
-        } else if (/@(outlook|hotmail)\.com$/i.test(user)) {
-          host = "smtp-mail.outlook.com";
-          port = 587;
-          secure = false;
-        } else if (/@yahoo\.com$/i.test(user)) {
-          host = "smtp.mail.yahoo.com";
-          port = 465;
-          secure = true;
-        }
-      }
-
-      if (!host || !port || !user || !pass) {
-        throw new Error(
-          "SMTP is not configured. Set SMTP_HOST/PORT/USER/PASS environment variables."
-        );
-      }
-
       const transporter = nodemailer.createTransport({
         host,
         port,
         secure,
-        auth: { user, pass },
+        auth: user && pass ? { user, pass } : undefined,
       });
 
       const mailText = `رمز إعادة تعيين كلمة المرور الخاص بك هو: ${resetCode}\nهذا الرمز صالح لمدة 30 دقيقة.`;
@@ -327,10 +304,6 @@ exports.forgotPassword = async (req, res) => {
       });
     } catch (mailErr) {
       console.error("Email send error:", mailErr.message);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to send reset code email",
-      });
     }
 
     res.status(200).json({
