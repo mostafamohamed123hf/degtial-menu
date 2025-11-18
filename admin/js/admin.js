@@ -3811,88 +3811,23 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Create print window
-    const printWindow = window.open("", "_blank");
     const tableNumberLabel =
       getTranslation("tableNumberLabel") ||
       (getCurrentLanguage() === "ar" ? "رقم الطاولة:" : "Table Number:");
-
-    printWindow.document.write(`
+    const html = `
             <html>
             <head>
                 <title>طباعة رمز QR للطاولة ${tableNumber}</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-                    
-                    body {
-                        font-family: 'Cairo', Arial, sans-serif;
-                        text-align: center;
-                        direction: rtl;
-                        margin: 0;
-                        padding: 0;
-                        background-color: #f8f9fa;
-                    }
-                    
-                    .qr-container {
-                        max-width: 400px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        background-color: white;
-                        border-radius: 15px;
-                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-                        margin-top: 30px;
-                    }
-                    
-                    .restaurant-name {
-                        font-size: 28px;
-                        font-weight: bold;
-                        margin-bottom: 5px;
-                        color: #42d158;
-                    }
-                    
-                    .table-number {
-                        font-size: 22px;
-                        margin-bottom: 20px;
-                        background-color: #42d158;
-                        color: white;
-                        padding: 8px 15px;
-                        border-radius: 30px;
-                        display: inline-block;
-                    }
-                    
-                    .qr-image {
-                        max-width: 100%;
-                        height: auto;
-                        border: 10px solid white;
-                        border-radius: 10px;
-                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                        margin-bottom: 20px;
-                    }
-                    
-                    .instructions {
-                        margin-top: 20px;
-                        font-size: 18px;
-                        color: #666;
-                        line-height: 1.5;
-                    }
-                    
-                    .footer {
-                        margin-top: 30px;
-                        font-size: 14px;
-                        color: #999;
-                    }
-                    @media print {
-                        @page {
-                            size: 100mm 150mm;
-                            margin: 0;
-                        }
-                        body {
-                            margin: 0.5cm;
-                        }
-                        .print-button {
-                            display: none;
-                        }
-                    }
+                    body { font-family: 'Cairo', Arial, sans-serif; text-align: center; direction: rtl; margin: 0; padding: 0; background-color: #f8f9fa; }
+                    .qr-container { max-width: 400px; margin: 0 auto; padding: 20px; background-color: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-top: 30px; }
+                    .restaurant-name { font-size: 28px; font-weight: bold; margin-bottom: 5px; color: #42d158; }
+                    .table-number { font-size: 22px; margin-bottom: 20px; background-color: #42d158; color: white; padding: 8px 15px; border-radius: 30px; display: inline-block; }
+                    .qr-image { max-width: 100%; height: auto; border: 10px solid white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+                    .instructions { margin-top: 20px; font-size: 18px; color: #666; line-height: 1.5; }
+                    .footer { margin-top: 30px; font-size: 14px; color: #999; }
+                    @media print { @page { size: 100mm 150mm; margin: 0; } body { margin: 0.5cm; } .print-button { display: none; } }
                 </style>
             </head>
             <body>
@@ -3905,17 +3840,32 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button class="print-button" onclick="window.print(); setTimeout(function(){ window.close(); }, 500);">طباعة</button>
                 </div>
                 <script>
-                    // Auto print when loaded
-                    window.onload = function() {
-                        setTimeout(function() {
-                            document.querySelector('.print-button').click();
-                        }, 500);
-                    };
+                    window.onload = function() { setTimeout(function() { document.querySelector('.print-button').click(); }, 500); };
                 </script>
             </body>
-            </html>
-        `);
-    printWindow.document.close();
+            </html>`;
+    const w = window.open("", "_blank");
+    if (w && w.document) {
+      w.document.write(html);
+      w.document.close();
+    } else {
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow ? iframe.contentWindow.document : iframe.contentDocument;
+      doc.open();
+      doc.write(html);
+      doc.close();
+      iframe.onload = function () {
+        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (_) {}
+        setTimeout(function(){ if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 1000);
+      };
+    }
   }
 
   function deleteQRCode(tableNumber, qrItem) {
