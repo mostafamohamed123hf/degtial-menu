@@ -4518,7 +4518,7 @@ function initReservationForm() {
     try {
       // First upload the ID card photo
       const uploadResponse = await fetch(
-        "http://localhost:5000/api/upload/idcard",
+        `${API_BASE_URL}/api/upload/idcard`,
         {
           method: "POST",
           headers: {
@@ -4537,7 +4537,7 @@ function initReservationForm() {
       }
 
       // Send reservation data to the server
-      const response = await fetch("http://localhost:5000/api/reservations", {
+      const response = await fetch(`${API_BASE_URL}/api/reservations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
