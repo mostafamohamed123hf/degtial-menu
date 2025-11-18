@@ -3845,27 +3845,15 @@ document.addEventListener("DOMContentLoaded", function () {
             </body>
             </html>`;
     const w = window.open("", "_blank");
-    if (w && w.document) {
-      w.document.write(html);
-      w.document.close();
-    } else {
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
-      document.body.appendChild(iframe);
-      const doc = iframe.contentWindow ? iframe.contentWindow.document : iframe.contentDocument;
-      doc.open();
-      doc.write(html);
-      doc.close();
-      iframe.onload = function () {
-        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (_) {}
-        setTimeout(function(){ if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 1000);
-      };
+    if (!w || !w.document) {
+      const msg = getCurrentLanguage() === "ar"
+        ? "يرجى السماح بالنوافذ المنبثقة للطباعة"
+        : "Please allow pop-ups to print";
+      showNotification(msg, "error");
+      return;
     }
+    w.document.write(html);
+    w.document.close();
   }
 
   function deleteQRCode(tableNumber, qrItem) {
