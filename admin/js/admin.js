@@ -3665,11 +3665,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // QR Code Generator Functions
   function initQRCodeGenerator() {
-    // DOM elements
+    const existingInit = document.querySelector(".qr-list-container.qr-generator-initialized");
+    if (existingInit) return;
 
     const createQRBtn = document.getElementById("create-qr-btn");
     const qrPreview = document.getElementById("qr-preview");
     const qrListContainer = document.querySelector(".qr-list-container");
+    if (!createQRBtn || !qrListContainer) return;
+    qrListContainer.classList.add("qr-generator-initialized");
 
     // Load saved QR codes from local storage
     loadSavedQRCodes();
