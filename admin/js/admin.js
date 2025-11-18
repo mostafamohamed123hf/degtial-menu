@@ -573,6 +573,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Functions - Initialization
   function initData() {
+    if (window.__adminInitDone) return;
+    window.__adminInitDone = true;
     // Show loading spinner
     showLoadingSpinner();
 
@@ -8559,6 +8561,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Functions - Initialization
   function initData() {
+    if (window.__adminInitDone) return;
+    window.__adminInitDone = true;
     // Show loading spinner
     showLoadingSpinner();
 
