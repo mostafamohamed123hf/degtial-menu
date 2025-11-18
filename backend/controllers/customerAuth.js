@@ -280,12 +280,23 @@ exports.forgotPassword = async (req, res) => {
       const pass = process.env.SMTP_PASS || "";
       const from = process.env.SMTP_FROM || "noreply@digital-menu.local";
 
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
-        auth: user && pass ? { user, pass } : undefined,
-      });
+      let transporter;
+      if (!host || !port) {
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          secure: false,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        });
+      } else {
+        transporter = nodemailer.createTransport({
+          host,
+          port,
+          secure,
+          auth: user && pass ? { user, pass } : undefined,
+        });
+      }
 
       const mailText = `رمز إعادة تعيين كلمة المرور الخاص بك هو: ${resetCode}\nهذا الرمز صالح لمدة 30 دقيقة.`;
       const mailHtml = `<div style="font-family:Tahoma,Arial,sans-serif;line-height:1.6;direction:rtl;text-align:right">
@@ -295,13 +306,19 @@ exports.forgotPassword = async (req, res) => {
         <p style="margin-top:10px">هذا الرمز صالح لمدة 30 دقيقة.</p>
       </div>`;
 
-      await transporter.sendMail({
+      const info = await transporter.sendMail({
         from,
         to: customer.email,
         subject: "رمز إعادة تعيين كلمة المرور",
         text: mailText,
         html: mailHtml,
       });
+      try {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+          console.log("Ethereal preview:", previewUrl);
+        }
+      } catch (_) {}
     } catch (mailErr) {
       console.error("Email send error:", mailErr.message);
     }

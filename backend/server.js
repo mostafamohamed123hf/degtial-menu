@@ -33,6 +33,9 @@ const tableRoutes = require("./routes/table");
 const app = express();
 const server = http.createServer(app);
 
+// Trust proxy headers when behind reverse proxies (e.g., Vercel)
+app.set("trust proxy", true);
+
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
