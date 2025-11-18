@@ -33,14 +33,6 @@ window.globalSettings = {
   currencyCode: "EGP",
 };
 
-// Silence verbose logs on admin page unless debug enabled
-try {
-  if (localStorage.getItem("adminDebug") !== "1") {
-    console.log = function () {};
-    console.warn = function () {};
-  }
-} catch (_) {}
-
 // Load global settings from API
 async function loadAdminGlobalSettings() {
   try {
@@ -8750,8 +8742,6 @@ document.addEventListener("languageChanged", function (event) {
 
 // Enhanced Product Modal Functions
 function enhanceProductModalExperience() {
-  if (window.__enhanceProductModalBound) return;
-  window.__enhanceProductModalBound = true;
   // Auto-suggest English names based on Arabic input
   document.addEventListener("input", function (e) {
     if (
@@ -8936,8 +8926,6 @@ document.addEventListener("languageChanged", function (event) {
 
   // Initialize categories management
   function initCategories() {
-    if (window.__initCategoriesDone) return;
-    window.__initCategoriesDone = true;
     if (!categoriesList || !addCategoryBtn || !categoryModal) {
       console.warn("Categories management elements not found");
       return;
