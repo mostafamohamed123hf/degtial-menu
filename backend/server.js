@@ -302,6 +302,7 @@ app.get("/api/orders/most-ordered-products", async (req, res) => {
 });
 
 // Mount routes
+app.use("/api", ensureDbConnected);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -452,222 +453,215 @@ if (process.env.NODE_ENV === "production") {
 // Error handling middleware (after all route definitions)
 app.use(errorHandler);
 
-// Connect to MongoDB
+let connectPromise;
 const connectDB = async () => {
   try {
     // Using a default connection string if environment variable is not set
     const mongoURI =
       process.env.MONGODB_URI ||
       "mongodb+srv://mostafaerrors_db_user:6T8SwTXyF4APgHLy@cluster0.6im1iij.mongodb.net/";
-
-    console.log("Attempting to connect to MongoDB at:", mongoURI);
-
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log("MongoDB Connected Successfully!");
-    global.gridfsBucket = new mongoose.mongo.GridFSBucket(
-      mongoose.connection.db,
-      { bucketName: "uploads" }
-    );
-
-    // Create default categories if none exist
-    const Category = require("./models/Category");
-    const categoriesExist = await Category.countDocuments();
-    console.log("Current number of categories in database:", categoriesExist);
-
-    if (!categoriesExist) {
-      console.log("Creating default categories...");
-      const defaultCategories = [
-        {
-          id: "pizza",
-          name: "بيتزا",
-          nameEn: "Pizza",
-          value: "pizza",
-          icon: "fas fa-pizza-slice",
-        },
-        {
-          id: "burger",
-          name: "برجر",
-          nameEn: "Burger",
-          value: "burger",
-          icon: "fas fa-hamburger",
-        },
-        {
-          id: "sandwich",
-          name: "سندويتش",
-          nameEn: "Sandwich",
-          value: "sandwich",
-          icon: "fas fa-bread-slice",
-        },
-        {
-          id: "drink",
-          name: "مشروبات",
-          nameEn: "Drinks",
-          value: "drink",
-          icon: "fas fa-glass-whiskey",
-        },
-      ];
-      await Category.insertMany(defaultCategories);
-      console.log("Default categories created successfully");
-    } else {
-      console.log("Categories already exist in database");
+    if (mongoose.connection.readyState === 1) return mongoose.connection;
+    if (!connectPromise) {
+      console.log("Attempting to connect to MongoDB at:", mongoURI);
+      connectPromise = mongoose
+        .connect(mongoURI, {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+        })
+        .then(async () => {
+          console.log("MongoDB Connected Successfully!");
+          global.gridfsBucket = new mongoose.mongo.GridFSBucket(
+            mongoose.connection.db,
+            { bucketName: "uploads" }
+          );
+          const Category = require("./models/Category");
+          const categoriesExist = await Category.countDocuments();
+          if (!categoriesExist) {
+            const defaultCategories = [
+              {
+                id: "pizza",
+                name: "بيتزا",
+                nameEn: "Pizza",
+                value: "pizza",
+                icon: "fas fa-pizza-slice",
+              },
+              {
+                id: "burger",
+                name: "برجر",
+                nameEn: "Burger",
+                value: "burger",
+                icon: "fas fa-hamburger",
+              },
+              {
+                id: "sandwich",
+                name: "سندويتش",
+                nameEn: "Sandwich",
+                value: "sandwich",
+                icon: "fas fa-bread-slice",
+              },
+              {
+                id: "drink",
+                name: "مشروبات",
+                nameEn: "Drinks",
+                value: "drink",
+                icon: "fas fa-glass-whiskey",
+              },
+            ];
+            await Category.insertMany(defaultCategories);
+          }
+          const Product = require("./models/Product");
+          const productsExist = await Product.countDocuments();
+          const Role = require("./models/Role");
+          const rolesExist = await Role.countDocuments();
+          if (!rolesExist) {
+            const defaultRoles = [
+              {
+                name: "مدير",
+                nameEn: "Administrator",
+                permissions: {
+                  adminPanel: true,
+                  cashier: true,
+                  stats: true,
+                  productsView: true,
+                  productsEdit: true,
+                  vouchersView: true,
+                  vouchersEdit: true,
+                  reservations: true,
+                  tax: true,
+                  points: true,
+                  accounts: true,
+                  qr: true,
+                },
+              },
+              {
+                name: "كاشير",
+                nameEn: "Cashier",
+                permissions: {
+                  adminPanel: false,
+                  cashier: true,
+                  stats: false,
+                  productsView: true,
+                  productsEdit: false,
+                  vouchersView: true,
+                  vouchersEdit: false,
+                  reservations: false,
+                  tax: false,
+                  points: false,
+                  accounts: false,
+                  qr: false,
+                },
+              },
+              {
+                name: "مستخدم",
+                nameEn: "User",
+                permissions: {
+                  adminPanel: false,
+                  cashier: false,
+                  stats: false,
+                  productsView: false,
+                  productsEdit: false,
+                  vouchersView: false,
+                  vouchersEdit: false,
+                  reservations: false,
+                  tax: false,
+                  points: false,
+                  accounts: false,
+                  qr: false,
+                },
+              },
+            ];
+            await Role.insertMany(defaultRoles);
+          }
+          if (!productsExist) {
+            const defaultProducts = [
+              {
+                id: "pizza1",
+                name: "بيتزا بيروني غنائي",
+                description:
+                  "بيتزا بيروني مع الجبن الموزاريلا وصلصة الطماطم، بيتزا ايطالية اصلية",
+                price: 140.0,
+                category: "pizza",
+                image:
+                  "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=800&q=80",
+                rating: 4.8,
+              },
+              {
+                id: "pizza2",
+                name: "بيتزا بيروني غنائي",
+                description:
+                  "بيتزا بيروني مع الجبن الموزاريلا وصلصة الطماطم، بيتزا ايطالية اصلية",
+                price: 140.0,
+                category: "pizza",
+                image:
+                  "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
+                rating: 4.8,
+              },
+              {
+                id: "burger1",
+                name: "برجر لحم أنغوس",
+                description: "برجر لحم بقري أنغوس مع جبنة شيدر وصلصة خاصة",
+                price: 120.0,
+                category: "burger",
+                image:
+                  "https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=800&q=80",
+                rating: 4.9,
+              },
+              {
+                id: "burger2",
+                name: "برجر دجاج مقرمش",
+                description: "برجر دجاج مقرمش محمر مع صلصة الثوم والخس",
+                price: 95.0,
+                category: "burger",
+                image:
+                  "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
+                rating: 4.6,
+              },
+              {
+                id: "sandwich1",
+                name: "سندويتش شاورما",
+                description: "شاورما دجاج مع صلصة طحينة وخضار منوعة",
+                price: 65.0,
+                category: "sandwich",
+                image:
+                  "https://images.unsplash.com/photo-1485451456034-3f9391c6f769?auto=format&fit=crop&w=800&q=80",
+                rating: 4.7,
+              },
+              {
+                id: "drink1",
+                name: "عصير فواكه طازج",
+                description: "مزيج من الفواكه الطازجة المنعشة",
+                price: 35.0,
+                category: "drink",
+                image:
+                  "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80",
+                rating: 4.5,
+              },
+            ];
+            await Product.insertMany(defaultProducts);
+          }
+          return mongoose.connection;
+        })
+        .catch((err) => {
+          connectPromise = null;
+          throw err;
+        });
     }
-
-    // Create default products if none exist
-    const Product = require("./models/Product");
-    const productsExist = await Product.countDocuments();
-    console.log("Current number of products in database:", productsExist);
-
-    // Creating default roles if none exist
-    const Role = require("./models/Role");
-    const rolesExist = await Role.countDocuments();
-    console.log("Current number of roles in database:", rolesExist);
-
-    if (!rolesExist) {
-      console.log("Creating default roles...");
-      const defaultRoles = [
-        {
-          name: "مدير",
-          nameEn: "Administrator",
-          permissions: {
-            adminPanel: true,
-            cashier: true,
-            stats: true,
-            productsView: true,
-            productsEdit: true,
-            vouchersView: true,
-            vouchersEdit: true,
-            reservations: true,
-            tax: true,
-            points: true,
-            accounts: true,
-            qr: true,
-          },
-        },
-        {
-          name: "كاشير",
-          nameEn: "Cashier",
-          permissions: {
-            adminPanel: false,
-            cashier: true,
-            stats: false,
-            productsView: true,
-            productsEdit: false,
-            vouchersView: true,
-            vouchersEdit: false,
-            reservations: false,
-            tax: false,
-            points: false,
-            accounts: false,
-            qr: false,
-          },
-        },
-        {
-          name: "مستخدم",
-          nameEn: "User",
-          permissions: {
-            adminPanel: false,
-            cashier: false,
-            stats: false,
-            productsView: false,
-            productsEdit: false,
-            vouchersView: false,
-            vouchersEdit: false,
-            reservations: false,
-            tax: false,
-            points: false,
-            accounts: false,
-            qr: false,
-          },
-        },
-      ];
-      await Role.insertMany(defaultRoles);
-      console.log("Default roles created successfully");
-    } else {
-      console.log("Roles already exist in database");
-    }
-
-    if (!productsExist) {
-      console.log("Creating default products...");
-      const defaultProducts = [
-        {
-          id: "pizza1",
-          name: "بيتزا بيروني غنائي",
-          description:
-            "بيتزا بيروني مع الجبن الموزاريلا وصلصة الطماطم، بيتزا ايطالية اصلية",
-          price: 140.0,
-          category: "pizza",
-          image:
-            "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=800&q=80",
-          rating: 4.8,
-        },
-        {
-          id: "pizza2",
-          name: "بيتزا بيروني غنائي",
-          description:
-            "بيتزا بيروني مع الجبن الموزاريلا وصلصة الطماطم، بيتزا ايطالية اصلية",
-          price: 140.0,
-          category: "pizza",
-          image:
-            "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
-          rating: 4.8,
-        },
-        {
-          id: "burger1",
-          name: "برجر لحم أنغوس",
-          description: "برجر لحم بقري أنغوس مع جبنة شيدر وصلصة خاصة",
-          price: 120.0,
-          category: "burger",
-          image:
-            "https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=800&q=80",
-          rating: 4.9,
-        },
-        {
-          id: "burger2",
-          name: "برجر دجاج مقرمش",
-          description: "برجر دجاج مقرمش محمر مع صلصة الثوم والخس",
-          price: 95.0,
-          category: "burger",
-          image:
-            "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
-          rating: 4.6,
-        },
-        {
-          id: "sandwich1",
-          name: "سندويتش شاورما",
-          description: "شاورما دجاج مع صلصة طحينة وخضار منوعة",
-          price: 65.0,
-          category: "sandwich",
-          image:
-            "https://images.unsplash.com/photo-1485451456034-3f9391c6f769?auto=format&fit=crop&w=800&q=80",
-          rating: 4.7,
-        },
-        {
-          id: "drink1",
-          name: "عصير فواكه طازج",
-          description: "مزيج من الفواكه الطازجة المنعشة",
-          price: 35.0,
-          category: "drink",
-          image:
-            "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80",
-          rating: 4.5,
-        },
-      ];
-      await Product.insertMany(defaultProducts);
-      console.log("Default products created successfully");
-    } else {
-      console.log("Products already exist in database");
-    }
+    return await connectPromise;
   } catch (err) {
     console.error("Failed to connect to MongoDB:", err);
   }
 };
 
-// Connect to database
-connectDB();
+async function ensureDbConnected(req, res, next) {
+  try {
+    await connectDB();
+    next();
+  } catch (e) {
+    next(e);
+  }
+}
+
+// Connect handled lazily per request
 
 const PORT = process.env.PORT || 5000;
 if (process.env.VERCEL) {
