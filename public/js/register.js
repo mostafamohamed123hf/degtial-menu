@@ -46,7 +46,15 @@ function showToast(message, type = "success", duration = 3000, title = "") {
 
   // Set default titles if not provided
   if (!title) {
-    if (type === "success") title = "تم بنجاح";
+    const lang =
+      typeof window.i18n === "object" &&
+      typeof window.i18n.getCurrentLanguage === "function"
+        ? window.i18n.getCurrentLanguage()
+        : document.documentElement.lang ||
+          localStorage.getItem("public-language") ||
+          "ar";
+    const isEnglish = lang === "en";
+    if (type === "success") title = isEnglish ? "Success" : "تم بنجاح";
     if (type === "error") title = "";
     if (type === "warning") title = "تنبيه";
     if (type === "info") title = "معلومات";
