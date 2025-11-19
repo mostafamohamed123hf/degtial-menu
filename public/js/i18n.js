@@ -82,6 +82,7 @@ const translations = {
     registerSuccess: "تم إنشاء الحساب بنجاح!",
     registerSuccessMessage:
       "يمكنك الآن تسجيل الدخول والاستفادة من جميع المزايا",
+    resetCodeSent: "تم إرسال كود إعادة التعيين إلى بريدك",
     notificationsOn: "تشغيل الإشعارات",
     notificationsOff: "إيقاف الإشعارات",
     notificationsEnabledMessage: "سيتم إشعارك عند وصول طلبات جديدة",
@@ -646,6 +647,7 @@ const translations = {
     redirectingToHome: "Redirecting to homepage...",
     registerSuccess: "Account created successfully!",
     registerSuccessMessage: "You can now log in and enjoy all features",
+    resetCodeSent: "Reset code sent to your email",
     notificationsOn: "Enable Notifications",
     notificationsOff: "Disable Notifications",
     notificationsEnabledMessage: "You will be notified when new orders arrive",
