@@ -526,14 +526,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "code-verification-section"
   );
 
-  // Initialize button text based on current language
-  if (sendRecoveryCodeBtn) {
-    const buttonText = i18nAvailable
-      ? window.i18n.getTranslation("sendCode") || "إرسال الكود"
-      : "إرسال الكود";
-    sendRecoveryCodeBtn.querySelector("span").textContent = buttonText;
-  }
-
   // Switch to password recovery view
   if (forgotLink) {
     forgotLink.addEventListener("click", function (e) {
