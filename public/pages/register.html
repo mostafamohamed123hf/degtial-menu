@@ -1033,6 +1033,78 @@
                 <i class="fas fa-arrow-left"></i>
               </button>
             </form>
+
+            <!-- Password Recovery Form -->
+            <form class="auth-form" id="password-recovery-form" style="display: none;">
+              <div class="form-group">
+                <label for="recovery-email" data-i18n="email">البريد الإلكتروني</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-envelope"></i>
+                  <input
+                    type="email"
+                    id="recovery-email"
+                    name="recovery-email"
+                    autocomplete="email"
+                    data-i18n-placeholder="emailPlaceholder"
+                    placeholder="أدخل بريدك الإلكتروني"
+                    required />
+                </div>
+              </div>
+
+              <button type="button" class="auth-button" id="send-recovery-code">
+                <span data-i18n="sendCode">إرسال الكود</span>
+                <i class="fas fa-paper-plane"></i>
+              </button>
+
+              <div id="code-verification-section" style="display: none; margin-top: 20px;">
+                <div class="form-group">
+                  <label for="reset-code" data-i18n="verificationCode">كود التحقق</label>
+                  <div class="input-with-icon">
+                    <i class="fas fa-key"></i>
+                    <input
+                      type="text"
+                      id="reset-code"
+                      name="reset-code"
+                      data-i18n-placeholder="enterCode"
+                      placeholder="أدخل الكود الذي وصلك"
+                      required />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="new-password" data-i18n="newPassword">كلمة المرور الجديدة</label>
+                  <div class="input-with-icon">
+                    <i class="fas fa-lock"></i>
+                    <input
+                      type="password"
+                      id="new-password"
+                      name="new-password"
+                      autocomplete="new-password"
+                      data-i18n-placeholder="newPassword"
+                      placeholder="أدخل كلمة المرور الجديدة"
+                      required />
+                    <button
+                      type="button"
+                      class="toggle-password"
+                      id="toggle-new-password">
+                      <i class="fas fa-eye" style="right: -14px"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <button type="button" class="auth-button" id="reset-password-btn">
+                  <span data-i18n="resetPassword">تغيير كلمة المرور</span>
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+
+              <div class="back-to-login" style="text-align: center; margin-top: 20px;">
+                <a href="#" class="auth-link" id="back-to-login">
+                  <i class="fas fa-arrow-right"></i>
+                  <span data-i18n="backToLogin">العودة لتسجيل الدخول</span>
+                </a>
+              </div>
+            </form>
           </div>
 
           <div class="auth-footer">
