@@ -47,7 +47,7 @@ function showToast(message, type = "success", duration = 3000, title = "") {
   // Set default titles if not provided
   if (!title) {
     if (type === "success") title = "تم بنجاح";
-    if (type === "error") title = "خطأ";
+    if (type === "error") title = "";
     if (type === "warning") title = "تنبيه";
     if (type === "info") title = "معلومات";
   }
