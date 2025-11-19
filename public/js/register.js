@@ -526,6 +526,26 @@ document.addEventListener("DOMContentLoaded", () => {
     "code-verification-section"
   );
 
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    const emailFromLink = params.get("email") || "";
+    const codeFromLink = params.get("code") || "";
+
+    if (mode === "recover") {
+      switchToPasswordRecovery();
+      const emailInput = document.getElementById("recovery-email");
+      const codeInput = document.getElementById("reset-code");
+      if (emailInput) emailInput.value = emailFromLink;
+      if (codeInput && codeFromLink) {
+        codeInput.value = codeFromLink;
+        codeVerificationSection.style.display = "block";
+        const newPassInput = document.getElementById("new-password");
+        if (newPassInput) newPassInput.focus();
+      }
+    }
+  } catch (_) {}
+
   // Switch to password recovery view
   if (forgotLink) {
     forgotLink.addEventListener("click", function (e) {
