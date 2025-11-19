@@ -44,27 +44,13 @@ function showToast(message, type = "success", duration = 3000, title = "") {
   if (type === "warning") iconClass = "exclamation-triangle";
   if (type === "info") iconClass = "info-circle";
 
-  // Set default titles if not provided
-  if (!title) {
-    const lang =
-      typeof window.i18n === "object" &&
-      typeof window.i18n.getCurrentLanguage === "function"
-        ? window.i18n.getCurrentLanguage()
-        : document.documentElement.lang ||
-          localStorage.getItem("public-language") ||
-          "ar";
-    const isEnglish = lang === "en";
-    if (type === "success") title = isEnglish ? "Success" : "تم بنجاح";
-    if (type === "error") title = "";
-    if (type === "warning") title = "تنبيه";
-    if (type === "info") title = "معلومات";
-  }
+  // Do not use any default title for toast notifications
+  title = "";
 
   // Set content with title and message structure
   toast.innerHTML = `
     <i class="fas fa-${iconClass}"></i>
     <div class="toast-content">
-      <div class="toast-title">${title}</div>
       <div class="toast-message">${message}</div>
     </div>
     <button class="toast-close">
