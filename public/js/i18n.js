@@ -31,6 +31,8 @@ const translations = {
     password: "كلمة المرور",
     rememberMe: "تذكرني",
     forgotPassword: "نسيت كلمة المرور؟",
+    verificationCode: "كود التحقق",
+    sendCode: "إرسال الكود",
     loginButton: "تسجيل الدخول",
     loggingIn: "جاري تسجيل الدخول...",
 
@@ -44,6 +46,7 @@ const translations = {
     fullName: "الاسم الكامل",
     username: "اسم المستخدم",
     confirmPassword: "تأكيد كلمة المرور",
+    resetPassword: "تغيير كلمة المرور",
     agreeToTerms: "أوافق على",
     termsAndConditions: "الشروط والأحكام",
     registerButton: "إنشاء حساب",
@@ -53,6 +56,7 @@ const translations = {
     // Placeholders
     emailPlaceholder: "أدخل بريدك الإلكتروني",
     passwordPlaceholder: "أدخل كلمة المرور",
+    enterCode: "أدخل الكود الذي وصلك",
     fullNamePlaceholder: "أدخل اسمك الكامل",
     usernamePlaceholder: "أدخل اسم المستخدم الخاص بك",
     confirmPasswordPlaceholder: "أعد إدخال كلمة المرور",
@@ -592,6 +596,8 @@ const translations = {
     password: "Password",
     rememberMe: "Remember me",
     forgotPassword: "Forgot password?",
+    verificationCode: "Verification Code",
+    sendCode: "Send Code",
     loginButton: "Sign In",
     loggingIn: "Logging in...",
 
@@ -605,6 +611,7 @@ const translations = {
     fullName: "Full Name",
     username: "Username",
     confirmPassword: "Confirm Password",
+    resetPassword: "Reset Password",
     agreeToTerms: "I agree to the",
     termsAndConditions: "Terms and Conditions",
     registerButton: "Create Account",
@@ -614,6 +621,7 @@ const translations = {
     // Placeholders
     emailPlaceholder: "Enter your email address",
     passwordPlaceholder: "Enter your password",
+    enterCode: "Enter the received code",
     fullNamePlaceholder: "Enter your full name",
     usernamePlaceholder: "Enter your username",
     confirmPasswordPlaceholder: "Re-enter your password",
