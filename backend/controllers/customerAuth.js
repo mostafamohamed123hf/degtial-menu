@@ -272,29 +272,33 @@ exports.forgotPassword = async (req, res) => {
     await customer.save();
 
     try {
+      const smtpUrl = process.env.SMTP_URL || "";
+      const service = process.env.SMTP_SERVICE || ""; // e.g. 'gmail'
       const host = process.env.SMTP_HOST || "";
-      const port = parseInt(process.env.SMTP_PORT || "0", 10) || 0;
-      const secure =
-        (process.env.SMTP_SECURE || "false").toLowerCase() === "true";
+      const portRaw = process.env.SMTP_PORT || "";
+      const port = portRaw ? parseInt(portRaw, 10) : undefined;
+      const secureEnv = (process.env.SMTP_SECURE || "").toLowerCase();
+      let secure = secureEnv === "true" || (!!port && port === 465);
       const user = process.env.SMTP_USER || "";
       const pass = process.env.SMTP_PASS || "";
-      const from = process.env.SMTP_FROM || "noreply@digital-menu.local";
+      const from = process.env.SMTP_FROM || user || "noreply@digital-menu.local";
 
       let transporter;
-      if (!host || !port) {
+      if (smtpUrl) {
+        transporter = nodemailer.createTransport(smtpUrl);
+      } else if (service) {
+        transporter = nodemailer.createTransport({ service, auth: { user, pass } });
+      } else if (host && port) {
+        transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+      } else if (user && user.endsWith("@gmail.com")) {
+        transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+      } else {
         const testAccount = await nodemailer.createTestAccount();
         transporter = nodemailer.createTransport({
           host: "smtp.ethereal.email",
           port: 587,
           secure: false,
           auth: { user: testAccount.user, pass: testAccount.pass },
-        });
-      } else {
-        transporter = nodemailer.createTransport({
-          host,
-          port,
-          secure,
-          auth: user && pass ? { user, pass } : undefined,
         });
       }
 
@@ -313,6 +317,9 @@ exports.forgotPassword = async (req, res) => {
         text: mailText,
         html: mailHtml,
       });
+      if (!info || !info.accepted || info.accepted.length === 0) {
+        throw new Error("Email was not accepted by SMTP server");
+      }
       try {
         const previewUrl = nodemailer.getTestMessageUrl(info);
         if (previewUrl) {
@@ -321,9 +328,13 @@ exports.forgotPassword = async (req, res) => {
       } catch (_) {}
     } catch (mailErr) {
       console.error("Email send error:", mailErr.message);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send reset code. Please try again later.",
+      });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Password reset code sent to your email",
     });
