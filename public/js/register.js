@@ -531,6 +531,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const mode = params.get("mode");
     const emailFromLink = params.get("email") || "";
     const codeFromLink = params.get("code") || "";
+    const langParam = params.get("lang");
+
+    if (langParam && i18nAvailable) {
+      const currentLang = window.i18n.getCurrentLanguage();
+      if (
+        langParam !== currentLang &&
+        (langParam === "en" || langParam === "ar")
+      ) {
+        window.switchLanguage();
+      }
+    }
 
     if (mode === "recover") {
       switchToPasswordRecovery();
@@ -622,7 +633,12 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch("/api/customer/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email,
+        language: i18nAvailable
+          ? window.i18n.getCurrentLanguage()
+          : document.documentElement.lang || "ar",
+      }),
     })
       .then((r) => r.json())
       .then((d) => {

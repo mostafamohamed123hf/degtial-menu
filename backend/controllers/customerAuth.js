@@ -306,16 +306,18 @@ exports.forgotPassword = async (req, res) => {
       const baseUrl = origin && origin.startsWith("http")
         ? origin
         : (process.env.PUBLIC_BASE_URL || "http://localhost:5000");
-      const resetLink = `${baseUrl}/public/pages/register.html?mode=recover&email=${encodeURIComponent(customer.email)}&code=${encodeURIComponent(resetCode)}`;
+      const lang = (req.body && req.body.language === "en") ? "en" : "ar";
+      const resetLink = `${baseUrl}/public/pages/register.html?mode=recover&email=${encodeURIComponent(customer.email)}&code=${encodeURIComponent(resetCode)}&lang=${lang}`;
 
       const brandColor = "#42d158";
-      const mailText = `Password Reset\n\nYour verification code: ${resetCode}\nThis code expires in 30 minutes.\nReset directly: ${resetLink}\n\nإعادة تعيين كلمة المرور\n\nرمز التأكيد الخاص بك: ${resetCode}\nهذا الرمز صالح لمدة 30 دقيقة.\nإعادة التعيين مباشرة: ${resetLink}`;
-      const mailHtml = `
+      const mailText = lang === "en"
+        ? `Password Reset\n\nYour verification code: ${resetCode}\nThis code expires in 30 minutes.\nReset directly: ${resetLink}`
+        : `إعادة تعيين كلمة المرور\n\nرمز التأكيد الخاص بك: ${resetCode}\nهذا الرمز صالح لمدة 30 دقيقة.\nإعادة التعيين مباشرة: ${resetLink}`;
+      const mailHtml = lang === "en"
+        ? `
         <div style="background:#f7f7fc;padding:24px;font-family:Tahoma,Arial,sans-serif">
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);overflow:hidden">
-            <div style="background:${brandColor};color:#fff;padding:18px 22px;font-weight:700;font-size:18px;letter-spacing:.3px">
-              Digital Menu
-            </div>
+            <div style="background:${brandColor};color:#fff;padding:18px 22px;font-weight:700;font-size:18px;letter-spacing:.3px">Digital Menu</div>
             <div style="padding:22px">
               <div style="direction:ltr;text-align:left">
                 <h2 style="margin:0 0 8px 0;color:#2c3e50;font-size:20px">Reset your password</h2>
@@ -325,10 +327,16 @@ exports.forgotPassword = async (req, res) => {
                 <a href="${resetLink}" style="display:inline-block;background:${brandColor};color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;font-size:14px">Reset Password</a>
                 <p style="margin:12px 0 0 0;color:#6b7280;font-size:12px">If the button doesn't work, copy and paste this link into your browser:</p>
                 <p style="word-break:break-all;color:#374151;font-size:12px;margin:6px 0 0 0">${resetLink}</p>
+                <p style="margin:12px 0 0 0;color:#6b7280;font-size:12px">This code expires in 30 minutes</p>
               </div>
-              <div style="height:18px"></div>
-              <div style="border-top:1px solid #e5e7eb;height:1px"></div>
-              <div style="height:18px"></div>
+            </div>
+          </div>
+        </div>`
+        : `
+        <div style="background:#f7f7fc;padding:24px;font-family:Tahoma,Arial,sans-serif">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);overflow:hidden">
+            <div style="background:${brandColor};color:#fff;padding:18px 22px;font-weight:700;font-size:18px;letter-spacing:.3px">Digital Menu</div>
+            <div style="padding:22px">
               <div style="direction:rtl;text-align:right">
                 <h2 style="margin:0 0 8px 0;color:#2c3e50;font-size:20px">إعادة تعيين كلمة المرور</h2>
                 <p style="margin:0 0 12px 0;color:#4b5563;font-size:14px">استخدم رمز التأكيد أدناه لإعادة تعيين كلمة المرور.</p>
@@ -337,9 +345,8 @@ exports.forgotPassword = async (req, res) => {
                 <a href="${resetLink}" style="display:inline-block;background:${brandColor};color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;font-size:14px">تغيير كلمة المرور</a>
                 <p style="margin:12px 0 0 0;color:#6b7280;font-size:12px">إذا لم يعمل الزر، انسخ الرابط التالي والصقه في المتصفح:</p>
                 <p style="word-break:break-all;color:#374151;font-size:12px;margin:6px 0 0 0">${resetLink}</p>
+                <p style="margin:12px 0 0 0;color:#6b7280;font-size:12px">هذا الرمز صالح لمدة 30 دقيقة</p>
               </div>
-              <div style="height:18px"></div>
-              <p style="margin:0;color:#6b7280;font-size:12px">This code expires in 30 minutes · هذا الرمز صالح لمدة 30 دقيقة</p>
             </div>
           </div>
         </div>`;
@@ -347,7 +354,10 @@ exports.forgotPassword = async (req, res) => {
       const info = await transporter.sendMail({
         from,
         to: customer.email,
-        subject: "Password Reset Code | رمز إعادة تعيين كلمة المرور",
+        subject:
+          lang === "en"
+            ? "Password Reset Code"
+            : "رمز إعادة تعيين كلمة المرور",
         text: mailText,
         html: mailHtml,
       });
