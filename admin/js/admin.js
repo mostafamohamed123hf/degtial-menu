@@ -2307,6 +2307,34 @@ document.addEventListener("DOMContentLoaded", function () {
       window.categoriesManager.updateProductCategoryDropdowns();
     }
 
+    if (product) {
+      const saved = localStorage.getItem("categories");
+      const list = saved ? JSON.parse(saved) : [];
+      const found = list.find(
+        (c) =>
+          c &&
+          (c.value === product.category ||
+            c.id === product.category ||
+            (typeof c.value === "string" &&
+              typeof product.category === "string" &&
+              c.value.toLowerCase() === product.category.toLowerCase()))
+      );
+      const targetValue = found ? found.value : product.category;
+      if (productCategorySelect) {
+        if (
+          !Array.from(productCategorySelect.options).some(
+            (o) => o.value === targetValue
+          )
+        ) {
+          const option = document.createElement("option");
+          option.value = targetValue;
+          option.textContent = targetValue;
+          productCategorySelect.insertBefore(option, productCategorySelect.firstChild);
+        }
+        productCategorySelect.value = targetValue;
+      }
+    }
+
     // Show modal
     productModal.style.display = "flex";
     setTimeout(() => {
