@@ -32,6 +32,17 @@ const MAX_INIT_ATTEMPTS = 3;
 function applyThemeToBody() {
   const currentTheme = localStorage.getItem("theme") || "dark";
   const body = document.body;
+  const isRegisterPage =
+    (window.location && window.location.href.includes("register.html")) ||
+    (window.location && window.location.pathname.includes("/pages/register"));
+  const disableToggleAttr =
+    body &&
+    (body.getAttribute("data-disable-theme-toggle") === "true" ||
+      (body.dataset && body.dataset.disableThemeToggle === "true"));
+  const forceDark = disableToggleAttr || isRegisterPage;
+  if (forceDark) {
+    localStorage.setItem("theme", "dark");
+  }
   
   // If body doesn't exist yet, we can't apply theme
   if (!body) {
@@ -61,13 +72,23 @@ function initThemeToggle() {
     document.querySelector('[data-theme-switch="true"]') ||
     document.querySelector(".theme-toggle");
   const body = document.body;
+  const isRegisterPage =
+    (window.location && window.location.href.includes("register.html")) ||
+    (window.location && window.location.pathname.includes("/pages/register"));
+  const disableToggleAttr =
+    body &&
+    (body.getAttribute("data-disable-theme-toggle") === "true" ||
+      (body.dataset && body.dataset.disableThemeToggle === "true"));
+  if (disableToggleAttr || isRegisterPage) {
+    themeInitialized = true;
+    applyThemeToBody();
+    return;
+  }
 
   if (!toggleSwitch) {
-    // Only show warning if we've tried multiple times
     if (initAttempts >= MAX_INIT_ATTEMPTS) {
-      console.warn("Theme toggle switch element not found after multiple attempts. Theme will still work but toggle may not be available.");
+      return;
     } else {
-      // Silently retry after a delay
       setTimeout(initThemeToggle, 300);
     }
     return;
