@@ -22,7 +22,7 @@
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
   backdrop-filter: blur(8px);
-  padding-bottom: 50px; /* Add space from bottom */
+  
 }
 
 .addons-overlay.active {
