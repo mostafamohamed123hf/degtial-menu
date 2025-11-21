@@ -1958,6 +1958,142 @@ function initCategoryFilter() {
   }
 }
 
+function initProductSearch() {
+  const input = document.getElementById("search-input");
+  const grid = document.querySelector(".product-grid");
+  if (!input || !grid) return;
+
+  let debounceId = null;
+  const doFilter = () => {
+    const q = input.value.trim().toLowerCase();
+    const activeFilter = document.querySelector(".filter.active");
+    const activeCategory = activeFilter ? activeFilter.getAttribute("data-category") : "all";
+    const lang = localStorage.getItem("public-language") || "ar";
+
+    const cards = grid.querySelectorAll(".product-card");
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const cat = card.getAttribute("data-category") || "";
+      const nameAr = card.getAttribute("data-name-ar") || "";
+      const nameEn = card.getAttribute("data-name-en") || "";
+      const descAr = card.getAttribute("data-desc-ar") || "";
+      const descEn = card.getAttribute("data-desc-en") || "";
+
+      const name = (lang === "en" ? nameEn : nameAr).toLowerCase();
+      const desc = (lang === "en" ? descEn : descAr).toLowerCase();
+
+      const matchesText = q === "" || name.includes(q) || desc.includes(q);
+      const matchesCat = activeCategory === "all" || cat === activeCategory;
+
+      const show = matchesText && matchesCat;
+      card.style.display = show ? "block" : "none";
+      if (show) visibleCount++;
+    });
+
+    let empty = document.getElementById("search-empty-products");
+    if (!empty) {
+      empty = document.createElement("div");
+      empty.id = "search-empty-products";
+      empty.className = "empty-state";
+      empty.style.display = "none";
+      empty.innerHTML = `<i class="fas fa-search"></i><p>${getTranslation("noMatchingProducts") || (lang === "en" ? "No matching products" : "لا توجد منتجات مطابقة")}</p>`;
+      grid.appendChild(empty);
+    }
+    empty.style.display = visibleCount === 0 ? "block" : "none";
+  };
+
+  ["input", "change"].forEach((evt) => {
+    input.addEventListener(evt, () => {
+      clearTimeout(debounceId);
+      debounceId = setTimeout(doFilter, 150);
+    });
+  });
+}
+
+function initOffersSearch() {
+  const input = document.getElementById("offers-search-input");
+  const grid = document.querySelector(".offers-grid");
+  if (!input || !grid) return;
+
+  let debounceId = null;
+  const doFilter = () => {
+    const q = input.value.trim().toLowerCase();
+    const cards = grid.querySelectorAll(".offer-card");
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const titleEl = card.querySelector(".offer-info h3");
+      const descEl = card.querySelector(".offer-info p");
+      const title = (titleEl ? titleEl.textContent : "").toLowerCase();
+      const desc = (descEl ? descEl.textContent : "").toLowerCase();
+      const show = q === "" || title.includes(q) || desc.includes(q);
+      card.style.display = show ? "block" : "none";
+      if (show) visibleCount++;
+    });
+
+    let empty = document.getElementById("search-empty-offers");
+    if (!empty) {
+      empty = document.createElement("div");
+      empty.id = "search-empty-offers";
+      empty.className = "empty-state";
+      empty.style.display = "none";
+      const lang = localStorage.getItem("public-language") || "ar";
+      empty.innerHTML = `<i class="fas fa-search"></i><p>${getTranslation("noMatchingOffers") || (lang === "en" ? "No matching offers" : "لا توجد عروض مطابقة")}</p>`;
+      grid.appendChild(empty);
+    }
+    empty.style.display = visibleCount === 0 ? "block" : "none";
+  };
+
+  ["input", "change"].forEach((evt) => {
+    input.addEventListener(evt, () => {
+      clearTimeout(debounceId);
+      debounceId = setTimeout(doFilter, 150);
+    });
+  });
+}
+
+function initOrdersSearch() {
+  const input = document.getElementById("orders-search-input");
+  const grid = document.querySelector(".orders-grid");
+  if (!input || !grid) return;
+
+  let debounceId = null;
+  const doFilter = () => {
+    const q = input.value.trim().toLowerCase();
+    const cards = grid.querySelectorAll(".order-card");
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const orderId = (card.getAttribute("data-order-id") || "").toLowerCase();
+      const items = Array.from(card.querySelectorAll(".order-item")).map((el) => (el.getAttribute("data-product-name") || "").toLowerCase());
+      const textMatch = orderId.includes(q) || items.some((name) => name.includes(q));
+      const show = q === "" || textMatch;
+      card.style.display = show ? "block" : "none";
+      if (show) visibleCount++;
+    });
+
+    let empty = document.getElementById("search-empty-orders");
+    if (!empty) {
+      empty = document.createElement("div");
+      empty.id = "search-empty-orders";
+      empty.className = "empty-orders-message";
+      empty.style.display = "none";
+      const lang = localStorage.getItem("public-language") || "ar";
+      empty.innerHTML = `<i class=\"fas fa-search\"></i><h3>${getTranslation("noMatchingOrders") || (lang === "en" ? "No matching orders" : "لا توجد طلبات مطابقة")}</h3>`;
+      grid.parentNode && grid.parentNode.insertBefore(empty, grid);
+    }
+    empty.style.display = visibleCount === 0 ? "block" : "none";
+  };
+
+  ["input", "change"].forEach((evt) => {
+    input.addEventListener(evt, () => {
+      clearTimeout(debounceId);
+      debounceId = setTimeout(doFilter, 150);
+    });
+  });
+}
+
 // Initialize the cart notification element
 let cartNotification;
 
@@ -2271,8 +2407,14 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Load products dynamically from API or localStorage
   loadProducts();
 
+  // Initialize product search
+  initProductSearch();
+
   // Initialize offer category filters
   initOfferCategoryFilters();
+
+  // Initialize offers search
+  initOffersSearch();
 
   // Listen for changes in localStorage (like when the cart page updates the cart)
   window.addEventListener("storage", function (e) {
@@ -2297,15 +2439,25 @@ document.addEventListener("DOMContentLoaded", async function () {
       updateCartCountFromStorage();
     }
 
-    // Handle auth state changes from other tabs
-    if (e.key === "token" || e.key === "userPermissions") {
-      checkUserPermissions();
-    }
-  });
+  // Handle auth state changes from other tabs
+  if (e.key === "token" || e.key === "userPermissions") {
+    checkUserPermissions();
+  }
+});
 
   // Listen for custom discount change event
   window.addEventListener("digital_menu_discount_change", function () {
     loadProducts();
+  });
+
+  // Initialize orders search when previous orders section becomes active
+  const prevOrdersLink = document.querySelectorAll(".previous-orders-section-link");
+  prevOrdersLink.forEach((lnk)=>{
+    lnk.addEventListener("click", () => {
+      setTimeout(() => {
+        if (typeof initOrdersSearch === "function") initOrdersSearch();
+      }, 200);
+    });
   });
 
   // Listen for custom product change event
@@ -4531,6 +4683,23 @@ document.addEventListener("DOMContentLoaded", async function () {
     ) {
       console.log("Updating Previous Orders display for language change");
       updatePreviousOrdersLanguage(newLang);
+    }
+
+    // Refresh product search filtering for new language
+    if (typeof initProductSearch === "function") {
+      const input = document.getElementById("search-input");
+      if (input) {
+        const evt = new Event("change");
+        input.dispatchEvent(evt);
+      }
+    }
+    // Refresh offers search filtering for new language
+    if (typeof initOffersSearch === "function") {
+      const input = document.getElementById("offers-search-input");
+      if (input) {
+        const evt = new Event("change");
+        input.dispatchEvent(evt);
+      }
     }
   });
 });
