@@ -2001,15 +2001,15 @@ function initBottomNav() {
 
   navItems.forEach((item) => {
     if (item.id === "cart-icon") {
-      // Special case for cart icon - preserve the direct link
-      item.addEventListener("click", function () {
-        // Add tapped animation class
+      item.addEventListener("click", function (e) {
+        e.preventDefault();
         this.classList.add("tapped");
-
-        // Remove the class after animation completes
         setTimeout(() => {
           this.classList.remove("tapped");
         }, 300);
+        if (typeof showScanRequiredModal === "function") {
+          showScanRequiredModal();
+        }
       });
     } else {
       item.addEventListener("click", function (e) {
@@ -2042,6 +2042,51 @@ function initBottomNav() {
       this.style.opacity = "1";
     });
   });
+}
+
+function showScanRequiredModal() {
+  const modal = document.getElementById("scan-required-modal");
+  const closeBtn = document.getElementById("close-scan-required");
+  const scanBtn = document.getElementById("scan-again-btn");
+  if (!modal) return;
+
+  const lang = localStorage.getItem("public-language") || "ar";
+  const titleEl = modal.querySelector(".scan-title");
+  const textEl = document.getElementById("scan-required-text");
+  const btnLabelEl = (function(){
+    const btn = document.getElementById("scan-again-btn");
+    return btn ? btn.querySelector("span") : null;
+  })();
+  if (titleEl) {
+    titleEl.textContent = lang === "en" ? "Scan Required" : "إعادة المسح مطلوبة";
+  }
+  if (textEl) {
+    textEl.textContent =
+      lang === "en"
+        ? "To submit your order, please scan the table QR again."
+        : "لإرسال الطلب، يرجى مسح رمز QR للطاولة مرة أخرى.";
+  }
+  if (btnLabelEl) {
+    btnLabelEl.textContent = lang === "en" ? "Scan QR Again" : "أعد مسح QR";
+  }
+
+  modal.style.display = "flex";
+
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+    };
+  }
+  if (scanBtn) {
+    // Use current table number if stored
+    const currentTable = sessionStorage.getItem("tableNumber") || localStorage.getItem("tableNumber") || null;
+    scanBtn.onclick = () => {
+      modal.style.display = "none";
+      if (typeof openQrScanModal === "function") {
+        openQrScanModal(currentTable);
+      }
+    };
+  }
 }
 
 // Update cart count from localStorage
@@ -4232,6 +4277,28 @@ document.addEventListener("DOMContentLoaded", async function () {
     const closeBtn = document.getElementById("qr-close-btn");
     const hint = modal.querySelector(".qr-hint");
     const lang = localStorage.getItem("public-language") || "ar";
+    const lockKey = currentTable ? `qrScanLock:${currentTable}` : `qrScanLock:any`;
+    try {
+      const existingLock = localStorage.getItem(lockKey);
+      if (existingLock) {
+        const data = JSON.parse(existingLock);
+        if (data && data.ts && Date.now() - data.ts < 60000) {
+          if (typeof showToast === "function") {
+            const msg = lang === "en" ? "Scanning is already in progress for this table" : "المسح جارٍ لهذه الطاولة";
+            showToast(msg, "warning", 3000);
+          }
+          return;
+        }
+      }
+      if (!window.qrScanSession) window.qrScanSession = { active: false, table: null };
+      if (window.qrScanSession.active && (!currentTable || String(window.qrScanSession.table || "") === String(currentTable || ""))) {
+        if (typeof showToast === "function") {
+          const msg = lang === "en" ? "Scanning is already in progress" : "المسح قيد التنفيذ";
+          showToast(msg, "warning", 3000);
+        }
+        return;
+      }
+    } catch (_) {}
     hint.textContent =
       lang === "en"
         ? "Point camera at the table QR"
@@ -4243,6 +4310,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         t.forEach((x) => x.stop());
       } catch (_) {}
       modal.style.display = "none";
+      try {
+        localStorage.removeItem(lockKey);
+        if (window.qrScanSession) {
+          window.qrScanSession.active = false;
+          window.qrScanSession.table = null;
+        }
+      } catch (_) {}
     }
     closeBtn.onclick = stop;
     if (!("BarcodeDetector" in window)) {
@@ -4260,6 +4334,13 @@ document.addEventListener("DOMContentLoaded", async function () {
       video.srcObject = stream;
       await video.play();
       modal.style.display = "flex";
+      try {
+        localStorage.setItem(lockKey, JSON.stringify({ ts: Date.now() }));
+        if (window.qrScanSession) {
+          window.qrScanSession.active = true;
+          window.qrScanSession.table = currentTable || null;
+        }
+      } catch (_) {}
       const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
       let running = true;
       const tick = async () => {
@@ -4283,6 +4364,19 @@ document.addEventListener("DOMContentLoaded", async function () {
             ) {
               try {
                 const targetTable = currentTable || scannedTable;
+                try {
+                  const token = sessionStorage.getItem("orderSessionToken") || "";
+                  const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+                  const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+                  const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+                  const valid = !!token && expMs > Date.now() && String(sessionTable || "") === String(targetTable || "");
+                  if (valid) {
+                    const msg = lang === "en" ? "Active session already exists for this table" : "جلسة نشطة موجودة لهذه الطاولة";
+                    if (typeof showToast === "function") showToast(msg, "warning", 3000);
+                    stop();
+                    return;
+                  }
+                } catch (_) {}
                 const baseUrl =
                   window.API_BASE_URL ||
                   (function () {

@@ -64,9 +64,7 @@
         </div>
         <div id="table-number-display" class="table-number-display"></div>
 
-        <button
-          id="scan-qr-btn"
-          class="language-switcher"></button>
+        
         <button id="language-switcher" class="language-switcher">
           English
         </button>
@@ -564,6 +562,19 @@
           <div class="qr-frame"></div>
         </div>
         <div class="qr-hint" style="margin-top: 10px; text-align: center; font-weight: 600"></div>
+      </div>
+    </div>
+
+    <div id="scan-required-modal" class="scan-required-modal" style="display:none">
+      <div class="scan-required-card">
+        <button class="scan-close" id="close-scan-required">&times;</button>
+        <div class="scan-icon"><i class="fas fa-qrcode"></i></div>
+        <h3 class="scan-title" data-i18n="scanRequiredTitle">إعادة المسح مطلوبة</h3>
+        <p class="scan-text" id="scan-required-text" data-i18n="scanRequiredText">لإرسال الطلب، تحتاج إلى مسح رمز QR للطاولة مرة أخرى.</p>
+        <button id="scan-again-btn" class="scan-action">
+          <i class="fas fa-qrcode"></i>
+          <span data-i18n="scanAgain">أعد مسح QR</span>
+        </button>
       </div>
     </div>
 
