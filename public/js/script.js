@@ -2218,8 +2218,8 @@ function showScanRequiredModal() {
     const currentTable = sessionStorage.getItem("tableNumber") || localStorage.getItem("tableNumber") || null;
     scanBtn.onclick = () => {
       modal.style.display = "none";
-      if (typeof openQrScanModal === "function") {
-        openQrScanModal(currentTable);
+      if (typeof window.openQrScanModal === "function") {
+        window.openQrScanModal(currentTable);
       }
     };
   }
@@ -4435,19 +4435,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (existingLock) {
         const data = JSON.parse(existingLock);
         if (data && data.ts && Date.now() - data.ts < 60000) {
-          if (typeof showToast === "function") {
-            const msg = lang === "en" ? "Scanning is already in progress for this table" : "المسح جارٍ لهذه الطاولة";
-            showToast(msg, "warning", 3000);
-          }
+          const msg = lang === "en" ? "Scanning is already in progress for this table" : "المسح جارٍ لهذه الطاولة";
+          hint.textContent = msg;
+          if (typeof showToast === "function") showToast(msg, "warning", 3000);
+          modal.style.display = "flex";
           return;
         }
       }
       if (!window.qrScanSession) window.qrScanSession = { active: false, table: null };
       if (window.qrScanSession.active && (!currentTable || String(window.qrScanSession.table || "") === String(currentTable || ""))) {
-        if (typeof showToast === "function") {
-          const msg = lang === "en" ? "Scanning is already in progress" : "المسح قيد التنفيذ";
-          showToast(msg, "warning", 3000);
-        }
+        const msg = lang === "en" ? "Scanning is already in progress" : "المسح قيد التنفيذ";
+        hint.textContent = msg;
+        if (typeof showToast === "function") showToast(msg, "warning", 3000);
+        modal.style.display = "flex";
         return;
       }
     } catch (_) {}
@@ -4455,6 +4455,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       lang === "en"
         ? "Point camera at the table QR"
         : "وجّه الكاميرا نحو رمز الطاولة";
+
+    // Show modal UI early so user sees feedback even if scanning is unavailable
+    modal.style.display = "flex";
     let stream;
     async function stop() {
       try {
@@ -4476,7 +4479,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         lang === "en"
           ? "QR scanning not supported on this browser"
           : "مسح QR غير مدعوم في هذا المتصفح";
+      hint.textContent = msg;
       if (typeof showToast === "function") showToast(msg, "warning", 3000);
+      // Keep modal open so user can read the message and close it
       return;
     }
     try {
@@ -4485,7 +4490,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
       video.srcObject = stream;
       await video.play();
-      modal.style.display = "flex";
       try {
         localStorage.setItem(lockKey, JSON.stringify({ ts: Date.now() }));
         if (window.qrScanSession) {
@@ -4602,9 +4606,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     } catch (_) {
       const msg =
         lang === "en" ? "Camera access denied" : "تم رفض الوصول للكاميرا";
+      hint.textContent = msg;
       if (typeof showToast === "function") showToast(msg, "error", 3000);
     }
   }
+
+  // Export scanner opener globally for use by other components
+  window.openQrScanModal = openQrScanModal;
 
   // Add CSS for the create default button
   const style = document.createElement("style");
