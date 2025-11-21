@@ -2138,13 +2138,22 @@ function initBottomNav() {
   navItems.forEach((item) => {
     if (item.id === "cart-icon") {
       item.addEventListener("click", function (e) {
-        e.preventDefault();
-        this.classList.add("tapped");
-        setTimeout(() => {
-          this.classList.remove("tapped");
-        }, 300);
-        if (typeof showScanRequiredModal === "function") {
-          showScanRequiredModal();
+        const table = getTableNumberFromCurrentPage();
+        const hasSession = typeof hasValidOrderSession === "function" ? hasValidOrderSession(table) : false;
+        if (!hasSession) {
+          e.preventDefault();
+          this.classList.add("tapped");
+          setTimeout(() => {
+            this.classList.remove("tapped");
+          }, 300);
+          if (typeof showScanRequiredModal === "function") {
+            showScanRequiredModal();
+          }
+        } else {
+          // Navigate to cart with table param
+          const base = this.getAttribute("href") || "/pages/cart.html";
+          const url = table ? `${base}?table=${table}` : base;
+          this.setAttribute("href", url);
         }
       });
     } else {
@@ -2178,6 +2187,18 @@ function initBottomNav() {
       this.style.opacity = "1";
     });
   });
+}
+
+function hasValidOrderSession(table) {
+  try {
+    const token = sessionStorage.getItem("orderSessionToken") || "";
+    const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+    const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+    const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+    return !!token && expMs > Date.now() && String(sessionTable || "") === String(table || "");
+  } catch (_) {
+    return false;
+  }
 }
 
 function showScanRequiredModal() {
