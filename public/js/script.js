@@ -2487,10 +2487,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Function to initialize content section toggle
   function initContentSectionToggle() {
-    const menuLink = document.querySelector(".menu-section-link");
-    const reservationLink = document.querySelector(".reservation-section-link");
-    const offersLink = document.querySelector(".offers-section-link");
-    const previousOrdersLink = document.querySelector(
+    const menuLinks = document.querySelectorAll(".menu-section-link");
+    const reservationLinks = document.querySelectorAll(
+      ".reservation-section-link"
+    );
+    const offersLinks = document.querySelectorAll(".offers-section-link");
+    const previousOrdersLinks = document.querySelectorAll(
       ".previous-orders-section-link"
     );
 
@@ -2588,118 +2590,145 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // Handle menu link click
-    if (menuLink) {
-      menuLink.addEventListener("click", function (e) {
-        e.preventDefault();
+    if (menuLinks && menuLinks.length) {
+      menuLinks.forEach(function (lnk) {
+        lnk.addEventListener("click", function (e) {
+          e.preventDefault();
 
-        hideAllSections();
-        menuSection.classList.add("active");
+          hideAllSections();
+          menuSection.classList.add("active");
 
-        // Update sidebar active item
-        document.querySelectorAll(".sidebar-item").forEach((item) => {
-          item.classList.remove("active");
+          document.querySelectorAll(".sidebar-item").forEach((item) => {
+            item.classList.remove("active");
+          });
+
+          let menuItem = this.closest(".sidebar-item");
+          if (!menuItem) {
+            const sidebarMenuLink = document.querySelector(
+              "#sidebar-menu .menu-section-link"
+            );
+            if (sidebarMenuLink) {
+              menuItem = sidebarMenuLink.closest(".sidebar-item");
+            }
+          }
+          if (menuItem) {
+            menuItem.classList.add("active");
+            const sidebarItems = document.querySelectorAll(".sidebar-item");
+            const itemIndex = Array.from(sidebarItems).indexOf(menuItem);
+            localStorage.setItem("activeSidebarItemIndex", itemIndex);
+          }
+
+          localStorage.setItem("activeSection", "menu");
         });
-
-        const menuItem = this.closest(".sidebar-item");
-        menuItem.classList.add("active");
-
-        // Save active section to localStorage only
-        localStorage.setItem("activeSection", "menu");
-
-        // Also save the sidebar item index
-        const sidebarItems = document.querySelectorAll(".sidebar-item");
-        const itemIndex = Array.from(sidebarItems).indexOf(menuItem);
-        localStorage.setItem("activeSidebarItemIndex", itemIndex);
       });
     }
 
-    // Handle offers link click
-    if (offersLink) {
-      offersLink.addEventListener("click", function (e) {
-        e.preventDefault();
+    if (offersLinks && offersLinks.length) {
+      offersLinks.forEach(function (lnk) {
+        lnk.addEventListener("click", function (e) {
+          e.preventDefault();
 
-        hideAllSections();
-        offersSection.classList.add("active");
+          hideAllSections();
+          offersSection.classList.add("active");
 
-        // Update sidebar active item
-        document.querySelectorAll(".sidebar-item").forEach((item) => {
-          item.classList.remove("active");
+          document.querySelectorAll(".sidebar-item").forEach((item) => {
+            item.classList.remove("active");
+          });
+
+          let offersItem = this.closest(".sidebar-item");
+          if (!offersItem) {
+            const sidebarOffersLink = document.querySelector(
+              "#sidebar-menu .offers-section-link"
+            );
+            if (sidebarOffersLink) {
+              offersItem = sidebarOffersLink.closest(".sidebar-item");
+            }
+          }
+          if (offersItem) {
+            offersItem.classList.add("active");
+            const sidebarItems = document.querySelectorAll(".sidebar-item");
+            const itemIndex = Array.from(sidebarItems).indexOf(offersItem);
+            localStorage.setItem("activeSidebarItemIndex", itemIndex);
+          }
+
+          localStorage.setItem("activeSection", "offers");
+          loadOffers();
         });
-
-        const offersItem = this.closest(".sidebar-item");
-        offersItem.classList.add("active");
-
-        // Save active section to localStorage only
-        localStorage.setItem("activeSection", "offers");
-
-        // Also save the sidebar item index
-        const sidebarItems = document.querySelectorAll(".sidebar-item");
-        const itemIndex = Array.from(sidebarItems).indexOf(offersItem);
-        localStorage.setItem("activeSidebarItemIndex", itemIndex);
-
-        // Reload offers data to ensure latest offers are shown
-        loadOffers();
       });
     }
 
     // Handle reservation link click
-    if (reservationLink) {
-      reservationLink.addEventListener("click", function (e) {
-        e.preventDefault();
+    if (reservationLinks && reservationLinks.length) {
+      reservationLinks.forEach(function (lnk) {
+        lnk.addEventListener("click", function (e) {
+          e.preventDefault();
 
-        hideAllSections();
-        reservationSection.classList.add("active");
+          hideAllSections();
+          reservationSection.classList.add("active");
 
-        // Update sidebar active item
-        document.querySelectorAll(".sidebar-item").forEach((item) => {
-          item.classList.remove("active");
+          document.querySelectorAll(".sidebar-item").forEach((item) => {
+            item.classList.remove("active");
+          });
+
+          let reservationItem = this.closest(".sidebar-item");
+          if (!reservationItem) {
+            const sidebarReservationLink = document.querySelector(
+              "#sidebar-menu .reservation-section-link"
+            );
+            if (sidebarReservationLink) {
+              reservationItem = sidebarReservationLink.closest(".sidebar-item");
+            }
+          }
+          if (reservationItem) {
+            reservationItem.classList.add("active");
+            const sidebarItems = document.querySelectorAll(".sidebar-item");
+            const itemIndex = Array.from(sidebarItems).indexOf(reservationItem);
+            localStorage.setItem("activeSidebarItemIndex", itemIndex);
+          }
+
+          localStorage.setItem("activeSection", "reservation");
         });
-
-        const reservationItem = this.closest(".sidebar-item");
-        reservationItem.classList.add("active");
-
-        // Save active section to localStorage only
-        localStorage.setItem("activeSection", "reservation");
-
-        // Also save the sidebar item index
-        const sidebarItems = document.querySelectorAll(".sidebar-item");
-        const itemIndex = Array.from(sidebarItems).indexOf(reservationItem);
-        localStorage.setItem("activeSidebarItemIndex", itemIndex);
       });
     }
 
     // Handle previous orders link click
-    if (previousOrdersLink) {
-      previousOrdersLink.addEventListener("click", function (e) {
-        e.preventDefault();
+    if (previousOrdersLinks && previousOrdersLinks.length) {
+      previousOrdersLinks.forEach(function (lnk) {
+        lnk.addEventListener("click", function (e) {
+          e.preventDefault();
 
-        hideAllSections();
+          hideAllSections();
 
-        // Make previous orders section visible when clicked
-        if (previousOrdersSection) {
-          previousOrdersSection.style.display = "block";
-          previousOrdersSection.classList.add("active");
-        }
+          if (previousOrdersSection) {
+            previousOrdersSection.style.display = "block";
+            previousOrdersSection.classList.add("active");
+          }
 
-        // Update sidebar active item
-        document.querySelectorAll(".sidebar-item").forEach((item) => {
-          item.classList.remove("active");
+          document.querySelectorAll(".sidebar-item").forEach((item) => {
+            item.classList.remove("active");
+          });
+
+          let previousOrdersItem = this.closest(".sidebar-item");
+          if (!previousOrdersItem) {
+            const sidebarPrevLink = document.querySelector(
+              "#sidebar-menu .previous-orders-section-link"
+            );
+            if (sidebarPrevLink) {
+              previousOrdersItem = sidebarPrevLink.closest(".sidebar-item");
+            }
+          }
+          if (previousOrdersItem) {
+            previousOrdersItem.classList.add("active");
+            const sidebarItems = document.querySelectorAll(".sidebar-item");
+            const itemIndex =
+              Array.from(sidebarItems).indexOf(previousOrdersItem);
+            localStorage.setItem("activeSidebarItemIndex", itemIndex);
+          }
+
+          localStorage.setItem("activeSection", "previousOrders");
+
+          loadPreviousOrders();
         });
-
-        const previousOrdersItem = this.closest(".sidebar-item");
-        previousOrdersItem.classList.add("active");
-
-        // Save active section to localStorage only
-        localStorage.setItem("activeSection", "previousOrders");
-
-        // Also save the sidebar item index
-        const sidebarItems = document.querySelectorAll(".sidebar-item");
-        const itemIndex = Array.from(sidebarItems).indexOf(previousOrdersItem);
-        localStorage.setItem("activeSidebarItemIndex", itemIndex);
-
-        // Load previous orders data
-        loadPreviousOrders();
       });
     }
   }
@@ -5243,8 +5272,8 @@ function showEmptyOffersState(offersGrid, currentLang) {
       <i class="fas fa-tag" style="font-size: 80px; color: var(--primary-color); opacity: 0.3; margin-bottom: 20px;"></i>
       <h3 style="font-size: 24px; margin-bottom: 10px; color: var(--text-color);">${emptyTitle}</h3>
       <p style="color: var(--text-secondary); margin-bottom: 30px;">${emptyMessage}</p>
-      <button class="browse-menu-btn" onclick="document.querySelector('.menu-section-link').click()" style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.3s ease;">
-        <i class="fas fa-utensils" style="margin-right: 8px;"></i>
+      <button class="browse-menu-btn" onclick="document.querySelector('.menu-section-link').click()" style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto;">
+        <i class="fas fa-utensils"></i>
         ${browseMenuText}
       </button>
     </div>
