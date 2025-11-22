@@ -1362,18 +1362,110 @@ function showHiddenActivity() {
 
 // View All Orders History
 function viewAllOrders() {
-  // Get current language
+  window.__allOrdersVisible = window.__allOrdersVisible || false;
+  const btn = document.querySelector(".view-all-button");
+  if (!window.__allOrdersVisible) {
+    ensureAllOrdersSection();
+    loadAllOrdersIntoSection();
+    window.__allOrdersVisible = true;
+    if (btn) {
+      const isEnglish = getCurrentLanguage() === "en";
+      btn.innerHTML = `<i class="fas fa-eye-slash"></i> ${
+        isEnglish ? "Hide All Orders" : "إخفاء كل الطلبات"
+      }`;
+    }
+    const target = document.getElementById("all-orders-section");
+    if (target && typeof target.scrollIntoView === "function") {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  } else {
+    hideAllOrdersSection();
+    window.__allOrdersVisible = false;
+    if (btn) {
+      const isEnglish = getCurrentLanguage() === "en";
+      btn.innerHTML = `<i class="fas fa-list"></i> ${
+        isEnglish ? "View All Orders" : "عرض كل الطلبات"
+      }`;
+    }
+  }
+}
+
+function ensureAllOrdersSection() {
+  if (document.getElementById("all-orders-section")) return;
   const currentLang = getCurrentLanguage();
   const isEnglish = currentLang === "en";
+  const container = document.querySelector(".cashier-content");
+  if (!container) return;
+  const section = document.createElement("section");
+  section.className = "cashier-section";
+  section.id = "all-orders-section";
+  section.innerHTML = `
+    <div class="section-header">
+      <h2 class="section-title">${
+        isEnglish ? "Previous Orders" : "الطلبات السابقة"
+      }</h2>
+    </div>
+    <div class="orders-grid" id="all-orders-grid"></div>
+  `;
+  container.appendChild(section);
+}
 
-  // Would navigate to a full orders history page in a real app
-  showFixedNotification(
-    isEnglish ? "Coming Soon" : "قادم قريباً",
-    isEnglish
-      ? "A complete order history page will be added in the next update"
-      : "سيتم إضافة صفحة كاملة لسجل الطلبات في التحديث القادم",
-    "info"
-  );
+function hideAllOrdersSection() {
+  const section = document.getElementById("all-orders-section");
+  if (section && section.parentNode) {
+    section.parentNode.removeChild(section);
+  }
+}
+
+async function loadAllOrdersIntoSection() {
+  const grid = document.getElementById("all-orders-grid");
+  if (!grid) return;
+  grid.innerHTML = `
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i> ${
+        getCurrentLanguage() === "en" ? "Loading orders..." : "جاري تحميل الطلبات..."
+      }
+    </div>`;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/orders?status=completed,cancelled&limit=100`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const orders = Array.isArray(data?.data) ? data.data : [];
+    if (orders.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-message">
+          <i class="fas fa-history"></i>
+          <p>${
+            getCurrentLanguage() === "en" ? "No previous orders" : "لا توجد طلبات سابقة"
+          }</p>
+        </div>`;
+      return;
+    }
+
+    orders.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+    grid.innerHTML = "";
+    orders.forEach((o) => {
+      const order = {
+        id: o._id || o.orderId || o.orderNumber,
+        tableNumber: o.tableNumber || "0",
+        items: o.items || [],
+        total: o.total || o.totalAmount || 0,
+        status: o.status || "completed",
+        date: o.date || o.createdAt,
+      };
+      const card = createOrderCard(order);
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = `
+      <div class="error-message">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>${
+          getCurrentLanguage() === "en" ? "Failed to load orders" : "فشل تحميل الطلبات"
+        }</p>
+      </div>`;
+  }
 }
 
 // View order details
