@@ -378,7 +378,6 @@ function listenForOrderCompletion() {
                 data.orderId;
               if (
                 id &&
-                !ordersIgnored.has(id) &&
                 !ordersBeingRated.has(id) &&
                 !ratingModalActive
               ) {
@@ -1764,29 +1763,28 @@ function resetRatingState() {
 function skipRating() {
   if (currentOrderId) {
     console.log(`Skipping rating for order: ${currentOrderId}`);
-    
-    // Call API to mark order as skipped
-    fetch(`/api/ratings/order/${currentOrderId}/skip`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          console.log('Order rating marked as skipped successfully');
-          // Mark this order as ignored to prevent showing again in this session
-          ordersIgnored.add(currentOrderId);
-        } else {
-          console.error('Failed to mark order as skipped:', data.message);
+    fetch(`/api/orders/${currentOrderId}`)
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("status")))
+      .then((orderData) => {
+        const isCompleted = !!(orderData && orderData.success && orderData.data && orderData.data.status === 'completed');
+        if (isCompleted) {
+          return fetch(`/api/ratings/order/${currentOrderId}/skip`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }).then(res => res.json()).then((data) => {
+            if (data.success) {
+              ordersIgnored.add(currentOrderId);
+            }
+          });
         }
+        ordersIgnored.add(currentOrderId);
       })
-      .catch(error => {
-        console.error('Error marking order as skipped:', error);
+      .catch(() => {
+        ordersIgnored.add(currentOrderId);
       })
       .finally(() => {
-        // Close the modal regardless of API success
         closeRatingModal();
       });
   } else {

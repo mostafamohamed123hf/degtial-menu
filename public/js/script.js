@@ -620,7 +620,7 @@ function checkForRecentlyCompletedOrders() {
             .then((response) => response.json())
             .then((data) => {
               // Only prompt for rating if the order exists and is not rated
-              if (data.success && data.data && data.data.isRated !== true) {
+              if (data.success && data.data && data.data.isRated !== true && data.data.status === "completed") {
                 // Wait a bit to ensure page is fully loaded
                 setTimeout(() => {
                   if (typeof promptRatingForCompletedOrder === "function") {
@@ -629,14 +629,12 @@ function checkForRecentlyCompletedOrders() {
                     showRatingModalForOrder(orderId);
                   }
                 }, 2000);
-              } else if (
-                data.success &&
-                data.data &&
-                data.data.isRated === true
-              ) {
+              } else if (data.success && data.data && data.data.isRated === true) {
                 console.log(
                   `Order ${orderId} is already rated, not showing rating modal`
                 );
+              } else if (data.success && data.data && data.data.status !== "completed") {
+                startOrderCompletionPoll(orderId);
               }
             })
             .catch((error) => {
@@ -678,6 +676,33 @@ function checkForRecentlyCompletedOrders() {
   } catch (error) {
     console.error("Error checking for recently completed orders:", error);
   }
+}
+
+let __orderStatusPollers = {};
+function startOrderCompletionPoll(orderId) {
+  try {
+    if (!orderId) return;
+    if (__orderStatusPollers[orderId]) return;
+    const apiBase = window.API_BASE_URL || window.location.origin;
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/orders/${orderId}`);
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data && data.success && data.data && data.data.status === "completed") {
+            clearInterval(__orderStatusPollers[orderId]);
+            delete __orderStatusPollers[orderId];
+            if (typeof promptRatingForCompletedOrder === "function") {
+              promptRatingForCompletedOrder(orderId);
+            } else if (typeof showRatingModalForOrder === "function") {
+              showRatingModalForOrder(orderId);
+            }
+          }
+        }
+      } catch (_) {}
+    }, 5000);
+    __orderStatusPollers[orderId] = intervalId;
+  } catch (_) {}
 }
 
 // Show rating modal for a completed order when rating.js is not available

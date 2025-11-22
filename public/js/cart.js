@@ -1535,13 +1535,6 @@ document.addEventListener("DOMContentLoaded", async function () {
           "lastCompletedOrder",
           JSON.stringify(completedOrderData)
         );
-        localStorage.setItem(
-          "order_completed_for_rating",
-          JSON.stringify(completedOrderData)
-        );
-        setTimeout(() => {
-          localStorage.removeItem("order_completed_for_rating");
-        }, 100);
       } catch (_) {}
 
       showCheckoutSuccess();
