@@ -4903,10 +4903,13 @@ async function submitNewOrder() {
   };
 
   try {
+    // Ensure an order session exists for this table and include it in the request
+    const sessionToken = await ensureOrderSessionForTable(parseInt(tableNumber));
     const response = await fetch(`${API_BASE_URL}/api/orders/guest`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Order-Session": sessionToken || "",
       },
       body: JSON.stringify(orderData),
     });
@@ -4939,6 +4942,32 @@ async function submitNewOrder() {
     submitBtn.disabled = false;
     const submitText = currentLang === "ar" ? "تأكيد الطلب" : "Submit Order";
     submitBtn.innerHTML = `<i class="fas fa-check-circle"></i><span>${submitText}</span>`;
+  }
+}
+
+// Ensure an order session exists for the given table
+async function ensureOrderSessionForTable(table) {
+  try {
+    const token = sessionStorage.getItem("orderSessionToken") || "";
+    const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+    const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+    const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+    const valid = !!token && expMs > Date.now() && String(sessionTable) === String(table);
+    if (valid) return token;
+
+    const url = `${API_BASE_URL}/api/table/session?table=${encodeURIComponent(table)}`;
+    const res = await fetch(url);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data && data.success && data.token) {
+      sessionStorage.setItem("orderSessionToken", data.token);
+      sessionStorage.setItem("orderSessionExpiresAt", data.expiresAt || new Date(Date.now() + 20 * 60 * 1000).toISOString());
+      sessionStorage.setItem("orderSessionTable", String(table));
+      return data.token;
+    }
+
+    return "";
+  } catch (_) {
+    return "";
   }
 }
 
