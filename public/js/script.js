@@ -9019,3 +9019,15 @@ function swapOrderRatingButtonToChip(orderId) {
 }
 
 window.swapOrderRatingButtonToChip = swapOrderRatingButtonToChip;
+document.addEventListener("DOMContentLoaded", function () {
+  const orderBtn = document.querySelector(".hero-banner .order-now-btn");
+  if (!orderBtn) return;
+
+  orderBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    const filtersSection = document.getElementById("category-filters");
+    if (filtersSection) {
+      filtersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+});
