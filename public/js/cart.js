@@ -1357,6 +1357,12 @@ document.addEventListener("DOMContentLoaded", async function () {
           console.log("Order saved to database successfully:", data);
           savedToServer = true;
 
+          if (data && data.data) {
+            orderData.id = data.data._id || orderData.id;
+            orderData.orderNumber =
+              data.data.orderNumber || orderData.orderNumber;
+          }
+
           // Deduct loyalty points if they were used
           if (pointsUsed > 0) {
             try {
@@ -1518,7 +1524,26 @@ document.addEventListener("DOMContentLoaded", async function () {
       clearCart();
       clearVoucherAfterOrder();
 
-      // Show success message
+      try {
+        const completedOrderData = {
+          orderId: orderData.id || orderData.orderNumber || generateOrderId(),
+          tableNumber: orderData.tableNumber,
+          items: orderData.items,
+          timestamp: new Date().toISOString(),
+        };
+        sessionStorage.setItem(
+          "lastCompletedOrder",
+          JSON.stringify(completedOrderData)
+        );
+        localStorage.setItem(
+          "order_completed_for_rating",
+          JSON.stringify(completedOrderData)
+        );
+        setTimeout(() => {
+          localStorage.removeItem("order_completed_for_rating");
+        }, 100);
+      } catch (_) {}
+
       showCheckoutSuccess();
     } catch (error) {
       console.error("Error during checkout:", error);

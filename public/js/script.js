@@ -604,6 +604,8 @@ function checkForRecentlyCompletedOrders() {
 
       // Only show rating modal if the order was completed in the last 30 minutes (increased from 5)
       if (currentTime - orderTimestamp < 30 * 60 * 1000) {
+        const apiBase = window.API_BASE_URL || window.location.origin;
+        
         // Always show rating on index page
         if (isIndexPage()) {
           console.log(
@@ -614,7 +616,7 @@ function checkForRecentlyCompletedOrders() {
           const orderId = lastCompletedOrder.orderId;
 
           // Check with the server if the order is already rated
-          fetch(`http://localhost:5000/api/orders/${orderId}`)
+          fetch(`${apiBase}/api/orders/${orderId}`)
             .then((response) => response.json())
             .then((data) => {
               // Only prompt for rating if the order exists and is not rated
@@ -681,7 +683,8 @@ function checkForRecentlyCompletedOrders() {
 // Show rating modal for a completed order when rating.js is not available
 function showRatingModalForOrder(orderId) {
   // First check if products have already been rated
-  fetch(`http://localhost:5000/api/ratings/order/${orderId}/products`, {
+  const apiBase = window.API_BASE_URL || window.location.origin;
+  fetch(`${apiBase}/api/ratings/order/${orderId}/products`, {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -694,7 +697,7 @@ function showRatingModalForOrder(orderId) {
         : {};
 
       // Now fetch order details
-      return fetch(`http://localhost:5000/api/orders/${orderId}`, {
+      return fetch(`${apiBase}/api/orders/${orderId}`, {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -761,7 +764,7 @@ function showRatingModalForOrder(orderId) {
 
             console.log(`Fetching complete product data for ${baseItemId}`);
             const productResponse = await fetch(
-              `http://localhost:5000/api/products/${baseItemId}`
+              `${apiBase}/api/products/${baseItemId}`
             );
 
             if (productResponse.ok) {
