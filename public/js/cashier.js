@@ -4923,6 +4923,7 @@ async function submitNewOrder() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "X-Staff-Override": "cashier",
           },
           body: JSON.stringify(orderData),
         });
@@ -4944,6 +4945,7 @@ async function submitNewOrder() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Staff-Override": "cashier",
         },
         body: JSON.stringify(orderData),
       });
