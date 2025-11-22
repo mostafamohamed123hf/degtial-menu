@@ -4903,7 +4903,6 @@ async function submitNewOrder() {
   };
 
   try {
-    const sessionToken = await ensureOrderSessionForTable(parseInt(tableNumber));
 
     let created = false;
     let lastErrorMessage = "";
@@ -4924,7 +4923,6 @@ async function submitNewOrder() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
-            "X-Order-Session": sessionToken || "",
           },
           body: JSON.stringify(orderData),
         });
@@ -4946,7 +4944,6 @@ async function submitNewOrder() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Order-Session": sessionToken || "",
         },
         body: JSON.stringify(orderData),
       });
@@ -4976,10 +4973,10 @@ async function submitNewOrder() {
     const errorTitle = currentLang === "ar" ? "خطأ" : "Error";
     const errorMsg = (function(){
       const msg = String(error && error.message || "");
-      if (msg.includes("Order session required") || msg.includes("403")) {
+      if (msg.includes("Order session required") || msg.includes("QR validation required") || msg.includes("403")) {
         return currentLang === "ar" 
-          ? "يتطلب إنشاء الطلب جلسة للطاولة. قم بمسح QR للطاولة أو أنشئ جلسة للطاولة ثم أعد المحاولة"
-          : "Order session required. Scan the table QR or create a table session, then retry";
+          ? "تم رفض الطلب من الخادم. كاشير يمكنه إنشاء الطلب بدون QR، تأكد من إعدادات الخادم للسماح بذلك"
+          : "Order rejected by server. Cashier should be allowed to create orders without QR; check server settings";
       }
       return currentLang === "ar" ? "حدث خطأ أثناء إنشاء الطلب" : "Error creating order";
     })();
@@ -4991,31 +4988,11 @@ async function submitNewOrder() {
   }
 }
 
-// Ensure an order session exists for the given table
-async function ensureOrderSessionForTable(table) {
-  try {
-    const token = sessionStorage.getItem("orderSessionToken") || "";
-    const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
-    const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
-    const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
-    const valid = !!token && expMs > Date.now() && String(sessionTable) === String(table);
-    if (valid) return token;
+async function attemptSessionViaQr(table) { return ""; }
 
-    const url = `${API_BASE_URL}/api/table/session?table=${encodeURIComponent(table)}`;
-    const res = await fetch(url);
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data && data.success && data.token) {
-      sessionStorage.setItem("orderSessionToken", data.token);
-      sessionStorage.setItem("orderSessionExpiresAt", data.expiresAt || new Date(Date.now() + 20 * 60 * 1000).toISOString());
-      sessionStorage.setItem("orderSessionTable", String(table));
-      return data.token;
-    }
+function parseQidFromText(text) { return ""; }
 
-    return "";
-  } catch (_) {
-    return "";
-  }
-}
+async function ensureOrderSessionForTable(table) { return ""; }
 
 // Initialize new order functionality when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
