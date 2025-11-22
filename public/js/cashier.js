@@ -4903,40 +4903,86 @@ async function submitNewOrder() {
   };
 
   try {
-    // Ensure an order session exists for this table and include it in the request
     const sessionToken = await ensureOrderSessionForTable(parseInt(tableNumber));
-    const response = await fetch(`${API_BASE_URL}/api/orders/guest`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Order-Session": sessionToken || "",
-      },
-      body: JSON.stringify(orderData),
-    });
 
-    const result = await response.json();
+    let created = false;
+    let lastErrorMessage = "";
 
-    if (result.success) {
+    // Try authenticated route first (cashier is logged in)
+    try {
+      let token = null;
+      if (typeof refreshToken === "function") {
+        try { token = await refreshToken(); } catch (_) { token = null; }
+      }
+      if (!token && typeof getToken === "function") {
+        token = getToken();
+      }
+
+      if (token) {
+        const authRes = await fetch(`${API_BASE_URL}/api/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "X-Order-Session": sessionToken || "",
+          },
+          body: JSON.stringify(orderData),
+        });
+        const authDataText = await authRes.text();
+        const authData = authDataText ? JSON.parse(authDataText) : {};
+        if (authRes.ok && authData && authData.success) {
+          created = true;
+        } else {
+          lastErrorMessage = authData.message || `HTTP ${authRes.status}`;
+        }
+      }
+    } catch (e) {
+      lastErrorMessage = e.message || "Auth route error";
+    }
+
+    // Fallback to guest route if auth failed
+    if (!created) {
+      const response = await fetch(`${API_BASE_URL}/api/orders/guest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Order-Session": sessionToken || "",
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      const resultText = await response.text();
+      const result = resultText ? JSON.parse(resultText) : {};
+
+      if (response.ok && result && result.success) {
+        created = true;
+      } else {
+        lastErrorMessage = result.message || `HTTP ${response.status}`;
+      }
+    }
+
+    if (created) {
       const successTitle = currentLang === "ar" ? "نجح" : "Success";
       const successMsg =
-        currentLang === "ar"
-          ? "تم إنشاء الطلب بنجاح"
-          : "Order created successfully";
+        currentLang === "ar" ? "تم إنشاء الطلب بنجاح" : "Order created successfully";
       showFixedNotification(successTitle, successMsg, "success");
       closeNewOrderModal();
-      loadActiveOrders(); // Refresh orders list
+      loadActiveOrders();
     } else {
-      const errorMsg =
-        currentLang === "ar" ? "فشل في إنشاء الطلب" : "Failed to create order";
-      throw new Error(result.message || errorMsg);
+      throw new Error(lastErrorMessage || (currentLang === "ar" ? "فشل في إنشاء الطلب" : "Failed to create order"));
     }
   } catch (error) {
     console.error("Error submitting order:", error);
     const errorTitle = currentLang === "ar" ? "خطأ" : "Error";
-    const errorMsg =
-      currentLang === "ar"
-        ? "حدث خطأ أثناء إنشاء الطلب"
-        : "Error creating order";
+    const errorMsg = (function(){
+      const msg = String(error && error.message || "");
+      if (msg.includes("Order session required") || msg.includes("403")) {
+        return currentLang === "ar" 
+          ? "يتطلب إنشاء الطلب جلسة للطاولة. قم بمسح QR للطاولة أو أنشئ جلسة للطاولة ثم أعد المحاولة"
+          : "Order session required. Scan the table QR or create a table session, then retry";
+      }
+      return currentLang === "ar" ? "حدث خطأ أثناء إنشاء الطلب" : "Error creating order";
+    })();
     showFixedNotification(errorTitle, error.message || errorMsg, "error");
   } finally {
     submitBtn.disabled = false;
