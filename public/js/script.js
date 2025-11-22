@@ -133,8 +133,9 @@ function addToCart(id, name, price, image) {
   // First check if we need to resolve the real _id from sessionStorage
   try {
     const namesMap = JSON.parse(sessionStorage.getItem("productNames") || "{}");
-    if (namesMap[id] && namesMap[id]._id) {
-      actualId = namesMap[id]._id;
+    const nameEntry = namesMap[id] || namesMap[actualId] || null;
+    if (nameEntry && nameEntry._id) {
+      actualId = nameEntry._id;
       console.log(`Resolved real _id: ${actualId} for shortId: ${id}`);
     }
   } catch (e) {
@@ -178,10 +179,11 @@ function addToCart(id, name, price, image) {
       const namesMap = JSON.parse(
         sessionStorage.getItem("productNames") || "{}"
       );
-      if (namesMap[id]) {
+      const nameEntry = namesMap[id] || namesMap[actualId] || null;
+      if (nameEntry) {
         // Always use the stored original names, not the passed display name
-        nameAr = namesMap[id].name || "";
-        nameEn = namesMap[id].nameEn || "";
+        nameAr = nameEntry.name || "";
+        nameEn = nameEntry.nameEn || "";
       }
     } catch (e) {
       console.warn("Could not retrieve product names from sessionStorage");
@@ -6293,9 +6295,30 @@ async function handleReorder(orderId) {
       const itemId =
         item.id ||
         `item-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-      const itemName = item.name || getTranslation("product");
+      const itemNameAr = item.nameAr || item.name || getTranslation("product");
+      const itemNameEn = item.nameEn || "";
+      const currentLang = localStorage.getItem("public-language") || "ar";
+      const itemName =
+        currentLang === "en" && itemNameEn ? itemNameEn : itemNameAr;
       const itemPrice = parseFloat(item.price || 0);
       const itemQuantity = parseInt(item.quantity || 1);
+
+      // Prime bilingual names map so cart can show proper language
+      try {
+        const namesMap = JSON.parse(
+          sessionStorage.getItem("productNames") || "{}"
+        );
+        const baseId =
+          item.baseId ||
+          (itemId && itemId.includes("-") ? itemId.split("-")[0] : itemId);
+        namesMap[itemId] = namesMap[itemId] || {};
+        namesMap[itemId].name = itemNameAr;
+        namesMap[itemId].nameEn = itemNameEn || itemNameAr;
+        namesMap[baseId] = namesMap[baseId] || {};
+        namesMap[baseId].name = itemNameAr;
+        namesMap[baseId].nameEn = itemNameEn || itemNameAr;
+        sessionStorage.setItem("productNames", JSON.stringify(namesMap));
+      } catch (_) {}
 
       // Check if the item has addons
       if (
@@ -6755,8 +6778,18 @@ function extractOrderFromCard(orderCard) {
       const priceMatch = priceText.match(/(\d+(\.\d+)?)/);
       const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
 
+      // Extract bilingual names and product id from data attributes if available
+      const productId = itemElement.getAttribute("data-product-id") || null;
+      const nameArAttr = itemElement.getAttribute("data-product-name-ar") || "";
+      const nameEnAttr = itemElement.getAttribute("data-product-name-en") || "";
+      const imageAttr = itemElement.getAttribute("data-product-image") || "";
+
       items.push({
+        id: productId,
         name,
+        nameAr: nameArAttr || name,
+        nameEn: nameEnAttr || "",
+        image: imageAttr || "",
         quantity,
         price: price / quantity,
       });
