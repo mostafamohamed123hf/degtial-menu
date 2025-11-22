@@ -4,7 +4,7 @@ const Order = require("../models/Order");
 const Customer = require("../models/Customer");
 const Offer = require("../models/Offer");
 const mongoose = require("mongoose");
-const { protectCustomer } = require("../middleware/customerAuth");
+const { protectCustomer, optionalProtectCustomer } = require("../middleware/customerAuth");
 const GlobalSettings = require("../models/GlobalSettings");
 const PointsHistory = require("../models/PointsHistory");
 const jwt = require("jsonwebtoken");
@@ -129,9 +129,12 @@ router.post("/guest", async (req, res) => {
       });
     }
 
-    const sessionCheck = validateOrderSession(req, tableNumber);
-    if (!sessionCheck.ok) {
-      return res.status(403).json({ success: false, message: sessionCheck.message });
+    const staffOverride = String(req.headers["x-staff-override"] || "").toLowerCase();
+    if (staffOverride !== "cashier") {
+      const sessionCheck = validateOrderSession(req, tableNumber);
+      if (!sessionCheck.ok) {
+        return res.status(403).json({ success: false, message: sessionCheck.message });
+      }
     }
 
     // Check if mongoose is properly imported
@@ -216,7 +219,7 @@ router.post("/guest", async (req, res) => {
 });
 
 // Create a new order
-router.post("/", protectCustomer, async (req, res) => {
+router.post("/", optionalProtectCustomer, async (req, res) => {
   try {
     const {
       items,
@@ -230,13 +233,15 @@ router.post("/", protectCustomer, async (req, res) => {
       status,
     } = req.body;
 
-    const sessionCheck = validateOrderSession(req, tableNumber);
-    if (!sessionCheck.ok) {
-      return res.status(403).json({ success: false, message: sessionCheck.message });
+    const staffOverride = String(req.headers["x-staff-override"] || "").toLowerCase();
+    if (staffOverride !== "cashier") {
+      const sessionCheck = validateOrderSession(req, tableNumber);
+      if (!sessionCheck.ok) {
+        return res.status(403).json({ success: false, message: sessionCheck.message });
+      }
     }
 
-    // Make sure the customer is authenticated
-    if (!req.customer || !req.customer._id) {
+    if ((!req.customer || !req.customer._id) && staffOverride !== "cashier") {
       return res.status(200).json({
         success: false,
         message: "You must be logged in to place an order",
@@ -250,9 +255,9 @@ router.post("/", protectCustomer, async (req, res) => {
 
     // Create a new order
     const newOrder = new Order({
-      customerId: req.customer._id,
-      customerName: req.customer.name,
-      customerEmail: req.customer.email,
+      customerId: (req.customer && req.customer._id) ? req.customer._id : new mongoose.Types.ObjectId(),
+      customerName: (req.customer && req.customer.name) ? req.customer.name : "Cashier Order",
+      customerEmail: (req.customer && req.customer.email) ? req.customer.email : "cashier@example.com",
       orderNumber: orderNumber,
       orderId: orderNumber,
       items,
