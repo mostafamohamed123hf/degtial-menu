@@ -605,7 +605,7 @@ function checkForRecentlyCompletedOrders() {
       // Only show rating modal if the order was completed in the last 30 minutes (increased from 5)
       if (currentTime - orderTimestamp < 30 * 60 * 1000) {
         const apiBase = window.API_BASE_URL || window.location.origin;
-        
+
         // Always show rating on index page
         if (isIndexPage()) {
           console.log(
@@ -620,7 +620,12 @@ function checkForRecentlyCompletedOrders() {
             .then((response) => response.json())
             .then((data) => {
               // Only prompt for rating if the order exists and is not rated
-              if (data.success && data.data && data.data.isRated !== true && data.data.status === "completed") {
+              if (
+                data.success &&
+                data.data &&
+                data.data.isRated !== true &&
+                data.data.status === "completed"
+              ) {
                 // Wait a bit to ensure page is fully loaded
                 setTimeout(() => {
                   if (typeof promptRatingForCompletedOrder === "function") {
@@ -629,11 +634,19 @@ function checkForRecentlyCompletedOrders() {
                     showRatingModalForOrder(orderId);
                   }
                 }, 2000);
-              } else if (data.success && data.data && data.data.isRated === true) {
+              } else if (
+                data.success &&
+                data.data &&
+                data.data.isRated === true
+              ) {
                 console.log(
                   `Order ${orderId} is already rated, not showing rating modal`
                 );
-              } else if (data.success && data.data && data.data.status !== "completed") {
+              } else if (
+                data.success &&
+                data.data &&
+                data.data.status !== "completed"
+              ) {
                 startOrderCompletionPoll(orderId);
               }
             })
@@ -689,7 +702,12 @@ function startOrderCompletionPoll(orderId) {
         const res = await fetch(`${apiBase}/api/orders/${orderId}`);
         if (res && res.ok) {
           const data = await res.json();
-          if (data && data.success && data.data && data.data.status === "completed") {
+          if (
+            data &&
+            data.success &&
+            data.data &&
+            data.data.status === "completed"
+          ) {
             clearInterval(__orderStatusPollers[orderId]);
             delete __orderStatusPollers[orderId];
             if (typeof promptRatingForCompletedOrder === "function") {
@@ -1280,36 +1298,7 @@ async function submitOrderRating(orderId, productId, rating, comment) {
 
       // Disable rating in Previous Orders UI if present
       try {
-        const selector = `.order-card[data-order-id="${orderId}"]`;
-        const orderCard = document.querySelector(selector);
-        if (orderCard) {
-          orderCard.setAttribute("data-is-rated", "true");
-          const btn = orderCard.querySelector(".order-rating-btn");
-          if (btn) {
-            btn.classList.add("disabled");
-            btn.setAttribute("disabled", "true");
-            btn.setAttribute("aria-disabled", "true");
-            btn.setAttribute(
-              "title",
-              typeof getTranslation === "function"
-                ? getTranslation("orderRatedTooltip")
-                : "تم التقييم"
-            );
-            const icon = btn.querySelector("i") || document.createElement("i");
-            if (!icon.parentNode) {
-              icon.className = "fas fa-star";
-            }
-            btn.innerHTML = "";
-            btn.appendChild(icon);
-            btn.appendChild(
-              document.createTextNode(
-                typeof getTranslation === "function"
-                  ? getTranslation("orderRated")
-                  : "تم التقييم"
-              )
-            );
-          }
-        }
+        swapOrderRatingButtonToChip(orderId);
       } catch (_) {}
     } else {
       // No fallback - ratings are managed by database only
@@ -1320,36 +1309,7 @@ async function submitOrderRating(orderId, productId, rating, comment) {
 
       // Disable rating UI as above when no average returned
       try {
-        const selector = `.order-card[data-order-id="${orderId}"]`;
-        const orderCard = document.querySelector(selector);
-        if (orderCard) {
-          orderCard.setAttribute("data-is-rated", "true");
-          const btn = orderCard.querySelector(".order-rating-btn");
-          if (btn) {
-            btn.classList.add("disabled");
-            btn.setAttribute("disabled", "true");
-            btn.setAttribute("aria-disabled", "true");
-            btn.setAttribute(
-              "title",
-              typeof getTranslation === "function"
-                ? getTranslation("orderRatedTooltip")
-                : "تم التقييم"
-            );
-            const icon = btn.querySelector("i") || document.createElement("i");
-            if (!icon.parentNode) {
-              icon.className = "fas fa-star";
-            }
-            btn.innerHTML = "";
-            btn.appendChild(icon);
-            btn.appendChild(
-              document.createTextNode(
-                typeof getTranslation === "function"
-                  ? getTranslation("orderRated")
-                  : "تم التقييم"
-              )
-            );
-          }
-        }
+        swapOrderRatingButtonToChip(orderId);
       } catch (_) {}
     }
   } catch (error) {
@@ -1995,7 +1955,9 @@ function initProductSearch() {
   const doFilter = () => {
     const q = input.value.trim().toLowerCase();
     const activeFilter = document.querySelector(".filter.active");
-    const activeCategory = activeFilter ? activeFilter.getAttribute("data-category") : "all";
+    const activeCategory = activeFilter
+      ? activeFilter.getAttribute("data-category")
+      : "all";
     const lang = localStorage.getItem("public-language") || "ar";
 
     const cards = grid.querySelectorAll(".product-card");
@@ -2025,7 +1987,10 @@ function initProductSearch() {
       empty.id = "search-empty-products";
       empty.className = "empty-state";
       empty.style.display = "none";
-      empty.innerHTML = `<i class="fas fa-search"></i><p>${getTranslation("noMatchingProducts") || (lang === "en" ? "No matching products" : "لا توجد منتجات مطابقة")}</p>`;
+      empty.innerHTML = `<i class="fas fa-search"></i><p>${
+        getTranslation("noMatchingProducts") ||
+        (lang === "en" ? "No matching products" : "لا توجد منتجات مطابقة")
+      }</p>`;
       grid.appendChild(empty);
     }
     empty.style.display = visibleCount === 0 ? "block" : "none";
@@ -2067,7 +2032,10 @@ function initOffersSearch() {
       empty.className = "empty-state";
       empty.style.display = "none";
       const lang = localStorage.getItem("public-language") || "ar";
-      empty.innerHTML = `<i class="fas fa-search"></i><p>${getTranslation("noMatchingOffers") || (lang === "en" ? "No matching offers" : "لا توجد عروض مطابقة")}</p>`;
+      empty.innerHTML = `<i class="fas fa-search"></i><p>${
+        getTranslation("noMatchingOffers") ||
+        (lang === "en" ? "No matching offers" : "لا توجد عروض مطابقة")
+      }</p>`;
       grid.appendChild(empty);
     }
     empty.style.display = visibleCount === 0 ? "block" : "none";
@@ -2094,8 +2062,11 @@ function initOrdersSearch() {
 
     cards.forEach((card) => {
       const orderId = (card.getAttribute("data-order-id") || "").toLowerCase();
-      const items = Array.from(card.querySelectorAll(".order-item")).map((el) => (el.getAttribute("data-product-name") || "").toLowerCase());
-      const textMatch = orderId.includes(q) || items.some((name) => name.includes(q));
+      const items = Array.from(card.querySelectorAll(".order-item")).map((el) =>
+        (el.getAttribute("data-product-name") || "").toLowerCase()
+      );
+      const textMatch =
+        orderId.includes(q) || items.some((name) => name.includes(q));
       const show = q === "" || textMatch;
       card.style.display = show ? "block" : "none";
       if (show) visibleCount++;
@@ -2108,7 +2079,10 @@ function initOrdersSearch() {
       empty.className = "empty-orders-message";
       empty.style.display = "none";
       const lang = localStorage.getItem("public-language") || "ar";
-      empty.innerHTML = `<i class=\"fas fa-search\"></i><h3>${getTranslation("noMatchingOrders") || (lang === "en" ? "No matching orders" : "لا توجد طلبات مطابقة")}</h3>`;
+      empty.innerHTML = `<i class=\"fas fa-search\"></i><h3>${
+        getTranslation("noMatchingOrders") ||
+        (lang === "en" ? "No matching orders" : "لا توجد طلبات مطابقة")
+      }</h3>`;
       grid.parentNode && grid.parentNode.insertBefore(empty, grid);
     }
     empty.style.display = visibleCount === 0 ? "block" : "none";
@@ -2207,7 +2181,11 @@ function hasValidOrderSession(table) {
     const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
     const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
     const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
-    return !!token && expMs > Date.now() && String(sessionTable || "") === String(table || "");
+    return (
+      !!token &&
+      expMs > Date.now() &&
+      String(sessionTable || "") === String(table || "")
+    );
   } catch (_) {
     return false;
   }
@@ -2222,12 +2200,13 @@ function showScanRequiredModal() {
   const lang = localStorage.getItem("public-language") || "ar";
   const titleEl = modal.querySelector(".scan-title");
   const textEl = document.getElementById("scan-required-text");
-  const btnLabelEl = (function(){
+  const btnLabelEl = (function () {
     const btn = document.getElementById("scan-again-btn");
     return btn ? btn.querySelector("span") : null;
   })();
   if (titleEl) {
-    titleEl.textContent = lang === "en" ? "Scan Required" : "إعادة المسح مطلوبة";
+    titleEl.textContent =
+      lang === "en" ? "Scan Required" : "إعادة المسح مطلوبة";
   }
   if (textEl) {
     textEl.textContent =
@@ -2248,7 +2227,10 @@ function showScanRequiredModal() {
   }
   if (scanBtn) {
     // Use current table number if stored
-    const currentTable = sessionStorage.getItem("tableNumber") || localStorage.getItem("tableNumber") || null;
+    const currentTable =
+      sessionStorage.getItem("tableNumber") ||
+      localStorage.getItem("tableNumber") ||
+      null;
     scanBtn.onclick = () => {
       modal.style.display = "none";
       if (typeof window.openQrScanModal === "function") {
@@ -2472,11 +2454,11 @@ document.addEventListener("DOMContentLoaded", async function () {
       updateCartCountFromStorage();
     }
 
-  // Handle auth state changes from other tabs
-  if (e.key === "token" || e.key === "userPermissions") {
-    checkUserPermissions();
-  }
-});
+    // Handle auth state changes from other tabs
+    if (e.key === "token" || e.key === "userPermissions") {
+      checkUserPermissions();
+    }
+  });
 
   // Listen for custom discount change event
   window.addEventListener("digital_menu_discount_change", function () {
@@ -2484,8 +2466,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 
   // Initialize orders search when previous orders section becomes active
-  const prevOrdersLink = document.querySelectorAll(".previous-orders-section-link");
-  prevOrdersLink.forEach((lnk)=>{
+  const prevOrdersLink = document.querySelectorAll(
+    ".previous-orders-section-link"
+  );
+  prevOrdersLink.forEach((lnk) => {
     lnk.addEventListener("click", () => {
       setTimeout(() => {
         if (typeof initOrdersSearch === "function") initOrdersSearch();
@@ -4405,8 +4389,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <span>طاولة ${tableNumber}</span>
             `;
 
-      
-
       // Display with animation
       setTimeout(() => {
         tableNumberDisplay.classList.add("show");
@@ -4462,22 +4444,36 @@ document.addEventListener("DOMContentLoaded", async function () {
     const closeBtn = document.getElementById("qr-close-btn");
     const hint = modal.querySelector(".qr-hint");
     const lang = localStorage.getItem("public-language") || "ar";
-    const lockKey = currentTable ? `qrScanLock:${currentTable}` : `qrScanLock:any`;
+    const lockKey = currentTable
+      ? `qrScanLock:${currentTable}`
+      : `qrScanLock:any`;
     try {
       const existingLock = localStorage.getItem(lockKey);
       if (existingLock) {
         const data = JSON.parse(existingLock);
         if (data && data.ts && Date.now() - data.ts < 60000) {
-          const msg = lang === "en" ? "Scanning is already in progress for this table" : "المسح جارٍ لهذه الطاولة";
+          const msg =
+            lang === "en"
+              ? "Scanning is already in progress for this table"
+              : "المسح جارٍ لهذه الطاولة";
           hint.textContent = msg;
           if (typeof showToast === "function") showToast(msg, "warning", 3000);
           modal.style.display = "flex";
           return;
         }
       }
-      if (!window.qrScanSession) window.qrScanSession = { active: false, table: null };
-      if (window.qrScanSession.active && (!currentTable || String(window.qrScanSession.table || "") === String(currentTable || ""))) {
-        const msg = lang === "en" ? "Scanning is already in progress" : "المسح قيد التنفيذ";
+      if (!window.qrScanSession)
+        window.qrScanSession = { active: false, table: null };
+      if (
+        window.qrScanSession.active &&
+        (!currentTable ||
+          String(window.qrScanSession.table || "") ===
+            String(currentTable || ""))
+      ) {
+        const msg =
+          lang === "en"
+            ? "Scanning is already in progress"
+            : "المسح قيد التنفيذ";
         hint.textContent = msg;
         if (typeof showToast === "function") showToast(msg, "warning", 3000);
         modal.style.display = "flex";
@@ -4554,14 +4550,24 @@ document.addEventListener("DOMContentLoaded", async function () {
               try {
                 const targetTable = currentTable || scannedTable;
                 try {
-                  const token = sessionStorage.getItem("orderSessionToken") || "";
-                  const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
-                  const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+                  const token =
+                    sessionStorage.getItem("orderSessionToken") || "";
+                  const expiresAt =
+                    sessionStorage.getItem("orderSessionExpiresAt") || "";
+                  const sessionTable =
+                    sessionStorage.getItem("orderSessionTable") || "";
                   const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
-                  const valid = !!token && expMs > Date.now() && String(sessionTable || "") === String(targetTable || "");
+                  const valid =
+                    !!token &&
+                    expMs > Date.now() &&
+                    String(sessionTable || "") === String(targetTable || "");
                   if (valid) {
-                    const msg = lang === "en" ? "Active session already exists for this table" : "جلسة نشطة موجودة لهذه الطاولة";
-                    if (typeof showToast === "function") showToast(msg, "warning", 3000);
+                    const msg =
+                      lang === "en"
+                        ? "Active session already exists for this table"
+                        : "جلسة نشطة موجودة لهذه الطاولة";
+                    if (typeof showToast === "function")
+                      showToast(msg, "warning", 3000);
                     stop();
                     return;
                   }
@@ -4821,18 +4827,15 @@ function initReservationForm() {
 
     try {
       // First upload the ID card photo
-      const uploadResponse = await fetch(
-        `${API_BASE_URL}/api/upload/idcard`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imageData: idCardPhotoData,
-          }),
-        }
-      );
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/upload/idcard`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageData: idCardPhotoData,
+        }),
+      });
 
       const uploadResult = await uploadResponse.json();
 
@@ -8955,3 +8958,50 @@ document.addEventListener("language_changed", function (event) {
     }
   }
 });
+function swapOrderRatingButtonToChip(orderId) {
+  try {
+    const selector = `.order-card[data-order-id="${orderId}"]`;
+    const orderCard =
+      document.querySelector(selector) || getOrderCardById(orderId);
+    if (!orderCard) return;
+    orderCard.setAttribute("data-is-rated", "true");
+    const btn = orderCard.querySelector(".order-rating-btn");
+    if (btn) {
+      const chip = document.createElement("span");
+      chip.className = "order-rating-chip";
+      const title =
+        typeof getTranslation === "function"
+          ? getTranslation("orderRatedTooltip")
+          : "تم التقييم";
+      const text =
+        typeof getTranslation === "function"
+          ? getTranslation("orderRated")
+          : "تم التقييم";
+      chip.setAttribute("title", title);
+      chip.innerHTML = `<i class="fas fa-star"></i>${text}`;
+      btn.replaceWith(chip);
+    } else {
+      const existingChip = orderCard.querySelector(".order-rating-chip");
+      if (!existingChip) {
+        const actions = orderCard.querySelector(".order-actions");
+        if (actions) {
+          const chip = document.createElement("span");
+          chip.className = "order-rating-chip";
+          const title =
+            typeof getTranslation === "function"
+              ? getTranslation("orderRatedTooltip")
+              : "تم التقييم";
+          const text =
+            typeof getTranslation === "function"
+              ? getTranslation("orderRated")
+              : "تم التقييم";
+          chip.setAttribute("title", title);
+          chip.innerHTML = `<i class="fas fa-star"></i>${text}`;
+          actions.insertBefore(chip, actions.firstChild);
+        }
+      }
+    }
+  } catch (_) {}
+}
+
+window.swapOrderRatingButtonToChip = swapOrderRatingButtonToChip;

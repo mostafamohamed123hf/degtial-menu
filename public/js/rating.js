@@ -1609,7 +1609,7 @@ function submitRating() {
         });
       }
       return response.json();
-    })
+  })
     .then((data) => {
       if (data && (data.success === false || data.rateLimited)) {
         throw new Error(data.message || "Error submitting rating");
@@ -1633,8 +1633,12 @@ function submitRating() {
         }, 1500);
       } else {
         // All items have been rated
-        // Store that the user has rated this order to prevent reappearing on refresh
         storeRatingInteractionStatus(currentOrderId, "rated");
+        if (typeof window.swapOrderRatingButtonToChip === "function") {
+          try {
+            window.swapOrderRatingButtonToChip(currentOrderId);
+          } catch (_) {}
+        }
 
         // Show final success message
         showFinalRatingSuccess();
