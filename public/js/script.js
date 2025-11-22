@@ -6425,27 +6425,8 @@ async function handleReorder(orderId) {
       addedCount += itemQuantity;
     }
 
-    // Hide loading toast and show success message
+    // Hide loading toast
     hideToast(loadingToast);
-
-    // Check if our custom showCartSuccessToast function exists
-    if (typeof showCartSuccessToast === "function") {
-      // Use our enhanced cart success toast if available
-      const lang = localStorage.getItem("public-language") || "ar";
-      const cartMessage =
-        lang === "en"
-          ? `Added ${addedCount} item${addedCount > 1 ? "s" : ""} to cart`
-          : `تمت إضافة ${addedCount} عنصر إلى السلة`;
-      showCartSuccessToast(cartMessage, addedCount);
-    } else {
-      // Fallback to regular toast
-      const lang = localStorage.getItem("public-language") || "ar";
-      const cartMessage =
-        lang === "en"
-          ? `Added ${addedCount} item${addedCount > 1 ? "s" : ""} to cart`
-          : `تمت إضافة ${addedCount} عنصر إلى السلة`;
-      showToast(cartMessage, "success", 3000);
-    }
 
     // Update cart count
     updateCartCountFromStorage();

@@ -1367,6 +1367,9 @@ body.light-mode .progress-bar {
   gap: 10px;
 }
 
+.toast-container.toast-center {
+}
+
 .toast {
   min-width: 250px;
   max-width: 350px;
@@ -1481,6 +1484,8 @@ body.light-mode .progress-bar {
     right: 10px;
     left: 10px;
     width: calc(100% - 20px);
+  }
+  .toast-container.toast-center {
   }
 
   .toast {

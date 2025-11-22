@@ -6144,6 +6144,10 @@ body.light-mode .profile-decorative-line {
   pointer-events: none;
 }
 
+.toast-container.toast-center {
+}
+}
+
 .toast {
   background-color: var(--card-bg);
   color: white;
@@ -6261,6 +6265,9 @@ body.light-mode .profile-decorative-line {
     right: 10px;
     left: 10px;
     align-items: stretch;
+  }
+  .toast-container.toast-center {
+  }
   }
 
   .toast {
