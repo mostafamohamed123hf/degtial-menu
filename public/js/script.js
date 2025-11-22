@@ -2137,24 +2137,8 @@ function initBottomNav() {
 
   navItems.forEach((item) => {
     if (item.id === "cart-icon") {
-      item.addEventListener("click", function (e) {
-        const table = getTableNumberFromCurrentPage();
-        const hasSession = typeof hasValidOrderSession === "function" ? hasValidOrderSession(table) : false;
-        if (!hasSession) {
-          e.preventDefault();
-          this.classList.add("tapped");
-          setTimeout(() => {
-            this.classList.remove("tapped");
-          }, 300);
-          if (typeof showScanRequiredModal === "function") {
-            showScanRequiredModal();
-          }
-        } else {
-          // Navigate to cart with table param
-          const base = this.getAttribute("href") || "/pages/cart.html";
-          const url = table ? `${base}?table=${table}` : base;
-          this.setAttribute("href", url);
-        }
+      item.addEventListener("click", function () {
+        // Keep default navigation. href is pre-set by checkForTableNumber()
       });
     } else {
       item.addEventListener("click", function (e) {

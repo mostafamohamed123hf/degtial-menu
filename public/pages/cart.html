@@ -246,6 +246,30 @@
       </div>
     </div>
 
+    <div id="scan-required-modal" class="scan-required-modal" style="display:none">
+      <div class="scan-required-card">
+        <button class="scan-close" id="close-scan-required">&times;</button>
+        <div class="scan-icon"><i class="fas fa-qrcode"></i></div>
+        <h3 class="scan-title" data-i18n="scanRequiredTitle">إعادة المسح مطلوبة</h3>
+        <p class="scan-text" id="scan-required-text" data-i18n="scanRequiredText">لإتمام الطلب، تحتاج إلى مسح رمز QR للطاولة مرة أخرى.</p>
+        <button id="scan-again-btn" class="scan-action">
+          <i class="fas fa-qrcode"></i>
+          <span data-i18n="scanAgain">أعد مسح QR</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="qr-scan-modal" class="qr-scan-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;">
+      <div class="qr-scan-card" style="position: relative; width: 90%; max-width: 420px; background: var(--card-bg, #fff); border-radius: 16px; padding: 16px;">
+        <button id="qr-close-btn" class="qr-close-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 22px; cursor: pointer;">×</button>
+        <div class="qr-video-wrap">
+          <video id="qr-video" class="qr-video" playsinline style="width: 100%; border-radius: 12px; background: #000"></video>
+          <div class="qr-frame"></div>
+        </div>
+        <div class="qr-hint" style="margin-top: 10px; text-align: center; font-weight: 600"></div>
+      </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../js/cart.js"></script>
     <script src="../js/voucher-integration.js"></script>

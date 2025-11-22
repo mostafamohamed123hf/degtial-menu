@@ -1,9 +1,11 @@
 // Base URL for API requests
-window.API_BASE_URL = window.API_BASE_URL || (function () {
-  const { hostname, origin } = window.location;
-  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-  return isLocal ? "http://localhost:5000" : origin;
-})();
+window.API_BASE_URL =
+  window.API_BASE_URL ||
+  (function () {
+    const { hostname, origin } = window.location;
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    return isLocal ? "http://localhost:5000" : origin;
+  })();
 
 // Import authentication functions if they don't exist in this context
 if (typeof isLoggedIn !== "function") {
@@ -115,12 +117,15 @@ let loyaltyDiscountSettings = {
 // Function to load free items data from API
 async function loadFreeItemsData() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/customer/loyalty/free-items`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/api/customer/loyalty/free-items`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (response.ok) {
       const result = await response.json();
@@ -195,7 +200,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Load free items data
   await loadFreeItemsData();
-  
+
   // Initialize cart
   await initCart();
 
@@ -227,7 +232,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     }, 150);
   });
 
-  checkoutBtn.addEventListener("click", checkoutOrder);
+  checkoutBtn.addEventListener("click", function (e) {
+    const table = getTableNumber();
+    if (!hasValidOrderSession(table)) {
+      e.preventDefault();
+      showCartScanRequiredModal();
+      return;
+    }
+    checkoutOrder();
+  });
 
   // Voucher event listener
   if (applyVoucherBtn) {
@@ -393,7 +406,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Update loyalty message if points are applied
     if (pointsUsed > 0) {
       const currentLang = e.detail.language;
-      const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+      const currencyText =
+        typeof getCurrencyText === "function"
+          ? getCurrencyText()
+          : currentLang === "en"
+          ? "EGP"
+          : "جنية";
       const loyaltyMessage = document.querySelector(".loyalty-message");
 
       if (loyaltyMessage) {
@@ -429,64 +447,84 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (savedCart) {
         cartItems = JSON.parse(savedCart);
         console.log("Parsed cart items:", cartItems);
-        
+
         // Check and add missing pointsRequired for free items
         let cartUpdated = false;
-        cartItems.forEach(item => {
+        cartItems.forEach((item) => {
           // Check if item is free (price or basePrice is 0) but doesn't have pointsRequired
-          const isFreeItem = (item.basePrice !== undefined ? item.basePrice === 0 : item.price === 0);
-          
+          const isFreeItem =
+            item.basePrice !== undefined
+              ? item.basePrice === 0
+              : item.price === 0;
+
           if (isFreeItem && !item.pointsRequired) {
             // Find the free item configuration
             // For items with addons, use baseId, otherwise use id
             const productId = item.baseId || item.id;
-            
-            console.log(`Looking for free item config for productId: ${productId}`);
+
+            console.log(
+              `Looking for free item config for productId: ${productId}`
+            );
             console.log("Available free items:", freeItemsData);
-            
+
             // Try direct match first
-            let freeItem = freeItemsData.find(fi => {
+            let freeItem = freeItemsData.find((fi) => {
               // Try to match with both productId and _id
-              const match = fi.productId === productId || fi.productId === item.id;
-              console.log(`  Checking ${fi.productId} against ${productId} or ${item.id}: ${match}`);
+              const match =
+                fi.productId === productId || fi.productId === item.id;
+              console.log(
+                `  Checking ${fi.productId} against ${productId} or ${item.id}: ${match}`
+              );
               return match;
             });
-            
+
             // If not found, try to match using the full _id from sessionStorage
             if (!freeItem) {
-              console.log(`  ⚠️ No direct match for ${productId}, trying with full _id...`);
+              console.log(
+                `  ⚠️ No direct match for ${productId}, trying with full _id...`
+              );
               try {
-                const namesMap = JSON.parse(sessionStorage.getItem("productNames") || "{}");
+                const namesMap = JSON.parse(
+                  sessionStorage.getItem("productNames") || "{}"
+                );
                 if (namesMap[productId] && namesMap[productId]._id) {
                   const fullId = namesMap[productId]._id;
                   console.log(`    Trying with full _id: ${fullId}`);
-                  freeItem = freeItemsData.find(fi => fi.productId === fullId);
+                  freeItem = freeItemsData.find(
+                    (fi) => fi.productId === fullId
+                  );
                   if (freeItem) {
                     console.log(`    ✅ Found match using full _id!`);
                   }
                 }
               } catch (e) {
-                console.warn("    Could not retrieve full product ID from sessionStorage");
+                console.warn(
+                  "    Could not retrieve full product ID from sessionStorage"
+                );
               }
             }
-            
+
             if (freeItem && freeItem.pointsRequired) {
               item.pointsRequired = freeItem.pointsRequired;
               cartUpdated = true;
-              console.log(`✅ Added pointsRequired (${freeItem.pointsRequired}) to free item: ${item.name}`);
+              console.log(
+                `✅ Added pointsRequired (${freeItem.pointsRequired}) to free item: ${item.name}`
+              );
             } else {
               // Item is free but not configured in loyalty settings
               // This is not an error - the item can still be used, it just won't require points
-              console.log(`ℹ️ Free item "${item.name}" (id: ${productId}) is not configured in loyalty free items settings. It will be treated as a regular free item without points requirement.`);
+              console.log(
+                `ℹ️ Free item "${item.name}" (id: ${productId}) is not configured in loyalty free items settings. It will be treated as a regular free item without points requirement.`
+              );
             }
           }
         });
-        
+
         // Save updated cart if we added pointsRequired
         if (cartUpdated) {
           localStorage.setItem("cartItems", JSON.stringify(cartItems));
         }
-        
+
         await updateCartDisplay();
       } else {
         console.log("No cart items found in localStorage");
@@ -615,14 +653,20 @@ document.addEventListener("DOMContentLoaded", async function () {
       typeof getCurrentLanguage === "function"
         ? getCurrentLanguage()
         : localStorage.getItem("public-language") || "ar";
-    const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+    const currencyText =
+      typeof getCurrencyText === "function"
+        ? getCurrencyText()
+        : currentLang === "en"
+        ? "EGP"
+        : "جنية";
 
     // Resolve display name based on current language
     let displayName = item.name; // Default to Arabic name
-    
+
     // Check if this is an offer item (offers have isOffer flag or id starts with "offer-")
-    const isOfferItem = item.isOffer || (item.id && item.id.startsWith("offer-"));
-    
+    const isOfferItem =
+      item.isOffer || (item.id && item.id.startsWith("offer-"));
+
     if (isOfferItem) {
       // For offers, use stored nameEn/nameAr directly without sessionStorage lookup
       if (currentLang === "en" && item.nameEn && item.nameEn.trim() !== "") {
@@ -644,7 +688,9 @@ document.addEventListener("DOMContentLoaded", async function () {
           if (namesMap[item.id]) {
             const meta = namesMap[item.id];
             displayName =
-              currentLang === "en" && meta.nameEn ? meta.nameEn : meta.name || item.name;
+              currentLang === "en" && meta.nameEn
+                ? meta.nameEn
+                : meta.name || item.name;
           }
         } catch (e) {
           // Keep default displayName
@@ -715,17 +761,22 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Check if this is a free item
     // For items with addons: check if basePrice is 0 (base item is free, but addons may cost)
     // For simple items: check if price is 0
-    const isFreeBaseItem = item.basePrice !== undefined ? item.basePrice === 0 : item.price === 0;
-    
+    const isFreeBaseItem =
+      item.basePrice !== undefined ? item.basePrice === 0 : item.price === 0;
+
     let priceDisplay;
     let itemNameDisplay = displayName;
-    
+
     if (isFreeBaseItem && itemTotal === 0) {
       // Completely free (no addons or free addons)
-      priceDisplay = `<span class="free-item-text"><i class="fas fa-gift"></i> ${currentLang === "en" ? "FREE" : "مجاني"}</span>`;
+      priceDisplay = `<span class="free-item-text"><i class="fas fa-gift"></i> ${
+        currentLang === "en" ? "FREE" : "مجاني"
+      }</span>`;
     } else if (isFreeBaseItem && itemTotal > 0) {
       // Free base item but has paid addons - show addon price with FREE badge on name
-      itemNameDisplay = `${displayName} <span class="free-badge-inline"><i class="fas fa-gift"></i> ${currentLang === "en" ? "FREE" : "مجاني"}</span>`;
+      itemNameDisplay = `${displayName} <span class="free-badge-inline"><i class="fas fa-gift"></i> ${
+        currentLang === "en" ? "FREE" : "مجاني"
+      }</span>`;
       priceDisplay = `${itemTotal.toFixed(2)} ${currencyText}`;
     } else {
       // Regular priced item
@@ -810,7 +861,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Get the current language
     const currentLang =
       typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-    const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+    const currencyText =
+      typeof getCurrencyText === "function"
+        ? getCurrencyText()
+        : currentLang === "en"
+        ? "EGP"
+        : "جنية";
 
     // Format and display subtotal
     subtotalElement.textContent = subtotal.toFixed(2) + " " + currencyText;
@@ -959,7 +1015,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Enable/disable checkout button based on cart status
     checkoutBtn.disabled = cartItems.length === 0;
-    
+
     // Update loyalty points display to show reserved points
     updateLoyaltyPointsDisplay();
   }
@@ -970,7 +1026,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Get the current language
     const currentLang =
       typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-    const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+    const currencyText =
+      typeof getCurrencyText === "function"
+        ? getCurrencyText()
+        : currentLang === "en"
+        ? "EGP"
+        : "جنية";
 
     subtotalElement.textContent = "0.00 " + currencyText;
     taxElement.textContent = "0.00 " + currencyText;
@@ -1004,7 +1065,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     checkoutBtn.style.cursor = "pointer";
 
     // Re-enable apply points button when cart has items (if user has enough points)
-    if (applyPointsBtn && userLoyaltyPoints >= loyaltyDiscountSettings.minPointsForDiscount) {
+    if (
+      applyPointsBtn &&
+      userLoyaltyPoints >= loyaltyDiscountSettings.minPointsForDiscount
+    ) {
       applyPointsBtn.disabled = false;
       applyPointsBtn.classList.remove("disabled");
       applyPointsBtn.style.opacity = "1";
@@ -1098,11 +1162,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Disable checkout button to prevent multiple submissions
     checkoutBtn.disabled = true;
-    const processingText = typeof getTranslation === 'function' 
-      ? getTranslation('processingOrder') 
-      : 'Processing...';
-    checkoutBtn.innerHTML =
-      `<i class="fas fa-spinner fa-spin"></i> <span data-i18n="processingOrder">${processingText}</span>`;
+    const processingText =
+      typeof getTranslation === "function"
+        ? getTranslation("processingOrder")
+        : "Processing...";
+    checkoutBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span data-i18n="processingOrder">${processingText}</span>`;
 
     try {
       // Get subtotal
@@ -1187,19 +1251,27 @@ document.addEventListener("DOMContentLoaded", async function () {
       const tableNumber = getTableNumber();
 
       const sessionToken = sessionStorage.getItem("orderSessionToken") || "";
-      const sessionExpiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+      const sessionExpiresAt =
+        sessionStorage.getItem("orderSessionExpiresAt") || "";
       const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
       const nowMs = Date.now();
       const expMs = sessionExpiresAt ? new Date(sessionExpiresAt).getTime() : 0;
-      const validSession = !!sessionToken && expMs > nowMs && String(sessionTable || "") === String(tableNumber || "");
+      const validSession =
+        !!sessionToken &&
+        expMs > nowMs &&
+        String(sessionTable || "") === String(tableNumber || "");
       if (!validSession) {
         const lang = localStorage.getItem("public-language") || "ar";
-        const msg = lang === "en" ? "Please scan the table QR to start ordering (20 min)." : "يرجى مسح رمز الطاولة لبدء الطلب (20 دقيقة).";
+        const msg =
+          lang === "en"
+            ? "Please scan the table QR to start ordering (20 min)."
+            : "يرجى مسح رمز الطاولة لبدء الطلب (20 دقيقة).";
         showCustomToast(msg, "warning");
         checkoutBtn.disabled = false;
-        const checkoutText = typeof getTranslation === 'function' 
-          ? getTranslation('checkout') 
-          : 'إتمام الطلب';
+        const checkoutText =
+          typeof getTranslation === "function"
+            ? getTranslation("checkout")
+            : "إتمام الطلب";
         checkoutBtn.innerHTML = `<span data-i18n="checkout">${checkoutText}</span> <i class=\"fas fa-check\"></i>`;
         return;
       }
@@ -1453,15 +1525,238 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       // Re-enable checkout button
       checkoutBtn.disabled = false;
-      const checkoutText = typeof getTranslation === 'function' 
-        ? getTranslation('checkout') 
-        : 'Checkout';
+      const checkoutText =
+        typeof getTranslation === "function"
+          ? getTranslation("checkout")
+          : "Checkout";
       checkoutBtn.innerHTML = `<span data-i18n="checkout">${checkoutText}</span> <i class="fas fa-check"></i>`;
 
       // Show error message
       alert(
         `حدث خطأ أثناء إتمام الطلب: ${error.message}. الرجاء المحاولة مرة أخرى.`
       );
+    }
+  }
+
+  function hasValidOrderSession(table) {
+    try {
+      const token = sessionStorage.getItem("orderSessionToken") || "";
+      const expiresAt = sessionStorage.getItem("orderSessionExpiresAt") || "";
+      const sessionTable = sessionStorage.getItem("orderSessionTable") || "";
+      const expMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+      return (
+        !!token &&
+        expMs > Date.now() &&
+        String(sessionTable || "") === String(table || "")
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showCartScanRequiredModal() {
+    const modal = document.getElementById("scan-required-modal");
+    const closeBtn = document.getElementById("close-scan-required");
+    const scanBtn = document.getElementById("scan-again-btn");
+    if (!modal) return;
+
+    const lang = localStorage.getItem("public-language") || "ar";
+    const titleEl = modal.querySelector(".scan-title");
+    const textEl = document.getElementById("scan-required-text");
+    const btnLabelEl = scanBtn ? scanBtn.querySelector("span") : null;
+    if (titleEl) {
+      titleEl.textContent =
+        lang === "en" ? "Scan Required" : "إعادة المسح مطلوبة";
+    }
+    if (textEl) {
+      textEl.textContent =
+        lang === "en"
+          ? "To checkout, please scan the table QR again."
+          : "لإتمام الطلب، يرجى مسح رمز QR للطاولة مرة أخرى.";
+    }
+    if (btnLabelEl) {
+      btnLabelEl.textContent = lang === "en" ? "Scan QR Again" : "أعد مسح QR";
+    }
+
+    modal.style.display = "flex";
+
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        modal.style.display = "none";
+      };
+    }
+    if (scanBtn) {
+      const currentTable = getTableNumber();
+      scanBtn.onclick = () => {
+        modal.style.display = "none";
+        openCartQrScanModal(currentTable);
+      };
+    }
+  }
+
+  async function openCartQrScanModal(currentTable) {
+    const modal = document.getElementById("qr-scan-modal");
+    const video = document.getElementById("qr-video");
+    const closeBtn = document.getElementById("qr-close-btn");
+    const hint = modal ? modal.querySelector(".qr-hint") : null;
+    const lang = localStorage.getItem("public-language") || "ar";
+    const lockKey = currentTable
+      ? `qrScanLock:${currentTable}`
+      : `qrScanLock:any`;
+    if (!modal || !video || !closeBtn) return;
+
+    try {
+      const existingLock = localStorage.getItem(lockKey);
+      if (existingLock) {
+        const data = JSON.parse(existingLock);
+        if (data && data.ts && Date.now() - data.ts < 60000) {
+          const msg =
+            lang === "en"
+              ? "Scanning is already in progress for this table"
+              : "المسح جارٍ لهذه الطاولة";
+          if (hint) hint.textContent = msg;
+          showCustomToast(msg, "warning");
+          modal.style.display = "flex";
+          return;
+        }
+      }
+    } catch (_) {}
+
+    if (hint) {
+      hint.textContent =
+        lang === "en"
+          ? "Point camera at the table QR"
+          : "وجّه الكاميرا نحو رمز الطاولة";
+    }
+    modal.style.display = "flex";
+
+    closeBtn.onclick = () => {
+      try {
+        if (video.srcObject) {
+          const tracks = video.srcObject.getTracks();
+          tracks.forEach((t) => t.stop());
+        }
+      } catch (_) {}
+      modal.style.display = "none";
+      try {
+        localStorage.removeItem(lockKey);
+      } catch (_) {}
+    };
+
+    if (!("BarcodeDetector" in window)) {
+      const msg =
+        lang === "en"
+          ? "QR scanning not supported on this browser"
+          : "مسح QR غير مدعوم في هذا المتصفح";
+      if (hint) hint.textContent = msg;
+      showCustomToast(msg, "warning");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      video.srcObject = stream;
+      await video.play();
+      try {
+        localStorage.setItem(lockKey, JSON.stringify({ ts: Date.now() }));
+      } catch (_) {}
+
+      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      let running = true;
+      const tick = async () => {
+        if (!running) return;
+        try {
+          const codes = await detector.detect(video);
+          if (codes && codes.length) {
+            running = false;
+            const raw = codes[0].rawValue || "";
+            let scannedTable = null;
+            let scannedQid = null;
+            try {
+              const u = new URL(raw, window.location.origin);
+              const p = new URLSearchParams(u.search);
+              scannedTable = p.get("table");
+              scannedQid = p.get("qid");
+            } catch (_) {}
+            if (
+              scannedTable &&
+              (!currentTable || String(scannedTable) === String(currentTable))
+            ) {
+              try {
+                const baseUrl =
+                  window.API_BASE_URL ||
+                  (function () {
+                    const { hostname, origin } = window.location;
+                    const isLocal =
+                      hostname === "localhost" || hostname === "127.0.0.1";
+                    return isLocal ? "http://localhost:5000" : origin;
+                  })();
+                const targetTable = currentTable || scannedTable;
+                const sessionUrl = scannedQid
+                  ? `${baseUrl}/api/table/session?table=${targetTable}&qid=${encodeURIComponent(
+                      scannedQid
+                    )}`
+                  : `${baseUrl}/api/table/session?table=${targetTable}`;
+                const r = await fetch(sessionUrl);
+                const d = await r.json();
+                if (d && d.success && d.token) {
+                  sessionStorage.setItem("orderSessionToken", d.token);
+                  sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
+                  sessionStorage.setItem("orderSessionTable", targetTable);
+                  sessionStorage.setItem("tableNumber", targetTable);
+                  localStorage.setItem("tableNumber", targetTable);
+                  const okMsg =
+                    lang === "en"
+                      ? "Ordering enabled for 20 minutes"
+                      : "تم تفعيل الطلب لمدة 20 دقيقة";
+                  showCustomToast(okMsg, "success");
+                  closeBtn.click();
+                } else {
+                  const errMsg =
+                    lang === "en"
+                      ? scannedQid
+                        ? "Invalid or expired QR. Ask staff for a new QR"
+                        : "QR validation required. Use the official table QR"
+                      : scannedQid
+                      ? "رمز QR غير صالح أو منتهي. اطلب رمزًا جديدًا من الموظف"
+                      : "يتطلب التحقق عبر رمز QR الرسمي للطاولة";
+                  if (hint) hint.textContent = errMsg;
+                  showCustomToast(errMsg, "error");
+                  running = true;
+                }
+              } catch (err) {
+                const errMsg =
+                  lang === "en"
+                    ? "Network error. Please try scanning again"
+                    : "خطأ في الشبكة. يرجى المحاولة مرة أخرى";
+                if (hint) hint.textContent = errMsg;
+                showCustomToast(errMsg, "error");
+                running = true;
+              }
+            } else {
+              const err =
+                lang === "en"
+                  ? currentTable
+                    ? "Please scan the QR of the same table"
+                    : "Invalid QR"
+                  : currentTable
+                  ? "يرجى مسح رمز نفس الطاولة"
+                  : "رمز QR غير صالح";
+              showCustomToast(err, "error");
+              running = true;
+            }
+          }
+        } catch (_) {}
+        if (running) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    } catch (err) {
+      const msg =
+        lang === "en" ? "Camera access denied" : "تم رفض الوصول للكاميرا";
+      if (hint) hint.textContent = msg;
+      showCustomToast(msg, "error");
     }
   }
 
@@ -1996,7 +2291,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (discountAmount) {
       // Get current language
       const currentLang = localStorage.getItem("public-language") || "ar";
-      const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+      const currencyText =
+        typeof getCurrencyText === "function"
+          ? getCurrencyText()
+          : currentLang === "en"
+          ? "EGP"
+          : "جنية";
 
       discountAmount.textContent =
         discountValue.toFixed(2) + " " + currencyText;
@@ -2237,7 +2537,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             typeof getCurrentLanguage === "function"
               ? getCurrentLanguage()
               : "ar";
-          const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+          const currencyText =
+            typeof getCurrencyText === "function"
+              ? getCurrencyText()
+              : currentLang === "en"
+              ? "EGP"
+              : "جنية";
 
           const successText =
             currentLang === "en"
@@ -2522,9 +2827,14 @@ document.addEventListener("DOMContentLoaded", async function () {
   function updateLoyaltyPointsDisplay() {
     // Re-query the element to ensure we have the latest reference
     const availablePointsElement = document.getElementById("available-points");
-    const loyaltyPointsContainer = document.getElementById("loyalty-points-container");
-    
-    if (!loyaltyPointsContainer || loyaltyPointsContainer.style.display === "none") {
+    const loyaltyPointsContainer = document.getElementById(
+      "loyalty-points-container"
+    );
+
+    if (
+      !loyaltyPointsContainer ||
+      loyaltyPointsContainer.style.display === "none"
+    ) {
       console.log("Loyalty points container not visible, skipping update");
       return;
     }
@@ -2536,74 +2846,94 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Calculate reserved points (points needed for free items in cart)
     let reservedPoints = 0;
-    cartItems.forEach(item => {
-      console.log(`Item: ${item.name}, Price: ${item.price}, BasePrice: ${item.basePrice}, PointsRequired: ${item.pointsRequired}, Quantity: ${item.quantity}`);
-      
+    cartItems.forEach((item) => {
+      console.log(
+        `Item: ${item.name}, Price: ${item.price}, BasePrice: ${item.basePrice}, PointsRequired: ${item.pointsRequired}, Quantity: ${item.quantity}`
+      );
+
       // If item is free but doesn't have pointsRequired, try to find it now
-      const isFreeItem = (item.basePrice !== undefined ? item.basePrice === 0 : item.price === 0);
+      const isFreeItem =
+        item.basePrice !== undefined ? item.basePrice === 0 : item.price === 0;
       if (isFreeItem && !item.pointsRequired) {
         const productId = item.baseId || item.id;
-        
+
         // Try direct match first
-        let freeItem = freeItemsData.find(fi => 
-          fi.productId === productId || 
-          fi.productId === item.id ||
-          fi.productId.toLowerCase() === productId.toLowerCase()
+        let freeItem = freeItemsData.find(
+          (fi) =>
+            fi.productId === productId ||
+            fi.productId === item.id ||
+            fi.productId.toLowerCase() === productId.toLowerCase()
         );
-        
+
         // If not found, try to match using the full _id from sessionStorage
         if (!freeItem) {
-          console.log(`  ⚠️ No direct match for ${productId}, trying with full _id...`);
+          console.log(
+            `  ⚠️ No direct match for ${productId}, trying with full _id...`
+          );
           try {
-            const namesMap = JSON.parse(sessionStorage.getItem("productNames") || "{}");
+            const namesMap = JSON.parse(
+              sessionStorage.getItem("productNames") || "{}"
+            );
             if (namesMap[productId] && namesMap[productId]._id) {
               const fullId = namesMap[productId]._id;
               console.log(`    Trying with full _id: ${fullId}`);
-              freeItem = freeItemsData.find(fi => fi.productId === fullId);
+              freeItem = freeItemsData.find((fi) => fi.productId === fullId);
             }
           } catch (e) {
-            console.warn("    Could not retrieve full product ID from sessionStorage");
+            console.warn(
+              "    Could not retrieve full product ID from sessionStorage"
+            );
           }
         }
-        
+
         if (freeItem && freeItem.pointsRequired) {
           item.pointsRequired = freeItem.pointsRequired;
-          console.log(`  ⚡ Dynamically added pointsRequired (${freeItem.pointsRequired}) to ${item.name}`);
+          console.log(
+            `  ⚡ Dynamically added pointsRequired (${freeItem.pointsRequired}) to ${item.name}`
+          );
           // Save the updated cart
           localStorage.setItem("cartItems", JSON.stringify(cartItems));
         } else {
-          console.log(`  ⚠️ Could not find free item config for product ${productId}`);
+          console.log(
+            `  ⚠️ Could not find free item config for product ${productId}`
+          );
         }
       }
-      
+
       if (item.pointsRequired && item.pointsRequired > 0) {
         const itemReserved = item.pointsRequired * item.quantity;
         reservedPoints += itemReserved;
-        console.log(`  -> Reserving ${itemReserved} points (${item.pointsRequired} x ${item.quantity})`);
+        console.log(
+          `  -> Reserving ${itemReserved} points (${item.pointsRequired} x ${item.quantity})`
+        );
       }
     });
-    
+
     // Calculate available points after reserving for free items
     const availablePoints = Math.max(0, userLoyaltyPoints - reservedPoints);
-    
-    console.log(`FINAL: Total points: ${userLoyaltyPoints}, Reserved: ${reservedPoints}, Available: ${availablePoints}`);
+
+    console.log(
+      `FINAL: Total points: ${userLoyaltyPoints}, Reserved: ${reservedPoints}, Available: ${availablePoints}`
+    );
 
     // Update available points display with fresh element reference
     if (availablePointsElement) {
       // Update the text content
       availablePointsElement.textContent = availablePoints;
-      
+
       // Add visual feedback by briefly highlighting the change
-      availablePointsElement.style.transition = 'all 0.3s ease';
-      availablePointsElement.style.transform = 'scale(1.1)';
-      availablePointsElement.style.color = 'var(--primary-color)';
-      
+      availablePointsElement.style.transition = "all 0.3s ease";
+      availablePointsElement.style.transform = "scale(1.1)";
+      availablePointsElement.style.color = "var(--primary-color)";
+
       setTimeout(() => {
-        availablePointsElement.style.transform = 'scale(1)';
-        availablePointsElement.style.color = '';
+        availablePointsElement.style.transform = "scale(1)";
+        availablePointsElement.style.color = "";
       }, 300);
-      
-      console.log(`✅ Successfully updated points display: ${userLoyaltyPoints} total - ${reservedPoints} reserved = ${availablePoints} available`);
+
+      console.log(
+        `✅ Successfully updated points display: ${userLoyaltyPoints} total - ${reservedPoints} reserved = ${availablePoints} available`
+      );
     } else {
       console.error("❌ availablePointsElement not found!");
     }
@@ -2667,7 +2997,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Get the current language
     const currentLang =
       typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-    const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+    const currencyText =
+      typeof getCurrencyText === "function"
+        ? getCurrencyText()
+        : currentLang === "en"
+        ? "EGP"
+        : "جنية";
 
     // Calculate discount percentage based on points used
     const discountPercentage = Math.min(
@@ -2750,7 +3085,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Get the current language
     const currentLang =
       typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-    const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+    const currencyText =
+      typeof getCurrencyText === "function"
+        ? getCurrencyText()
+        : currentLang === "en"
+        ? "EGP"
+        : "جنية";
 
     // Update UI
     if (loyaltyDiscountRow && loyaltyDiscountAmount) {
@@ -2827,7 +3167,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Create toast content with close button
     const lang = localStorage.getItem("public-language") || "ar";
     const closeLabel = lang === "en" ? "Close notification" : "إغلاق الإشعار";
-    
+
     toast.innerHTML = `
       <i class="fas fa-${icon}"></i>
       <span>${message}</span>
@@ -2909,7 +3249,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Update UI
     if (pointsDiscountValueElement) {
-      const currencyText = typeof getCurrencyText === "function" ? getCurrencyText() : (currentLang === "en" ? "EGP" : "جنية");
+      const currencyText =
+        typeof getCurrencyText === "function"
+          ? getCurrencyText()
+          : currentLang === "en"
+          ? "EGP"
+          : "جنية";
       pointsDiscountValueElement.textContent = "0.00 " + currencyText;
     }
 
@@ -3169,7 +3514,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const lang = localStorage.getItem("public-language") || "ar";
     const closeLabel = lang === "en" ? "Close notification" : "إغلاق الإشعار";
-    
+
     toast.innerHTML = `
       <div class="cart-toast-icon">
         <i class="fas fa-shopping-cart"></i>
@@ -3208,10 +3553,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // Listen for global settings changes (currency updates)
-  window.addEventListener('global-settings-changed', function(event) {
-    console.log('Global settings changed in cart page, refreshing displays');
+  window.addEventListener("global-settings-changed", function (event) {
+    console.log("Global settings changed in cart page, refreshing displays");
     // Recalculate totals to update currency display
-    if (typeof calculateTotals === 'function') {
+    if (typeof calculateTotals === "function") {
       calculateTotals();
     }
     // Refresh cart display
@@ -3219,19 +3564,19 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 
   // Listen for global settings loaded event
-  window.addEventListener('global-settings-loaded', function(event) {
-    console.log('Global settings loaded in cart page');
+  window.addEventListener("global-settings-loaded", function (event) {
+    console.log("Global settings loaded in cart page");
     // Initial display with correct currency
-    if (typeof calculateTotals === 'function') {
+    if (typeof calculateTotals === "function") {
       calculateTotals();
     }
   });
 
   // Listen for language change event to update currency display
-  document.addEventListener('language_changed', function(event) {
-    console.log('Language changed in cart page, refreshing currency display');
+  document.addEventListener("language_changed", function (event) {
+    console.log("Language changed in cart page, refreshing currency display");
     // Recalculate totals to update currency display (ريال → SAR or vice versa)
-    if (typeof calculateTotals === 'function') {
+    if (typeof calculateTotals === "function") {
       calculateTotals();
     }
     // Refresh cart display
