@@ -122,13 +122,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   // Back to login button
-  const backToLoginBtn = document.querySelector(".back-to-login");
-  if (backToLoginBtn) {
-    backToLoginBtn.addEventListener("click", function (e) {
+  // Robust back-to-login: handle clicks via delegation (covers nested icon/text)
+  document.addEventListener("click", function (e) {
+    const link = e.target.closest(".back-to-login");
+    if (link) {
       e.preventDefault();
       document.body.classList.remove("show-register");
-    });
-  }
+      try {
+        // If login recovery view functions exist, reset to login view state
+        if (typeof switchToLogin === "function") {
+          switchToLogin();
+        }
+      } catch (_) {}
+    }
+  });
 
   // Password strength checker
   const passwordInput = document.getElementById("register-password");
@@ -493,6 +500,45 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(style);
   }
 
+  function showModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("show");
+    document.body.style.overflow = "hidden";
+  }
+
+  function hideModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll(".terms-link").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const key = a.getAttribute("data-i18n") || "";
+      if (key === "privacyPolicy") {
+        showModal("privacy-modal");
+      } else if (key === "termsOfUse" || key === "termsAndConditions") {
+        showModal("terms-modal");
+      }
+    });
+  });
+
+  document.querySelectorAll("#privacy-modal .modal-close, #terms-modal .modal-close").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const overlay = btn.closest(".modal-overlay");
+      if (overlay && overlay.id) hideModal(overlay.id);
+    });
+  });
+
+  document.querySelectorAll("#privacy-modal, #terms-modal").forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) hideModal(overlay.id);
+    });
+  });
+
   // Add current year to the copyright text if present
   const currentYear = new Date().getFullYear();
   const copyrightEl = document.querySelector(".copyright-year");
@@ -580,6 +626,22 @@ document.addEventListener("DOMContentLoaded", () => {
       resetPassword();
     });
   }
+
+  try {
+    const isNarrow = Math.max(window.innerWidth, document.documentElement.clientWidth) <= 480;
+    if (isNarrow) {
+      const focusables = document.querySelectorAll(
+        ".auth-card input, .auth-card select, .auth-card textarea"
+      );
+      focusables.forEach((el) => {
+        el.addEventListener("focus", () => {
+          try {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch (_) {}
+        });
+      });
+    }
+  } catch (_) {}
 
   // View switching functions
   function switchToPasswordRecovery() {

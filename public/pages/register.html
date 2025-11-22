@@ -562,19 +562,29 @@
       }
 
       @media (max-width: 480px) {
+        .auth-container {
+          padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
+        }
         .auth-card {
-          padding: 25px 20px;
+          padding: 22px 16px;
           background-color: #131c32;
         }
 
         .input-with-icon input {
           height: 50px;
           background-color: rgba(0, 0, 0, 0.3);
+          font-size: 16px;
+        }
+
+        .form-group label {
+          font-size: 1rem;
         }
 
         .auth-button {
           padding: 14px;
           background: linear-gradient(135deg, #349f46, #65e580);
+          min-height: 48px;
+          font-size: 1rem;
         }
 
         .auth-title {
@@ -587,14 +597,17 @@
         }
 
         .auth-link {
-          padding: 10px 15px;
-          width: 85%;
+          padding: 12px 16px;
+          min-height: 44px;
+          width: 100%;
           margin-left: auto;
           margin-right: auto;
+          text-align: center;
+          font-size: 0.95rem;
         }
 
         .register-section {
-          padding: 12px 10px;
+          padding: 12px 12px;
           margin: 10px 0;
         }
 
@@ -603,9 +616,26 @@
         }
 
         .register-section-desc {
-          font-size: 0.85rem;
-          padding: 0 5px;
-          margin-bottom: 12px;
+          font-size: 0.95rem;
+          padding: 0 8px;
+          margin-bottom: 14px;
+          line-height: 1.6;
+        }
+
+        .error-message {
+          padding: 12px 14px;
+          font-size: 1rem;
+          line-height: 1.4;
+        }
+
+        .back-button {
+          padding: 12px 16px;
+          min-height: 44px;
+        }
+
+        .form-check input {
+          width: 22px;
+          height: 22px;
         }
       }
 
@@ -922,6 +952,89 @@
         overflow-x: hidden;
         background-color: #0a1020;
       }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+      }
+
+      .modal-overlay.show {
+        display: flex;
+      }
+
+      .modal-dialog {
+        width: 100%;
+        max-width: 720px;
+        max-height: 80vh;
+        overflow: auto;
+        background-color: #131c32;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        direction: rtl;
+      }
+
+      html[dir="ltr"] .modal-dialog {
+        direction: ltr;
+        text-align: left;
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .modal-title {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #a0a6b8;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: #a0a6b8;
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+
+      .modal-content {
+        color: #dddddd;
+        line-height: 1.7;
+      }
+
+      .modal-content p {
+        font-size: 0.95rem;
+        color: #a0a6b8;
+        margin: 10px 0;
+      }
+     .modal-content {
+    position: relative;
+    background-color: var(--card-bg);
+     margin:5px !important;
+    padding: 10px;
+     width: auto !important;
+    max-width: 100% !important;
+    border-radius: var(--card-radius);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    animation: modalFadeIn 0.3 ease;
+}
+
+      .content-ar { display: block; }
+      .content-en { display: none; }
+      html[lang="en"] .content-ar { display: none; }
+      html[lang="en"] .content-en { display: block; }
     </style>
   </head>
   <body style="background-color: #0a1020" data-disable-theme-toggle="true">
@@ -1266,10 +1379,8 @@
               <div class="form-check">
                 <input type="checkbox" id="terms" name="terms" required />
                 <label for="terms">
-                  <span data-i18n="agreeToTerms">أوافق على</span>
-                  <a href="#" class="terms-link" data-i18n="termsAndConditions"
-                    >الشروط والأحكام</a
-                  >
+                  <span data-i18n="agreeToTerms">I agree to the</span>
+                  <a href="#" class="terms-link" data-i18n="termsAndConditions">Terms and Conditions</a>
                 </label>
               </div>
 
@@ -1293,7 +1404,108 @@
                   <span data-i18n="backToLogin">العودة لتسجيل الدخول</span>
                 </a>
               </div>
+              <div class="terms-section" style="text-align: center; margin-top: 12px;">
+                <a href="#" class="terms-link" data-i18n="privacyPolicy">سياسة الخصوصية</a>
+                |
+                <a href="#" class="terms-link" data-i18n="termsOfUse">شروط الاستخدام</a>
+              </div>
             </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="privacy-modal" class="modal-overlay" aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <div class="modal-title" data-i18n="privacyPolicy">سياسة الخصوصية</div>
+          <button class="modal-close" aria-label="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-content">
+          <div class="content-ar">
+            <p>نحن نجمع بياناتك الأساسية عند إنشاء الحساب والطلب، مثل الاسم واسم المستخدم والبريد الإلكتروني وكلمات المرور المشفرة، بالإضافة إلى سجلات الطلبات ونقاط الولاء والمعلومات التقنية المتعلقة بالجهاز والمتصفح.</p>
+            <p>نستخدم هذه البيانات لتقديم الخدمة وإدارة الحساب والطلبات وتحسين الأداء وتجربة الاستخدام، وكذلك لإجراء تحليلات استخدام أساسية تهدف إلى تحسين جودة النظام واستقراره.</p>
+            <p>قد نستخدم ملفات تعريف الارتباط والرموز المميزة للحفاظ على جلسة تسجيل الدخول وتخصيص التجربة وتذكر تفضيلات اللغة والواجهة. يمكنك ضبط إعدادات المتصفح لتعطيل بعض هذه التقنيات، لكن ذلك قد يؤثر على بعض الوظائف.</p>
+            <p>لا نقوم ببيع بياناتك الشخصية لأي طرف ثالث. قد نشارك بعض البيانات مع مزودي خدمة موثوقين لتمكين ميزات معينة أو الوفاء بمتطلبات قانونية، وذلك ضمن اتفاقيات حماية خصوصية صارمة.</p>
+            <p>نحتفظ بالبيانات طالما كان ذلك ضرورياً لتقديم الخدمة والامتثال للقوانين المعمول بها، وقد نحتفظ بسجلات محدودة لفترات أطول لأغراض التدقيق والأمان.</p>
+            <p>لديك حقوق في الوصول إلى بياناتك وتحديثها وطلب حذف الحساب والبيانات وفقاً للقانون، بالإضافة إلى إمكانية إلغاء الاشتراك من الرسائل غير الأساسية متى شئت.</p>
+            <p>نقوم بمراجعة سياسة الخصوصية بشكل دوري ونحدّثها عند الحاجة، وتصبح أي تعديلات سارية المفعول عند نشرها داخل التطبيق.</p>
+            <p>للاستفسارات أو طلبات الخصوصية، يرجى التواصل عبر البريد المرتبط بحسابك أو من خلال نموذج التواصل داخل التطبيق.</p>
+            <p>قد يتم جمع معلومات موقع تقريبية عند السماح بذلك داخل المتصفح بهدف تحسين الاقتراحات وتجربة الاستخدام، ولا تُستخدم هذه المعلومات لتتبع المستخدم خارج نطاق الخدمة.</p>
+            <p>يتم تخزين كلمات المرور باستخدام تقنيات تشفير قوية ولا يتم الاحتفاظ بها بنص واضح، وتُطبق ضوابط وصول صارمة على الأنظمة التي تتعامل مع تلك البيانات.</p>
+            <p>في حال حصول خرق أمني مؤثر، سيتم إخطار المستخدمين المعنيين وفقاً للمتطلبات القانونية والإجراءات الداخلية المعتمدة.</p>
+            <p>نطبق ممارسات أمان قياسية تشمل التشفير أثناء النقل والتخزين حيث يلزم، ومراجعات دورية لأنظمة الصلاحيات، وتتبع عمليات الدخول الحساسة للحماية من الوصول غير المصرح به.</p>
+            <p>يمكن أن تتضمن الخدمة تكاملات مع واجهات برمجية خارجية، ويتم تبادل البيانات الضرورية فقط لتقديم الميزة المطلوبة، وفق بنود الحماية والالتزام بالخصوصية.</p>
+            <p>في حال نقل البيانات عبر الحدود، يتم ذلك وفق الأطر القانونية المعمول بها، مع ضمانات مناسبة لحماية الحقوق والخصوصية.</p>
+            <p>إذا رغبت في تقديم شكوى متعلقة بالخصوصية، سيتم التعامل معها عبر القنوات المحددة داخل التطبيق وسنرد خلال مدة زمنية معقولة بحسب اللوائح.</p>
+          </div>
+          <div class="content-en">
+            <p>We collect basic data when you create an account and place orders, including name, username, email, hashed passwords, order history, loyalty points, and technical information about your device and browser.</p>
+            <p>We use this data to provide the service, manage accounts and orders, improve performance and user experience, and conduct basic usage analytics aimed at enhancing quality and stability.</p>
+            <p>We may use cookies and tokens to maintain login sessions, personalize your experience, and remember language and interface preferences. You can adjust browser settings to disable some of these technologies, though certain features may be affected.</p>
+            <p>We do not sell your personal data. We may share limited data with trusted service providers to enable features or meet legal requirements under strict privacy agreements.</p>
+            <p>We retain data for as long as necessary to provide the service and comply with applicable laws, and may keep limited records longer for auditing and security purposes.</p>
+            <p>You have rights to access and update your data, request account and data deletion subject to law, and opt out of non-essential communications at any time.</p>
+            <p>We review this privacy policy periodically and update it when needed; changes take effect upon publication within the app.</p>
+            <p>For privacy inquiries or requests, contact us using the email associated with your account or via the in-app contact form.</p>
+            <p>Approximate location information may be collected when you grant permission in the browser to improve suggestions and experience; this information is not used to track users beyond the service.</p>
+            <p>Passwords are stored using strong hashing techniques and never in clear text, with strict access controls applied to systems handling such data.</p>
+            <p>In the event of a material security incident, affected users will be notified in accordance with legal requirements and internal procedures.</p>
+            <p>We apply standard security practices, including encryption in transit and at rest where applicable, periodic access control reviews, and monitoring for sensitive sign-ins to protect against unauthorized access.</p>
+            <p>The service may integrate with external APIs; only the data necessary to deliver the requested feature is exchanged under privacy and confidentiality commitments.</p>
+            <p>Where data is transferred across borders, it is done under applicable legal frameworks with appropriate safeguards to protect rights and privacy.</p>
+            <p>If you wish to submit a privacy complaint, it will be handled through the channels provided in-app, and we will respond within a reasonable time as required by regulation.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="terms-modal" class="modal-overlay" aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <div class="modal-title" data-i18n="termsOfUse">شروط الاستخدام</div>
+          <button class="modal-close" aria-label="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-content">
+          <div class="content-ar">
+            <p>عند إنشاء حساب، تتعهد بتقديم معلومات دقيقة والحفاظ على سرية بيانات الدخول وعدم مشاركة الوصول مع أطراف غير مخولة. أنت مسؤول عن جميع الأنشطة التي تتم باستخدام حسابك.</p>
+            <p>تُعرض الأسعار والمنتجات داخل النظام وفق أحدث البيانات المتاحة، وقد تختلف بحسب العروض والخيارات المختارة. قد تتفاوت أوقات التحضير والتسليم حسب الضغط التشغيلي.</p>
+            <p>في حال وجود رسوم أو ضرائب أو تكاليف خدمة، يتم توضيحها أثناء الطلب قبل الإتمام، وتلتزم بدفع المبالغ الظاهرة في صفحة التأكيد.</p>
+            <p>يُقبل الإلغاء وفق سياسة المطعم والأنظمة المحلية، وقد لا يكون الاسترجاع متاحاً بعد بدء التحضير. في حال حدوث خطأ في الطلب، يرجى التواصل فوراً لمعالجة الحالة وفق السياسة المتبعة.</p>
+            <p>يلتزم المستخدم باستخدام الخدمة بطريقة قانونية وعدم محاولة إساءة الاستخدام أو الاختراق أو تعطيل العمليات أو جمع بيانات غير مصرّح بها.</p>
+            <p>يحظر نشر أي محتوى مخالف أو مضلل أو ينتهك حقوق الآخرين، بما في ذلك حقوق الملكية الفكرية والخصوصية.</p>
+            <p>يتم احتساب نقاط الولاء وفق السياسات المعلنة وقد تتغير من حين لآخر، وتُحتسب النقاط وتُستبدل وفق القواعد المنشورة داخل التطبيق.</p>
+            <p>الخدمة تُقدّم كما هي دون أي ضمانات صريحة أو ضمنية، ولا نتحمل مسؤولية الأضرار غير المباشرة أو التبعية الناتجة عن الاستخدام، ضمن الحدود القانونية.</p>
+            <p>قد يتم تحديث هذه الشروط وسياسة الخصوصية بشكل دوري، ويسري أي تحديث فور نشره داخل التطبيق. استمرارك في الاستخدام يعني موافقتك على التحديثات.</p>
+            <p>تخضع هذه الشروط للقوانين المعمول بها محلياً، وأي نزاع يُحال إلى الجهات المختصة وفق الإجراءات النظامية.</p>
+            <p>في حال وجود تعارض بين نصوص مترجمة، يُعتد بالنص المعتمد داخل التطبيق باعتباره المرجع النهائي.</p>
+            <p>قد تتضمن الخدمة تكاملاً مع مزودي خدمات خارجيين، وتُطبق عليهم سياساتهم الخاصة بما لا يتعارض مع هذه الشروط.</p>
+            <p>قد يُطلب التحقق من الهوية لبعض الميزات الحساسة، ويجب عليك تقديم المعلومات المطلوبة بدقة، وسيتم التعامل معها وفق الضوابط القانونية وسياسات الخصوصية.</p>
+            <p>يجب عليك عدم محاولة التحايل على القيود أو التدابير الأمنية، وأي نشاط يُشتبه بأنه ضار قد يؤدي إلى تعليق الحساب أو إنهائه وفقاً لسياسة الاستخدام.</p>
+            <p>قد توجد قيود على عدد الطلبات أو العمليات خلال فترة زمنية محددة للحفاظ على الأداء والاستقرار، وسيتم إعلامك عند الاقتضاء.</p>
+            <p>في حال حدوث نزاع متعلق بالمدفوعات أو المحتوى أو النقاط، يتم فض النزاع عبر قنوات الدعم الرسمية وبما يتوافق مع القوانين المحلية.</p>
+          </div>
+          <div class="content-en">
+            <p>By creating an account, you agree to provide accurate information, keep credentials confidential, and not share access with unauthorized parties. You are responsible for all activity under your account.</p>
+            <p>Prices and products are presented based on the latest available data and may vary due to offers or options selected. Preparation and delivery times can fluctuate with operational load.</p>
+            <p>Any fees, taxes, or service charges are disclosed during checkout prior to completion, and you agree to pay the amounts shown on the confirmation page.</p>
+            <p>Cancellations follow restaurant policy and local regulations. Refunds may not be available after preparation begins. If an order issue occurs, contact support immediately for resolution per policy.</p>
+            <p>Users must use the service lawfully and must not attempt to misuse, compromise, or disrupt operations or collect data without authorization.</p>
+            <p>Posting unlawful, misleading, or infringing content is prohibited, including violations of intellectual property and privacy rights.</p>
+            <p>Loyalty points are awarded per published policies, which may change; accrual and redemption follow the rules published within the app.</p>
+            <p>The service is provided as-is without express or implied warranties. We are not liable for indirect or consequential damages arising from use, to the extent permitted by law.</p>
+            <p>We may update these terms and the privacy policy periodically; updates take effect upon publication within the app. Continued use constitutes acceptance of changes.</p>
+            <p>These terms are governed by applicable local laws, and disputes are handled by competent authorities under standard procedures.</p>
+            <p>In the event of discrepancies between translated texts, the authoritative text published within the app controls.</p>
+            <p>The service may integrate with third-party providers who apply their own policies, not in conflict with these terms.</p>
+            <p>Identity verification may be required for certain sensitive features; you must provide accurate information, which will be handled under legal and privacy safeguards.</p>
+            <p>You must not attempt to bypass restrictions or security measures; suspected harmful activity may result in account suspension or termination per acceptable use policy.</p>
+            <p>Rate limits or operational constraints may apply to orders or actions within certain periods to preserve performance and stability; you will be informed where appropriate.</p>
+            <p>Disputes related to payments, content, or points are handled via official support channels and in accordance with local laws.</p>
           </div>
         </div>
       </div>
