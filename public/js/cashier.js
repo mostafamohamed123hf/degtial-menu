@@ -5150,4 +5150,21 @@ document.addEventListener("language_changed", function (event) {
   if (typeof loadActiveOrders === "function") {
     loadActiveOrders();
   }
+
+  const isEnglish = getCurrentLanguage() === "en";
+  const hideBtn = document.getElementById("hide-activity-button");
+  if (hideBtn) {
+    const isHidden = localStorage.getItem("activity_history_hidden") === "true";
+    hideBtn.innerHTML = `<i class="fas ${isHidden ? "fa-eye" : "fa-eye-slash"}"></i> ${
+      isEnglish ? (isHidden ? "Show History" : "Hide History") : (isHidden ? "إظهار السجل" : "اخفاء السجل")
+    }`;
+  }
+
+  const viewAllBtn = document.querySelector(".view-all-button");
+  if (viewAllBtn) {
+    const visible = !!window.__allOrdersVisible;
+    viewAllBtn.innerHTML = visible
+      ? `<i class="fas fa-eye-slash"></i> ${isEnglish ? "Hide All Orders" : "إخفاء كل الطلبات"}`
+      : `<i class="fas fa-list"></i> ${isEnglish ? "View All Orders" : "عرض كل الطلبات"}`;
+  }
 });
