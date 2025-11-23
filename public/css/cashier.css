@@ -844,10 +844,10 @@ body:not(.light-mode) .reservation-info-row {
   position: absolute;
   top: 0;
   right: 0;
-  height: 4px;
+  height: 0;
   width: 100%;
-  background: linear-gradient(to right, var(--cashier-primary), transparent);
-  opacity: 0.5;
+  background: none;
+  opacity: 0;
 }
 
 .reservation-card:hover {
@@ -915,10 +915,11 @@ body.light-mode .time-group-header {
 .reservation-info-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin: 6px 0;
   font-size: 0.9rem;
+  line-height: 1.5;
   padding-bottom: 6px;
-  border-bottom: 1px dashed rgba(66, 209, 88, 0.1);
+  border-bottom: 1px solid var(--admin-border-color);
 }
 
 .reservation-info-row:last-child {
@@ -931,32 +932,69 @@ body.light-mode .time-group-header {
   color: var(--cashier-primary);
 }
 
-.reservation-status {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid currentColor;
 }
 
-.status-pending {
-  background-color: #fef3c7;
+.status-badge.status-pending {
   color: #d97706;
+  background-color: rgba(217, 119, 6, 0.12);
 }
 
-.status-confirmed {
-  background-color: #dcfce7;
-  color: #16a34a;
+.status-badge.status-confirmed {
+  color: var(--cashier-success);
+  background-color: rgba(16, 185, 129, 0.12);
 }
 
-.status-completed {
-  background-color: #e0e7ff;
+.status-badge.status-completed {
   color: #4f46e5;
+  background-color: rgba(79, 70, 229, 0.12);
 }
 
-.status-cancelled {
-  background-color: #fee2e2;
-  color: #dc2626;
+.status-badge.status-cancelled {
+  color: var(--cashier-danger);
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+.reservation-details {
+  padding: 8px;
+  background-color: var(--admin-hover-bg);
+  border-radius: 8px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--admin-border-color);
+  padding-bottom: 6px;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--admin-text-color);
+}
+
+.detail-value {
+  color: var(--admin-text-color);
 }
 
 .reservation-footer {
