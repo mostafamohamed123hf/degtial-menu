@@ -27,11 +27,18 @@ function getTranslation(key) {
 }
 
 // Initialize global settings object for admin
-window.globalSettings = {
-  loaded: false,
-  currency: "EGP",
-  currencyCode: "EGP",
-};
+(function () {
+  let cachedCurrency = "EGP";
+  try {
+    const fromCache = localStorage.getItem("admin-currency-code");
+    if (fromCache) cachedCurrency = fromCache;
+  } catch (_) {}
+  window.globalSettings = {
+    loaded: false,
+    currency: cachedCurrency,
+    currencyCode: cachedCurrency,
+  };
+})();
 
 // Load global settings from API
 async function loadAdminGlobalSettings() {
@@ -47,13 +54,17 @@ async function loadAdminGlobalSettings() {
     const response = await fetch(`${API_BASE_URL}/global-settings`);
     const result = await response.json();
 
-    if (result.success && result.data) {
-      window.globalSettings = {
-        ...result.data,
-        currencyCode: result.data.currency, // Ensure currencyCode is set for English display
-        loaded: true,
-      };
-      console.log("Admin global settings loaded:", window.globalSettings);
+  if (result.success && result.data) {
+    window.globalSettings = {
+      ...result.data,
+      currencyCode: result.data.currency, // Ensure currencyCode is set for English display
+      loaded: true,
+    };
+    console.log("Admin global settings loaded:", window.globalSettings);
+
+    try {
+      localStorage.setItem("admin-currency-code", window.globalSettings.currency);
+    } catch (_) {}
 
       // Dispatch event to notify other scripts
       window.dispatchEvent(
@@ -1487,6 +1498,17 @@ document.addEventListener("DOMContentLoaded", function () {
       return currencyCode;
     }
 
+    try {
+      const cachedCurrency = localStorage.getItem("admin-currency-code");
+      if (cachedCurrency) {
+        const translation = currencyTranslations[cachedCurrency];
+        if (translation) {
+          return translation[currentLang] || translation.en;
+        }
+        return cachedCurrency;
+      }
+    } catch (_) {}
+
     // Fallback to default if global settings not loaded
     return currentLang === "ar" ? "جنيه" : "EGP";
   }
@@ -1494,6 +1516,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Listen for global settings changes to update currency
   window.addEventListener("global-settings-updated", function (event) {
     console.log("Global settings updated in admin, refreshing displays");
+    try {
+      if (event && event.detail && event.detail.currency) {
+        localStorage.setItem("admin-currency-code", event.detail.currency);
+      }
+    } catch (_) {}
     // Reload global settings
     loadAdminGlobalSettings().then(() => {
       // Refresh all displays
@@ -1504,6 +1531,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Listen for admin global settings loaded
   window.addEventListener("admin-global-settings-loaded", function (event) {
     console.log("Admin global settings loaded, refreshing displays");
+    try {
+      if (event && event.detail && event.detail.currency) {
+        localStorage.setItem("admin-currency-code", event.detail.currency);
+      }
+    } catch (_) {}
     // Small delay to ensure DOM is ready
     setTimeout(() => {
       refreshAdminDisplays();
@@ -1701,6 +1733,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function animateStatsChange() {
+    if (window.__statsAnimationDone) {
+      return;
+    }
+    window.__statsAnimationDone = true;
     const statCards = document.querySelectorAll(".stat-card");
     statCards.forEach((card) => {
       card.classList.add("stat-updated");
