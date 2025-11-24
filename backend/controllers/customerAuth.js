@@ -125,6 +125,14 @@ exports.login = async (req, res) => {
 
     console.log("Password matched, updating last login time");
 
+    if (customer.status === "suspended") {
+      console.log("Login blocked: account is suspended");
+      return res.status(200).json({
+        success: false,
+        message: "Your account is suspended. Please contact support",
+      });
+    }
+
     // Update last login time
     customer.lastLogin = Date.now();
     await customer.save();

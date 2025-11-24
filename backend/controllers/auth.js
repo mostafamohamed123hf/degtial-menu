@@ -124,6 +124,14 @@ exports.adminLogin = async (req, res) => {
       });
     }
 
+    if (customer.status === "suspended") {
+      console.log("Login blocked: account is suspended");
+      return res.status(200).json({
+        success: false,
+        message: "Account is suspended",
+      });
+    }
+
     // First check if customer has direct admin panel permission
     let hasAdminAccess =
       customer.permissions && customer.permissions.adminPanel;

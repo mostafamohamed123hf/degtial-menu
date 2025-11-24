@@ -192,8 +192,8 @@ exports.suspendCustomer = async (req, res) => {
       });
     }
 
-    // Set status to inactive
-    customer.status = "inactive";
+    // Set status to suspended to match frontend logic
+    customer.status = "suspended";
     await customer.save();
 
     res.status(200).json({
