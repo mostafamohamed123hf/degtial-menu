@@ -254,6 +254,10 @@ body.light-mode .admin-tabs {
   border: 1px solid transparent;
 }
 
+html.submenu-mode-enabled .standalone-tab {
+  display: none;
+}
+
 .admin-tab::before {
   content: none;
 }
@@ -629,7 +633,11 @@ body.light-mode .admin-tabs > a.admin-tab:last-child {
 
 /* Total Offers Card */
 .stat-card:has(#dashboard-total-offers) .stat-icon {
-  background: linear-gradient(135deg, rgba(66, 209, 88, 0.2), rgba(66, 209, 88, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(66, 209, 88, 0.2),
+    rgba(66, 209, 88, 0.1)
+  );
   color: var(--admin-accent-color);
 }
 
@@ -2612,7 +2620,7 @@ body.light-mode #category-modal .form-hint {
   #category-modal .dual-language-row {
     grid-template-columns: 1fr;
   }
-  
+
   #category-modal .modal-content {
     width: 95%;
     padding: 25px 20px;
@@ -2674,7 +2682,11 @@ body.light-mode #category-modal .form-hint {
   margin: 0;
   margin-top: 10px;
   color: var(--admin-text-color);
-  background: linear-gradient(120deg, rgba(66, 209, 88, 0.12), rgba(66, 209, 88, 0.2));
+  background: linear-gradient(
+    120deg,
+    rgba(66, 209, 88, 0.12),
+    rgba(66, 209, 88, 0.2)
+  );
   padding: 10px 12px;
   border-radius: 10px;
   display: flex;
@@ -2799,7 +2811,11 @@ body.light-mode #category-modal .form-hint {
 
 /* Light mode specific styles for categories */
 body.light-mode .category-sort-order {
-  background: linear-gradient(120deg, rgba(66, 209, 88, 0.18), rgba(66, 209, 88, 0.28));
+  background: linear-gradient(
+    120deg,
+    rgba(66, 209, 88, 0.18),
+    rgba(66, 209, 88, 0.28)
+  );
   border-color: rgba(66, 209, 88, 0.35);
   box-shadow: 0 8px 20px rgba(66, 209, 88, 0.22);
 }
@@ -2971,13 +2987,21 @@ body.light-mode .sort-value {
 }
 
 .arabic-badge {
-  background: linear-gradient(135deg, rgba(66, 209, 88, 0.2), rgba(66, 209, 88, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(66, 209, 88, 0.2),
+    rgba(66, 209, 88, 0.15)
+  );
   color: var(--admin-accent-color);
   border: 1px solid rgba(66, 209, 88, 0.3);
 }
 
 .english-badge {
-  background: linear-gradient(135deg, rgba(0, 122, 255, 0.2), rgba(0, 122, 255, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 122, 255, 0.2),
+    rgba(0, 122, 255, 0.15)
+  );
   color: #007aff;
   border: 1px solid rgba(0, 122, 255, 0.3);
 }
@@ -4744,7 +4768,7 @@ html[lang="en"] .global-discount-container.discount-active::before {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .color-presets,
   .icon-presets {
     justify-content: center;
@@ -8234,7 +8258,7 @@ body.sidebar-expanded .sidebar-overlay {
 }
 
 .today-icon::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -8367,7 +8391,7 @@ body.dark-theme .stat-card:nth-child(4) .today-icon {
     margin-right: 12px;
     margin-left: 15px;
   }
-  
+
   .today-icon i {
     font-size: 1.2rem;
   }
@@ -8380,7 +8404,7 @@ body.dark-theme .stat-card:nth-child(4) .today-icon {
     margin-right: 10px;
     margin-left: 12px;
   }
-  
+
   .today-icon i {
     font-size: 1.1rem;
   }

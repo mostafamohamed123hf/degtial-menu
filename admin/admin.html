@@ -88,6 +88,17 @@
         }
       })();
     </script>
+    <script>
+      (function() {
+        var enabled = localStorage.getItem('submenuModeEnabled') !== 'false';
+        var root = document.documentElement;
+        if (enabled) {
+          root.classList.add('submenu-mode-enabled');
+        } else {
+          root.classList.add('submenu-mode-disabled');
+        }
+      })();
+    </script>
     
     <!-- Hide content until translations are applied -->
     <style>
@@ -187,50 +198,49 @@
       <a
         href="#categories-section"
         class="admin-tab standalone-tab"
-        data-section="categories-section"
-        style="display: none;">
+        data-section="categories-section">
         <i class="fas fa-th-large"></i> <span data-i18n="categories">الفئات</span>
       </a>
       <a
         href="#vouchers-section"
         class="admin-tab standalone-tab"
         data-section="vouchers-section"
-        style="display: none;">
+        >
         <i class="fas fa-ticket-alt"></i> <span data-i18n="vouchers">القسائم</span>
       </a>
       <a
         href="#offers-section"
         class="admin-tab standalone-tab"
         data-section="offers-section"
-        style="display: none;">
+        >
         <i class="fas fa-tags"></i> <span data-i18n="offers">العروض</span>
       </a>
       <a
         href="#tax-section"
         class="admin-tab standalone-tab"
         data-section="tax-section"
-        style="display: none;">
+        >
         <i class="fas fa-percent"></i> <span data-i18n="tax">الضريبة</span>
       </a>
       <a
         href="#qr-section"
         class="admin-tab standalone-tab"
         data-section="qr-section"
-        style="display: none;">
+        >
         <i class="fas fa-qrcode"></i> <span data-i18n="qrCodes">رموز QR</span>
       </a>
       <a
         href="#reservations-section"
         class="admin-tab standalone-tab"
         data-section="reservations-section"
-        style="display: none;">
+        >
         <i class="fas fa-calendar-alt"></i> <span data-i18n="reservations">الحجوزات</span>
       </a>
       <a
         href="#loyalty-points-section"
         class="admin-tab standalone-tab"
         data-section="loyalty-points-section"
-        style="display: none;">
+        >
         <i class="fas fa-gift"></i> <span data-i18n="loyaltyPoints">نقاط الولاء</span>
       </a>
       <a
