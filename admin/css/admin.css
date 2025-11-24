@@ -325,13 +325,12 @@ body.light-mode .admin-tabs {
   padding-left: 20px;
   margin-bottom: 8px;
   max-height: 0;
-  overflow: hidden;
   transition: max-height 0.3s ease;
 }
 
 .admin-submenu.show {
   display: flex;
-  max-height: 200px;
+  max-height: fit-content;
 }
 
 .admin-subtab {
