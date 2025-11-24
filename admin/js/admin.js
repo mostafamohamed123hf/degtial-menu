@@ -3393,6 +3393,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const voucherExpiry = document.getElementById("voucher-expiry");
     const generateCodeBtn = document.getElementById("generate-code-btn");
 
+    // Ensure category dropdown is populated before setting values
+    try {
+      if (
+        window.categoriesManager &&
+        typeof window.categoriesManager.updateProductCategoryDropdowns ===
+          "function"
+      ) {
+        window.categoriesManager.updateProductCategoryDropdowns();
+      }
+    } catch (_) {}
+
     console.log("Modal elements:", {
       modalTitle,
       voucherCode,
@@ -3626,6 +3637,17 @@ document.addEventListener("DOMContentLoaded", function () {
   function showVoucherModalForced() {
     console.log("Using forced voucher modal display");
 
+    // Populate category dropdown before showing modal
+    try {
+      if (
+        window.categoriesManager &&
+        typeof window.categoriesManager.updateProductCategoryDropdowns ===
+          "function"
+      ) {
+        window.categoriesManager.updateProductCategoryDropdowns();
+      }
+    } catch (_) {}
+
     // Get the voucher modal and ensure it exists
     const modal = document.getElementById("voucher-modal");
     if (!modal) {
@@ -3648,7 +3670,29 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("voucher-code").value = randomCode;
     document.getElementById("voucher-discount").value = "10";
     document.getElementById("voucher-min-order").value = "0";
-    document.getElementById("voucher-category").value = "all";
+    (function() {
+      const sel = document.getElementById("voucher-category");
+      try {
+        if (sel && sel.options.length <= 1) {
+          const saved = localStorage.getItem("categories");
+          const lang = localStorage.getItem("admin-language") || "ar";
+          if (saved) {
+            const cats = JSON.parse(saved);
+            cats.forEach((category) => {
+              const option = document.createElement("option");
+              option.value = category.value;
+              const categoryName =
+                lang === "en" && category.nameEn ? category.nameEn : category.name;
+              option.textContent = categoryName;
+              option.dataset.nameAr = category.name;
+              option.dataset.nameEn = category.nameEn || category.name;
+              sel.appendChild(option);
+            });
+          }
+        }
+      } catch (_) {}
+      if (sel) sel.value = "all";
+    })();
     document.getElementById("voucher-expiry").value = defaultExpiryDate;
 
     // Add event listener for generate code button
@@ -9605,3 +9649,22 @@ document.addEventListener("languageChanged", function (event) {
 if (typeof updateDashboardOfferStats !== "undefined") {
   window.updateDashboardOfferStats = updateDashboardOfferStats;
 }
+    try {
+      if (voucherCategory && voucherCategory.options.length <= 1) {
+        const saved = localStorage.getItem("categories");
+        const lang = localStorage.getItem("admin-language") || "ar";
+        if (saved) {
+          const cats = JSON.parse(saved);
+          cats.forEach((category) => {
+            const option = document.createElement("option");
+            option.value = category.value;
+            const categoryName =
+              lang === "en" && category.nameEn ? category.nameEn : category.name;
+            option.textContent = categoryName;
+            option.dataset.nameAr = category.name;
+            option.dataset.nameEn = category.nameEn || category.name;
+            voucherCategory.appendChild(option);
+          });
+        }
+      }
+    } catch (_) {}

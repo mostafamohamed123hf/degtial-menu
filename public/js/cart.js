@@ -932,44 +932,51 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     console.log("Checking for active voucher:", activeVoucher);
     if (activeVoucher) {
-      discountValue = (subtotal * activeVoucher.discount) / 100;
-      voucherDiscountAmount = discountValue; // Update the global variable
-      discountDetails = {
-        code: activeVoucher.code,
-        name: activeVoucher.code,
-        discount: activeVoucher.discount,
-        value: discountValue,
-      };
-
-      console.log("Active voucher found, discount value:", discountValue);
+      try {
+        const apiBaseUrl = window.API_BASE_URL || API_BASE_URL || "http://localhost:5000";
+        const response = await fetch(`${apiBaseUrl}/api/vouchers/validate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: activeVoucher.code,
+            orderValue: subtotal,
+            items: (cartItems || []).map((it) => ({
+              id: it.id || it.productId || it._id,
+              quantity: parseInt(it.quantity || 1),
+              price: parseFloat(it.price || 0),
+            })),
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+        const data = await response.json();
+        if (data && data.success && data.data) {
+          discountValue = parseFloat(data.data.discountAmount || 0);
+          voucherDiscountAmount = discountValue;
+          activeVoucher.discountAmount = discountValue;
+          activeVoucher.applicableCategories = data.data.applicableCategories || [];
+          activeVoucher.applicableProducts = data.data.applicableProducts || [];
+        } else {
+          await clearVoucher();
+        }
+      } catch (e) {
+        console.warn("Voucher revalidation failed, using cached amount", e);
+        discountValue = parseFloat(activeVoucher.discountAmount || 0);
+        voucherDiscountAmount = discountValue;
+      }
 
       // Show discount row
       if (discountRow) {
         discountRow.style.display = "flex";
-        console.log("Setting discount row display to flex");
-      } else {
-        console.error("Discount row element not found");
       }
-
       // Update discount amount
       if (discountAmount) {
-        discountAmount.textContent =
-          discountValue.toFixed(2) + " " + currencyText;
-        console.log(
-          "Updated discount amount text:",
-          discountValue.toFixed(2) + " " + currencyText
-        );
-      } else {
-        console.error("Discount amount element not found");
+        discountAmount.textContent = discountValue.toFixed(2) + " " + currencyText;
       }
     } else {
       // Hide discount row if no active voucher
       voucherDiscountAmount = 0; // Reset the global variable
       if (discountRow) {
         discountRow.style.display = "none";
-        console.log("No active voucher, hiding discount row");
-      } else {
-        console.error("Discount row element not found when trying to hide it");
       }
     }
 
@@ -1884,6 +1891,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         body: JSON.stringify({
           voucherId: voucherId,
           orderValue: orderValue,
+          items: (cartItems || []).map((it) => ({
+            id: it.id || it.productId || it._id,
+            quantity: parseInt(it.quantity || 1),
+            price: parseFloat(it.price || 0),
+          })),
         }),
       });
 
@@ -2070,6 +2082,11 @@ document.addEventListener("DOMContentLoaded", async function () {
           const requestBody = {
             code: code,
             orderValue: subtotal,
+            items: (cartItems || []).map((it) => ({
+              id: it.id || it.productId || it._id,
+              quantity: parseInt(it.quantity || 1),
+              price: parseFloat(it.price || 0),
+            })),
           };
           console.log("Request body:", requestBody);
 
@@ -2164,11 +2181,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       if (!result || !result.success) {
         // Show useful tip about the test voucher
-        const errorMsg =
+        let errorMsg =
           result?.message ||
           (currentLang === "en"
             ? "Please check the code and try again"
             : "الرجاء التحقق من الكود والمحاولة مرة أخرى");
+
+        errorMsg = translateCartMessage(errorMsg, currentLang);
 
         // Prepare to show a tip about the test voucher after a delay
         setTimeout(() => {
@@ -2188,13 +2207,16 @@ document.addEventListener("DOMContentLoaded", async function () {
       activeVoucher = {
         id: result.data.voucherId,
         code: code.toUpperCase(),
-        discount:
-          result.data.type === "percentage"
-            ? result.data.value
-            : (result.data.discountAmount / subtotal) * 100,
         type: result.data.type,
         value: result.data.value,
-        _id: result.data.voucherId, // Store MongoDB ID
+        discountAmount: parseFloat(result.data.discountAmount || 0),
+        applicableCategories: Array.isArray(result.data.applicableCategories)
+          ? result.data.applicableCategories
+          : [],
+        applicableProducts: Array.isArray(result.data.applicableProducts)
+          ? result.data.applicableProducts
+          : [],
+        _id: result.data.voucherId,
       };
 
       console.log("Voucher applied successfully:", activeVoucher);
@@ -2237,14 +2259,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       applyVoucherBtn.innerHTML = `<i class="fas fa-check"></i><span>${buttonText}</span>`;
       applyVoucherBtn.disabled = false;
 
-      // Show error message with toast
-      showCustomToast(
-        error.message ||
-          (currentLang === "en"
+      // Show error message with toast (translated if needed)
+      {
+        const fallback =
+          currentLang === "en"
             ? "Please check the code and try again"
-            : "الرجاء التحقق من الكود والمحاولة مرة أخرى"),
-        "error"
-      );
+            : "الرجاء التحقق من الكود والمحاولة مرة أخرى";
+        const msg = translateCartMessage(error.message || fallback, currentLang);
+        showCustomToast(msg, "error");
+      }
 
       // Focus on input field
       voucherCodeInput.focus();
@@ -2283,19 +2306,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       return;
     }
 
-    // Calculate the discount amount to display immediately
-    let discountValue = 0;
-    if (cartItems.length > 0) {
-      let subtotal = 0;
-      cartItems.forEach((item) => {
-        subtotal += item.price * item.quantity;
-      });
-      discountValue = (subtotal * activeVoucher.discount) / 100;
-      voucherDiscountAmount = discountValue; // Update the global variable
-      console.log(
-        `Calculated discount: ${discountValue} (${activeVoucher.discount}% of ${subtotal})`
-      );
-    }
+    // Use server-calculated discount amount if available
+    let discountValue = parseFloat(activeVoucher.discountAmount || 0);
+    voucherDiscountAmount = discountValue;
 
     // Show the discount row
     if (discountRow) {
@@ -2305,16 +2318,17 @@ document.addEventListener("DOMContentLoaded", async function () {
       console.error("Discount row element not found");
     }
 
+    // Get current language and currency
+    const currentLang = localStorage.getItem("public-language") || "ar";
+    const currencyText =
+      typeof getCurrencyText === "function"
+        ? getCurrencyText()
+        : currentLang === "en"
+        ? "EGP"
+        : "جنية";
+
     // Update discount amount
     if (discountAmount) {
-      // Get current language
-      const currentLang = localStorage.getItem("public-language") || "ar";
-      const currencyText =
-        typeof getCurrencyText === "function"
-          ? getCurrencyText()
-          : currentLang === "en"
-          ? "EGP"
-          : "جنية";
 
       discountAmount.textContent =
         discountValue.toFixed(2) + " " + currencyText;
@@ -2331,8 +2345,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       console.error("Discount amount element not found");
     }
 
-    // Get current language
-    const currentLang = localStorage.getItem("public-language") || "ar";
     const discountText = currentLang === "en" ? "discount" : "خصم";
     const clearButtonLabel =
       currentLang === "en" ? "Cancel voucher" : "إلغاء القسيمة";
@@ -2343,7 +2355,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     voucherInfo.innerHTML = `
             <div class="voucher-info">
                 <span class="voucher-name">${activeVoucher.code}</span>
-                <span class="voucher-discount">${activeVoucher.discount}% ${discountText}</span>
+                <span class="voucher-discount">${discountValue.toFixed(2)} ${currencyText}</span>
             </div>
             <button class="clear-voucher" id="clear-voucher" aria-label="${clearButtonLabel}">
                 <i class="fas fa-times"></i>
@@ -3570,6 +3582,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     return toast;
   }
 
+  function translateCartMessage(msg, lang) {
+    if (!msg) return msg;
+    if (lang !== "en") return msg;
+    const arabicToEnglish = {
+      "لا يمكن تطبيق القسيمة على عناصر السلة الحالية": "Voucher cannot be applied to current cart items",
+      "الرجاء التحقق من الكود والمحاولة مرة أخرى": "Please check the code and try again",
+      "حدث خطأ أثناء معالجة استجابة الخادم": "Error processing server response",
+      "فشل الاتصال بالخادم، يرجى التحقق من اتصال الانترنت والمحاولة مرة أخرى": "Failed to connect to server. Please check your internet connection and try again",
+      "حدث خطأ أثناء التحقق من القسيمة": "Error validating voucher",
+      "لا يمكن تطبيق القسيمة على سلة فارغة": "Cannot apply voucher to an empty cart",
+      "كود القسيمة غير صالح أو غير موجود": "Voucher code is invalid or does not exist",
+    };
+    // Handle dynamic minimum order messages: extract value inside parentheses
+    const minOrderMatch = msg.match(/^لا يمكن تطبيق القسيمة:\s*لم يتم الوصول للحد الأدنى للطلب\s*\(([^)]+)\)/);
+    if (minOrderMatch) {
+      return `Voucher cannot be applied: minimum order not reached (${minOrderMatch[1]})`;
+    }
+    return arabicToEnglish[msg] || msg;
+  }
+
   // Listen for global settings changes (currency updates)
   window.addEventListener("global-settings-changed", function (event) {
     console.log("Global settings changed in cart page, refreshing displays");
@@ -3578,7 +3610,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       calculateTotals();
     }
     // Refresh cart display
-    displayCart();
+    if (typeof updateCartDisplay === "function") {
+      updateCartDisplay();
+    }
   });
 
   // Listen for global settings loaded event
@@ -3598,6 +3632,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       calculateTotals();
     }
     // Refresh cart display
-    displayCart();
+    if (typeof updateCartDisplay === "function") {
+      updateCartDisplay();
+    }
   });
 });

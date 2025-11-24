@@ -177,7 +177,7 @@ exports.deleteVoucher = async (req, res, next) => {
 // @access  Public
 exports.validateVoucher = async (req, res, next) => {
   try {
-    const { code, orderValue } = req.body;
+    const { code, orderValue, items } = req.body;
 
     if (!code) {
       return res.status(400).json({
@@ -226,8 +226,72 @@ exports.validateVoucher = async (req, res, next) => {
 
     console.log(`Voucher found: ${voucher.code}, checking validity`);
 
-    // Check if voucher is valid for this order
-    if (!voucher.isValid(orderValue || 0)) {
+    // Determine eligible subtotal based on applicable categories/products
+    let eligibleSubtotal = 0;
+
+    try {
+      // If specific categories or products are set, compute eligible subtotal from items
+      const hasCategoryRestriction = Array.isArray(voucher.applicableCategories) && voucher.applicableCategories.length > 0;
+      const hasProductRestriction = Array.isArray(voucher.applicableProducts) && voucher.applicableProducts.length > 0;
+
+      if ((hasCategoryRestriction || hasProductRestriction) && Array.isArray(items) && items.length > 0) {
+        const Product = require("../models/Product");
+        for (const item of items) {
+          const productId = item.id || item.productId || item._id;
+          const qty = parseInt(item.quantity || 1);
+          const price = parseFloat(item.price || 0);
+
+          if (!productId || !qty || !price) continue;
+
+          let matches = false;
+
+          if (hasProductRestriction) {
+            // Match by product ObjectId
+            matches = voucher.applicableProducts.some((p) => String(p) === String(productId));
+          }
+
+          if (!matches && hasCategoryRestriction) {
+            // Look up product category when needed
+            const prod = await Product.findOne({
+              $or: [
+                { id: productId },
+                { _id: productId },
+              ],
+            }).select("category");
+            const category = prod ? prod.category : null;
+            matches = !!category && voucher.applicableCategories.includes(category);
+          }
+
+          if (matches) {
+            eligibleSubtotal += price * qty;
+          }
+        }
+      } else {
+        // No restrictions or no items provided: default to full orderValue
+        eligibleSubtotal = parseFloat(orderValue || 0);
+      }
+    } catch (e) {
+      // Fallback to orderValue if any error occurs during eligibility computation
+      eligibleSubtotal = parseFloat(orderValue || 0);
+    }
+
+    // If voucher has category/product restriction but no eligible items, treat as invalid
+    const hasRestriction = (
+      Array.isArray(voucher.applicableCategories) && voucher.applicableCategories.length > 0
+    ) || (
+      Array.isArray(voucher.applicableProducts) && voucher.applicableProducts.length > 0
+    );
+
+    if (hasRestriction && eligibleSubtotal <= 0) {
+      return res.status(200).json({
+        success: false,
+        message: "لا يمكن تطبيق القسيمة على عناصر السلة الحالية",
+        data: { isValid: false, reason: "not_applicable" },
+      });
+    }
+
+    // Check if voucher is valid for this eligible amount
+    if (!voucher.isValid(eligibleSubtotal || 0)) {
       let reason = "";
       const now = new Date();
 
@@ -257,8 +321,8 @@ exports.validateVoucher = async (req, res, next) => {
       });
     }
 
-    // Calculate discount
-    const discountAmount = voucher.calculateDiscount(orderValue || 0);
+    // Calculate discount on eligible subtotal
+    const discountAmount = voucher.calculateDiscount(eligibleSubtotal || 0);
 
     console.log(`Voucher ${code} valid, discount amount: ${discountAmount}`);
 
@@ -270,9 +334,11 @@ exports.validateVoucher = async (req, res, next) => {
         code: voucher.code,
         type: voucher.type,
         value: voucher.value,
+        applicableCategories: voucher.applicableCategories || [],
+        applicableProducts: voucher.applicableProducts || [],
         discountAmount,
-        originalValue: orderValue || 0,
-        finalValue: (orderValue || 0) - discountAmount,
+        originalValue: eligibleSubtotal || 0,
+        finalValue: (eligibleSubtotal || 0) - discountAmount,
       },
     });
   } catch (err) {
@@ -290,7 +356,7 @@ exports.validateVoucher = async (req, res, next) => {
 // @access  Private
 exports.applyVoucher = async (req, res, next) => {
   try {
-    const { voucherId, orderValue } = req.body;
+    const { voucherId, orderValue, items } = req.body;
 
     if (!voucherId) {
       return next(new ErrorResponse("Please provide a voucher ID", 400));
@@ -302,8 +368,47 @@ exports.applyVoucher = async (req, res, next) => {
       return next(new ErrorResponse("Voucher not found", 404));
     }
 
-    // Check if voucher is valid for this order
-    if (!voucher.isValid(orderValue || 0)) {
+    // Compute eligible subtotal similar to validate
+    let eligibleSubtotal = 0;
+    try {
+      const hasCategoryRestriction = Array.isArray(voucher.applicableCategories) && voucher.applicableCategories.length > 0;
+      const hasProductRestriction = Array.isArray(voucher.applicableProducts) && voucher.applicableProducts.length > 0;
+
+      if ((hasCategoryRestriction || hasProductRestriction) && Array.isArray(items) && items.length > 0) {
+        const Product = require("../models/Product");
+        for (const item of items) {
+          const productId = item.id || item.productId || item._id;
+          const qty = parseInt(item.quantity || 1);
+          const price = parseFloat(item.price || 0);
+          if (!productId || !qty || !price) continue;
+
+          let matches = false;
+          if (hasProductRestriction) {
+            matches = voucher.applicableProducts.some((p) => String(p) === String(productId));
+          }
+          if (!matches && hasCategoryRestriction) {
+            const prod = await Product.findOne({
+              $or: [
+                { id: productId },
+                { _id: productId },
+              ],
+            }).select("category");
+            const category = prod ? prod.category : null;
+            matches = !!category && voucher.applicableCategories.includes(category);
+          }
+          if (matches) {
+            eligibleSubtotal += price * qty;
+          }
+        }
+      } else {
+        eligibleSubtotal = parseFloat(orderValue || 0);
+      }
+    } catch (_) {
+      eligibleSubtotal = parseFloat(orderValue || 0);
+    }
+
+    // Validate against eligible subtotal
+    if (!voucher.isValid(eligibleSubtotal || 0)) {
       return res.status(400).json({
         success: false,
         message: "Voucher is not valid for this order",
@@ -316,7 +421,7 @@ exports.applyVoucher = async (req, res, next) => {
     await voucher.save();
 
     // Calculate discount
-    const discountAmount = voucher.calculateDiscount(orderValue || 0);
+    const discountAmount = voucher.calculateDiscount(eligibleSubtotal || 0);
 
     res.status(200).json({
       success: true,
@@ -326,9 +431,11 @@ exports.applyVoucher = async (req, res, next) => {
         code: voucher.code,
         type: voucher.type,
         value: voucher.value,
+        applicableCategories: voucher.applicableCategories || [],
+        applicableProducts: voucher.applicableProducts || [],
         discountAmount,
-        originalValue: orderValue || 0,
-        finalValue: (orderValue || 0) - discountAmount,
+        originalValue: eligibleSubtotal || 0,
+        finalValue: (eligibleSubtotal || 0) - discountAmount,
         usedCount: voucher.usedCount,
       },
     });

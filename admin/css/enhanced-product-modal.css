@@ -735,7 +735,8 @@ html.english .addon-section-toggle {
 
 .addon-option-price .currency-symbol {
   position: absolute;
-  right: 12px;
+  right: 10px;
+  left : auto;
   top: 50%;
   transform: translateY(-50%);
   background: linear-gradient(135deg, rgba(66, 209, 88, 0.2), rgba(66, 209, 88, 0.1));
