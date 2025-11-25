@@ -109,6 +109,7 @@ exports.initializeDefaultSettings = asyncHandler(async (req, res, next) => {
     { key: "contactEmail", value: "" },
     { key: "currency", value: "EGP" },
     { key: "currencySymbol", value: "جنيه" },
+    { key: "defaultLanguage", value: "ar" },
     { key: "restaurantName", value: "Digital Menu" },
     { key: "restaurantNameEn", value: "Digital Menu" },
     { key: "restaurantAddress", value: "" },

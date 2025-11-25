@@ -3,8 +3,15 @@
  * Handles language switching between Arabic and English
  */
 
-// Default language is Arabic
-let currentLanguage = localStorage.getItem("public-language") || "ar";
+// Default language is Arabic; prefer site default if available and not set
+let currentLanguage = (function(){
+  const stored = localStorage.getItem("public-language");
+  if (stored) return stored;
+  if (window.globalSettings && window.globalSettings.defaultLanguage) {
+    return window.globalSettings.defaultLanguage;
+  }
+  return "ar";
+})();
 
 // Translations object
 const translations = {

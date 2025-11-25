@@ -6,8 +6,29 @@
 // Add a debounce flag at the top of the file
 let isLanguageSwitchInProgress = false;
 
-// Default language is Arabic
-let currentLanguage = localStorage.getItem("admin-language") || "ar";
+// Default language is Arabic; prefer site default if available and not set
+let currentLanguage = (function(){
+  const stored = localStorage.getItem("admin-language");
+  if (stored) return stored;
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", (function(){
+      const { hostname, origin } = window.location;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      return (isLocal ? "http://localhost:5000/api" : `${origin}/api`) + "/global-settings/defaultLanguage";
+    })(), false);
+    xhr.send(null);
+    if (xhr.status === 200) {
+      const res = JSON.parse(xhr.responseText);
+      const val = (res && res.data && res.data.value) || (res && res.data);
+      if (val === "en" || val === "ar") {
+        try { localStorage.setItem("admin-language", val); } catch(_) {}
+        return val;
+      }
+    }
+  } catch(_){}
+  return "ar";
+})();
 
 // Translations object
 const translations = {
@@ -2548,15 +2569,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Auto-initialize when the DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("DOM loaded - initializing i18n");
-  console.log(
-    "Current language from localStorage:",
-    localStorage.getItem("admin-language")
-  );
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM loaded - initializing i18n");
+    console.log(
+      "Current language from localStorage:",
+      localStorage.getItem("admin-language")
+    );
 
-  // Initialize i18n
-  initI18n();
+    // Initialize i18n
+    initI18n();
 
   // Directly fix the "All Customers" option if language is English
   if (currentLanguage === "en") {

@@ -12,6 +12,7 @@
   // Global settings object that will be populated from the API
   window.globalSettings = {
     currency: "EGP",
+    defaultLanguage: "ar",
     restaurantName: "Digital Menu",
     restaurantNameEn: "Digital Menu",
     restaurantAddress: "",
@@ -300,3 +301,21 @@
   // Export the load function for manual calls
   window.loadGlobalSettings = loadGlobalSettings;
 })();
+        // Apply default language if user has no preference saved
+        if (result.data.defaultLanguage) {
+          window.globalSettings.defaultLanguage = result.data.defaultLanguage;
+          const savedLang = localStorage.getItem("public-language");
+          if (!savedLang) {
+            localStorage.setItem("public-language", result.data.defaultLanguage);
+            if (typeof switchLanguage === "function") {
+              try {
+                if (typeof getCurrentLanguage === "function") {
+                  const cur = getCurrentLanguage();
+                  if (cur !== result.data.defaultLanguage) {
+                    switchLanguage();
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+        }

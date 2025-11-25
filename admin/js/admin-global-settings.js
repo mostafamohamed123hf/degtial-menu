@@ -28,7 +28,7 @@
     if (globalSettingsTab) {
       globalSettingsTab.addEventListener("click", function (e) {
         loadGlobalSettings();
-        
+
         // Toggle submenu
         const submenu = document.getElementById("global-settings-submenu");
         if (submenu) {
@@ -38,33 +38,39 @@
     }
 
     // Handle submenu clicks
-    const subtabs = document.querySelectorAll("#global-settings-submenu .admin-subtab");
-    subtabs.forEach(subtab => {
+    const subtabs = document.querySelectorAll(
+      "#global-settings-submenu .admin-subtab"
+    );
+    subtabs.forEach((subtab) => {
       subtab.addEventListener("click", function (e) {
         e.preventDefault();
         const targetTab = this.getAttribute("data-target");
-        
+
         // Remove active class from all global settings subtabs
-        subtabs.forEach(st => st.classList.remove("active"));
-        
+        subtabs.forEach((st) => st.classList.remove("active"));
+
         // Add active class to clicked subtab
         this.classList.add("active");
-        
+
         // Hide all sections
         const sections = document.querySelectorAll(".admin-section");
-        sections.forEach(section => {
+        sections.forEach((section) => {
           section.style.display = "none";
         });
-        
+
         // Switch to target tab (for settings-tab elements within global-settings-section)
-        document.querySelectorAll(".settings-tab").forEach(tab => tab.classList.remove("active"));
+        document
+          .querySelectorAll(".settings-tab")
+          .forEach((tab) => tab.classList.remove("active"));
         const targetElement = document.getElementById(targetTab);
         if (targetElement) {
           // If it's a settings-tab, use classList
           if (targetElement.classList.contains("settings-tab")) {
             targetElement.classList.add("active");
             // Show the parent global-settings-section
-            const globalSettingsSection = document.getElementById("global-settings-section");
+            const globalSettingsSection = document.getElementById(
+              "global-settings-section"
+            );
             if (globalSettingsSection) {
               globalSettingsSection.style.display = "block";
             }
@@ -73,13 +79,13 @@
             targetElement.style.display = "block";
           }
         }
-        
+
         // Close sidebar on mobile after clicking subtab
         if (window.innerWidth <= 1140) {
           document.body.classList.remove("sidebar-expanded");
           localStorage.setItem("sidebarExpanded", "false");
         }
-        
+
         // Scroll to top
         window.scrollTo(0, 0);
       });
@@ -94,14 +100,23 @@
     // Reset button
     if (resetButton) {
       resetButton.addEventListener("click", function () {
-        if (confirm(getTranslation("confirmResetSettings", "Are you sure you want to reset to default settings?"))) {
+        if (
+          confirm(
+            getTranslation(
+              "confirmResetSettings",
+              "Are you sure you want to reset to default settings?"
+            )
+          )
+        ) {
           resetToDefaultSettings();
         }
       });
     }
 
     // Working days checkboxes - add visual feedback
-    const dayCheckboxes = document.querySelectorAll('.day-checkbox input[type="checkbox"]');
+    const dayCheckboxes = document.querySelectorAll(
+      '.day-checkbox input[type="checkbox"]'
+    );
     dayCheckboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", function () {
         const parent = this.closest(".day-checkbox");
@@ -139,14 +154,20 @@
       if (result.success) {
         currentSettings = result.data;
         populateForm(result.data);
-        showNotification(getTranslation("settingsLoaded", "Settings loaded successfully"), "success");
+        showNotification(
+          getTranslation("settingsLoaded", "Settings loaded successfully"),
+          "success"
+        );
       } else {
         throw new Error(result.message || "Failed to load settings");
       }
     } catch (error) {
       console.error("Error loading global settings:", error);
-      showNotification(getTranslation("errorLoadingSettings", "Error loading settings"), "error");
-      
+      showNotification(
+        getTranslation("errorLoadingSettings", "Error loading settings"),
+        "error"
+      );
+
       // Initialize with default values if loading fails
       initializeDefaultSettings();
     } finally {
@@ -156,12 +177,16 @@
 
   function populateForm(settings) {
     // Working Hours
-    document.getElementById("working-hours-start").value = settings.workingHoursStart || "09:00";
-    document.getElementById("working-hours-end").value = settings.workingHoursEnd || "23:00";
+    document.getElementById("working-hours-start").value =
+      settings.workingHoursStart || "09:00";
+    document.getElementById("working-hours-end").value =
+      settings.workingHoursEnd || "23:00";
 
     // Working Days
     const workingDays = settings.workingDays || [];
-    const dayCheckboxes = document.querySelectorAll('.day-checkbox input[type="checkbox"]');
+    const dayCheckboxes = document.querySelectorAll(
+      '.day-checkbox input[type="checkbox"]'
+    );
     dayCheckboxes.forEach((checkbox) => {
       checkbox.checked = workingDays.includes(checkbox.value);
       const parent = checkbox.closest(".day-checkbox");
@@ -173,34 +198,59 @@
     });
 
     // Contact Information
-    document.getElementById("contact-phone").value = settings.contactPhone || "";
-    document.getElementById("contact-whatsapp").value = settings.contactWhatsapp || "";
-    document.getElementById("contact-email").value = settings.contactEmail || "";
+    document.getElementById("contact-phone").value =
+      settings.contactPhone || "";
+    document.getElementById("contact-whatsapp").value =
+      settings.contactWhatsapp || "";
+    document.getElementById("contact-email").value =
+      settings.contactEmail || "";
 
     // Currency Settings
     document.getElementById("currency-code").value = settings.currency || "EGP";
 
+    // Language Settings
+    const defaultLangEl = document.getElementById("default-language");
+    if (defaultLangEl) {
+      defaultLangEl.value = settings.defaultLanguage || "ar";
+    }
+
     // Restaurant Information
-    document.getElementById("restaurant-name").value = settings.restaurantName || "Digital Menu";
-    document.getElementById("restaurant-name-en").value = settings.restaurantNameEn || "Digital Menu";
-    document.getElementById("restaurant-address").value = settings.restaurantAddress || "";
-    document.getElementById("restaurant-address-en").value = settings.restaurantAddressEn || "";
+    document.getElementById("restaurant-name").value =
+      settings.restaurantName || "Digital Menu";
+    document.getElementById("restaurant-name-en").value =
+      settings.restaurantNameEn || "Digital Menu";
+    document.getElementById("restaurant-address").value =
+      settings.restaurantAddress || "";
+    document.getElementById("restaurant-address-en").value =
+      settings.restaurantAddressEn || "";
 
     // Social Media
-    document.getElementById("social-facebook").value = settings.socialFacebook || "";
-    document.getElementById("social-instagram").value = settings.socialInstagram || "";
-    document.getElementById("social-twitter").value = settings.socialTwitter || "";
+    document.getElementById("social-facebook").value =
+      settings.socialFacebook || "";
+    document.getElementById("social-instagram").value =
+      settings.socialInstagram || "";
+    document.getElementById("social-twitter").value =
+      settings.socialTwitter || "";
 
     // Hero Banner Settings
-    document.getElementById("hero-banner-enabled").checked = settings.heroBannerEnabled !== false;
-    document.getElementById("hero-banner-title").value = settings.heroBannerTitle || "Delicious Burger";
-    document.getElementById("hero-banner-title-en").value = settings.heroBannerTitleEn || "Delicious Burger";
-    document.getElementById("hero-banner-description").value = settings.heroBannerDescription || "مكونات طازجة، طعم رائع";
-    document.getElementById("hero-banner-description-en").value = settings.heroBannerDescriptionEn || "Fresh ingredients, amazing taste";
-    document.getElementById("hero-banner-original-price").value = settings.heroBannerOriginalPrice || 75;
-    document.getElementById("hero-banner-discounted-price").value = settings.heroBannerDiscountedPrice || 55;
-    document.getElementById("hero-banner-category").value = settings.heroBannerCategory || "burger";
-    document.getElementById("hero-banner-image").value = settings.heroBannerImage || "";
+    document.getElementById("hero-banner-enabled").checked =
+      settings.heroBannerEnabled !== false;
+    document.getElementById("hero-banner-title").value =
+      settings.heroBannerTitle || "Delicious Burger";
+    document.getElementById("hero-banner-title-en").value =
+      settings.heroBannerTitleEn || "Delicious Burger";
+    document.getElementById("hero-banner-description").value =
+      settings.heroBannerDescription || "مكونات طازجة، طعم رائع";
+    document.getElementById("hero-banner-description-en").value =
+      settings.heroBannerDescriptionEn || "Fresh ingredients, amazing taste";
+    document.getElementById("hero-banner-original-price").value =
+      settings.heroBannerOriginalPrice || 75;
+    document.getElementById("hero-banner-discounted-price").value =
+      settings.heroBannerDiscountedPrice || 55;
+    document.getElementById("hero-banner-category").value =
+      settings.heroBannerCategory || "burger";
+    document.getElementById("hero-banner-image").value =
+      settings.heroBannerImage || "";
 
     // Update preview
     updateHeroBannerPreview();
@@ -215,27 +265,45 @@
         workingHoursStart: document.getElementById("working-hours-start").value,
         workingHoursEnd: document.getElementById("working-hours-end").value,
         workingDays: Array.from(
-          document.querySelectorAll('.day-checkbox input[type="checkbox"]:checked')
+          document.querySelectorAll(
+            '.day-checkbox input[type="checkbox"]:checked'
+          )
         ).map((cb) => cb.value),
         contactPhone: document.getElementById("contact-phone").value,
         contactWhatsapp: document.getElementById("contact-whatsapp").value,
         contactEmail: document.getElementById("contact-email").value,
         currency: document.getElementById("currency-code").value,
+        defaultLanguage:
+          document.getElementById("default-language")?.value || "ar",
         restaurantName: document.getElementById("restaurant-name").value,
         restaurantNameEn: document.getElementById("restaurant-name-en").value,
         restaurantAddress: document.getElementById("restaurant-address").value,
-        restaurantAddressEn: document.getElementById("restaurant-address-en").value,
+        restaurantAddressEn: document.getElementById("restaurant-address-en")
+          .value,
         socialFacebook: document.getElementById("social-facebook").value,
         socialInstagram: document.getElementById("social-instagram").value,
         socialTwitter: document.getElementById("social-twitter").value,
-        heroBannerEnabled: document.getElementById("hero-banner-enabled").checked,
+        heroBannerEnabled: document.getElementById("hero-banner-enabled")
+          .checked,
         heroBannerTitle: document.getElementById("hero-banner-title").value,
-        heroBannerTitleEn: document.getElementById("hero-banner-title-en").value,
-        heroBannerDescription: document.getElementById("hero-banner-description").value,
-        heroBannerDescriptionEn: document.getElementById("hero-banner-description-en").value,
-        heroBannerOriginalPrice: parseFloat(document.getElementById("hero-banner-original-price").value) || 0,
-        heroBannerDiscountedPrice: parseFloat(document.getElementById("hero-banner-discounted-price").value) || 0,
-        heroBannerCategory: document.getElementById("hero-banner-category").value,
+        heroBannerTitleEn: document.getElementById("hero-banner-title-en")
+          .value,
+        heroBannerDescription: document.getElementById(
+          "hero-banner-description"
+        ).value,
+        heroBannerDescriptionEn: document.getElementById(
+          "hero-banner-description-en"
+        ).value,
+        heroBannerOriginalPrice:
+          parseFloat(
+            document.getElementById("hero-banner-original-price").value
+          ) || 0,
+        heroBannerDiscountedPrice:
+          parseFloat(
+            document.getElementById("hero-banner-discounted-price").value
+          ) || 0,
+        heroBannerCategory: document.getElementById("hero-banner-category")
+          .value,
         heroBannerImage: document.getElementById("hero-banner-image").value,
       };
 
@@ -262,15 +330,18 @@
 
       if (result.success) {
         currentSettings = result.data;
-        
+
         // Update window.globalSettings with new currency value
         if (window.globalSettings) {
           window.globalSettings.currency = result.data.currency;
           window.globalSettings.currencyCode = result.data.currency;
         }
-        
-        showNotification(getTranslation("settingsSaved", "Settings saved successfully!"), "success");
-        
+
+        showNotification(
+          getTranslation("settingsSaved", "Settings saved successfully!"),
+          "success"
+        );
+
         // Broadcast settings update to all connected clients
         broadcastSettingsUpdate(result.data);
       } else {
@@ -279,7 +350,8 @@
     } catch (error) {
       console.error("Error saving global settings:", error);
       showNotification(
-        getTranslation("errorSavingSettings", "Error saving settings: ") + error.message,
+        getTranslation("errorSavingSettings", "Error saving settings: ") +
+          error.message,
         "error"
       );
     } finally {
@@ -300,19 +372,25 @@
       // Get CSRF token
       const csrfToken = await getCSRFToken();
 
-      const response = await fetch(`${API_BASE_URL}/global-settings/initialize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-CSRF-Token": csrfToken,
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/global-settings/initialize`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "X-CSRF-Token": csrfToken,
+          },
+        }
+      );
 
       const result = await response.json();
 
       if (result.success) {
-        showNotification(getTranslation("settingsReset", "Settings reset to default!"), "success");
+        showNotification(
+          getTranslation("settingsReset", "Settings reset to default!"),
+          "success"
+        );
         // Reload settings
         await loadGlobalSettings();
       } else {
@@ -321,7 +399,8 @@
     } catch (error) {
       console.error("Error resetting settings:", error);
       showNotification(
-        getTranslation("errorResettingSettings", "Error resetting settings: ") + error.message,
+        getTranslation("errorResettingSettings", "Error resetting settings: ") +
+          error.message,
         "error"
       );
     } finally {
@@ -334,11 +413,20 @@
     const defaultSettings = {
       workingHoursStart: "09:00",
       workingHoursEnd: "23:00",
-      workingDays: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+      workingDays: [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ],
       contactPhone: "",
       contactWhatsapp: "",
       contactEmail: "",
       currency: "EGP",
+      defaultLanguage: "ar",
       restaurantName: "Digital Menu",
       restaurantNameEn: "Digital Menu",
       restaurantAddress: "",
@@ -396,7 +484,13 @@
       top: 20px;
       right: 20px;
       padding: 15px 20px;
-      background: ${type === "success" ? "#42d158" : type === "error" ? "#dc3545" : "#17a2b8"};
+      background: ${
+        type === "success"
+          ? "#42d158"
+          : type === "error"
+          ? "#dc3545"
+          : "#17a2b8"
+      };
       color: white;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -426,44 +520,55 @@
   function broadcastSettingsUpdate(settings) {
     try {
       // Use BroadcastChannel API if available
-      if (typeof BroadcastChannel !== 'undefined') {
-        const channel = new BroadcastChannel('global-settings-channel');
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel("global-settings-channel");
         channel.postMessage({
-          type: 'settings-updated',
-          data: settings
+          type: "settings-updated",
+          data: settings,
         });
         channel.close();
-        console.log('Settings update broadcasted via BroadcastChannel');
+        console.log("Settings update broadcasted via BroadcastChannel");
       }
-      
+
       // Also use localStorage event as fallback
-      localStorage.setItem('global-settings-update', JSON.stringify({
-        timestamp: Date.now(),
-        settings: settings
-      }));
-      
+      localStorage.setItem(
+        "global-settings-update",
+        JSON.stringify({
+          timestamp: Date.now(),
+          settings: settings,
+        })
+      );
+
       // Dispatch custom event for same-page updates
-      window.dispatchEvent(new CustomEvent('global-settings-updated', {
-        detail: settings
-      }));
-      
-      console.log('Settings update broadcasted');
+      window.dispatchEvent(
+        new CustomEvent("global-settings-updated", {
+          detail: settings,
+        })
+      );
+
+      console.log("Settings update broadcasted");
     } catch (error) {
-      console.error('Error broadcasting settings update:', error);
+      console.error("Error broadcasting settings update:", error);
     }
   }
 
   // Hero Banner Preview Update Function
   function updateHeroBannerPreview() {
-    const language = localStorage.getItem('admin-language') || 'ar';
-    const title = language === 'en' 
-      ? document.getElementById("hero-banner-title-en").value 
-      : document.getElementById("hero-banner-title").value;
-    const description = language === 'en'
-      ? document.getElementById("hero-banner-description-en").value
-      : document.getElementById("hero-banner-description").value;
-    const originalPrice = document.getElementById("hero-banner-original-price").value;
-    const discountedPrice = document.getElementById("hero-banner-discounted-price").value;
+    const language = localStorage.getItem("admin-language") || "ar";
+    const title =
+      language === "en"
+        ? document.getElementById("hero-banner-title-en").value
+        : document.getElementById("hero-banner-title").value;
+    const description =
+      language === "en"
+        ? document.getElementById("hero-banner-description-en").value
+        : document.getElementById("hero-banner-description").value;
+    const originalPrice = document.getElementById(
+      "hero-banner-original-price"
+    ).value;
+    const discountedPrice = document.getElementById(
+      "hero-banner-discounted-price"
+    ).value;
     const imageUrl = document.getElementById("hero-banner-image").value;
     const currency = document.getElementById("currency-code")?.value || "EGP";
 
@@ -475,73 +580,82 @@
     const previewImage = document.querySelector(".preview-banner-image");
 
     if (previewTitle) previewTitle.textContent = title || "Delicious Burger";
-    if (previewDescription) previewDescription.textContent = description || "Fresh ingredients, amazing taste";
-    if (previewOriginal) previewOriginal.textContent = `${originalPrice || 75} ${currency}`;
-    if (previewDiscounted) previewDiscounted.textContent = `${discountedPrice || 55} ${currency}`;
-    
+    if (previewDescription)
+      previewDescription.textContent =
+        description || "Fresh ingredients, amazing taste";
+    if (previewOriginal)
+      previewOriginal.textContent = `${originalPrice || 75} ${currency}`;
+    if (previewDiscounted)
+      previewDiscounted.textContent = `${discountedPrice || 55} ${currency}`;
+
     if (previewImage && imageUrl) {
       previewImage.style.backgroundImage = `url('${imageUrl}')`;
-      previewImage.style.backgroundSize = 'cover';
-      previewImage.style.backgroundPosition = 'center';
+      previewImage.style.backgroundSize = "cover";
+      previewImage.style.backgroundPosition = "center";
     } else if (previewImage) {
-      previewImage.style.backgroundImage = '';
+      previewImage.style.backgroundImage = "";
     }
   }
 
   // Add event listeners for live preview updates
   function setupHeroBannerPreviewListeners() {
     const previewFields = [
-      'hero-banner-title',
-      'hero-banner-title-en',
-      'hero-banner-description',
-      'hero-banner-description-en',
-      'hero-banner-original-price',
-      'hero-banner-discounted-price',
-      'hero-banner-image',
-      'currency-code'
+      "hero-banner-title",
+      "hero-banner-title-en",
+      "hero-banner-description",
+      "hero-banner-description-en",
+      "hero-banner-original-price",
+      "hero-banner-discounted-price",
+      "hero-banner-image",
+      "currency-code",
     ];
 
-    previewFields.forEach(fieldId => {
+    previewFields.forEach((fieldId) => {
       const field = document.getElementById(fieldId);
       if (field) {
-        field.addEventListener('input', updateHeroBannerPreview);
-        field.addEventListener('change', updateHeroBannerPreview);
+        field.addEventListener("input", updateHeroBannerPreview);
+        field.addEventListener("change", updateHeroBannerPreview);
       }
     });
   }
 
   // Initialize preview listeners when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupHeroBannerPreviewListeners);
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      setupHeroBannerPreviewListeners
+    );
   } else {
     setupHeroBannerPreviewListeners();
   }
 
   // Sub-navigation tab switching
   function setupSubNavigation() {
-    const subnavButtons = document.querySelectorAll('.subnav-btn');
-    
-    subnavButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const targetTab = this.getAttribute('data-target');
-        
+    const subnavButtons = document.querySelectorAll(".subnav-btn");
+
+    subnavButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const targetTab = this.getAttribute("data-target");
+
         // Remove active class from all buttons and tabs
-        subnavButtons.forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.settings-tab').forEach(tab => tab.classList.remove('active'));
-        
+        subnavButtons.forEach((btn) => btn.classList.remove("active"));
+        document
+          .querySelectorAll(".settings-tab")
+          .forEach((tab) => tab.classList.remove("active"));
+
         // Add active class to clicked button and target tab
-        this.classList.add('active');
+        this.classList.add("active");
         const targetElement = document.getElementById(targetTab);
         if (targetElement) {
-          targetElement.classList.add('active');
+          targetElement.classList.add("active");
         }
       });
     });
   }
 
   // Initialize sub-navigation when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupSubNavigation);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupSubNavigation);
   } else {
     setupSubNavigation();
   }
