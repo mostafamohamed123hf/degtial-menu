@@ -1,4 +1,6 @@
 const Customer = require("../models/Customer");
+const Role = require("../models/Role");
+const mongoose = require("mongoose");
 
 // @desc    Get all customers with pagination, filtering and searching
 // @route   GET /api/customer/accounts
@@ -17,6 +19,34 @@ exports.getCustomers = async (req, res) => {
     // This is a simple approach - in a real app, you might want to use a 'test' flag in the database schema
     filter.email = { $not: { $regex: /(test|fake|demo|example)@/i } };
 
+    // Role/Status/Date filters
+    const { status, roleId, role, dateFrom, dateTo } = req.query;
+
+    if (status && (status === "active" || status === "suspended")) {
+      filter.status = status;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        if (!isNaN(from.getTime())) filter.createdAt.$gte = from;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        if (!isNaN(to.getTime())) {
+          to.setHours(23, 59, 59, 999);
+          filter.createdAt.$lte = to;
+        }
+      }
+    }
+
+    // Direct roleId filter
+    if (roleId && mongoose.isValidObjectId(roleId)) {
+      filter.roleId = roleId;
+    }
+
     // Add search
     if (req.query.search) {
       filter.$or = [
@@ -33,6 +63,42 @@ exports.getCustomers = async (req, res) => {
         { email: { $not: { $regex: /(test|fake|demo|example)@/i } } },
       ];
       delete filter.$or;
+    }
+
+    // Role filter by name if roleId not provided
+    let roleIdFilter = null;
+    if (!filter.roleId && role && role.trim() !== "") {
+      try {
+        const roleDocs = await Role.find({
+          $or: [
+            { name: { $regex: `^${role}$`, $options: "i" } },
+            { nameEn: { $regex: `^${role}$`, $options: "i" } },
+          ],
+        }).select("_id");
+        if (roleDocs && roleDocs.length > 0) {
+          roleIdFilter = roleDocs.map((r) => r._id);
+        }
+      } catch (e) {
+        console.warn("Role lookup failed:", e.message);
+      }
+
+      // Apply role filter across multiple possible fields
+      const roleOrClauses = [
+        { roleName: { $regex: `^${role}$`, $options: "i" } },
+        { roleNameEn: { $regex: `^${role}$`, $options: "i" } },
+        { roleIdString: { $regex: `^${role}$`, $options: "i" } },
+      ];
+      if (roleIdFilter) {
+        roleOrClauses.push({ roleId: { $in: roleIdFilter } });
+      }
+      if (filter.$and) {
+        filter.$and.push({ $or: roleOrClauses });
+      } else if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: roleOrClauses }];
+        delete filter.$or;
+      } else {
+        filter.$or = roleOrClauses;
+      }
     }
 
     // Execute query
@@ -270,3 +336,4 @@ exports.deleteCustomer = async (req, res) => {
     });
   }
 };
+    

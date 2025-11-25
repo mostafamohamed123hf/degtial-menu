@@ -931,11 +931,32 @@ class ApiService {
   }
 
   // Customer accounts methods
-  async getCustomerAccounts(page = 1, limit = 10, search = "") {
+  async getCustomerAccounts(page = 1, limit = 10, search = "", filters = {}) {
     let endpoint = `customer/accounts?page=${page}&limit=${limit}`;
     if (search) {
       endpoint += `&search=${encodeURIComponent(search)}`;
     }
+    // Append optional filters if provided
+    try {
+      if (filters && typeof filters === "object") {
+        const { status, roleId, role, dateFrom, dateTo } = filters;
+        if (status && status !== "all") {
+          endpoint += `&status=${encodeURIComponent(status)}`;
+        }
+        if (roleId && String(roleId).trim() !== "") {
+          endpoint += `&roleId=${encodeURIComponent(String(roleId))}`;
+        }
+        if (role && role.trim() !== "") {
+          endpoint += `&role=${encodeURIComponent(role)}`;
+        }
+        if (dateFrom && dateFrom.trim() !== "") {
+          endpoint += `&dateFrom=${encodeURIComponent(dateFrom)}`;
+        }
+        if (dateTo && dateTo.trim() !== "") {
+          endpoint += `&dateTo=${encodeURIComponent(dateTo)}`;
+        }
+      }
+    } catch (_) {}
 
     try {
       // Add timeout to prevent hanging indefinitely

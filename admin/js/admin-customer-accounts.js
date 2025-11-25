@@ -1119,10 +1119,23 @@ async function loadCustomerAccounts() {
     console.log(
       `Fetching customer accounts: page=${currentPage}, search=${currentSearch}`
     );
+    // Ensure filters are loaded before request so server-side filtering works
+    try {
+      if (!currentAccountFilters || typeof currentAccountFilters !== "object") {
+        const saved = localStorage.getItem("accountsFilters");
+        currentAccountFilters = saved
+          ? JSON.parse(saved)
+          : { status: "all", roleId: "", role: "", dateFrom: "", dateTo: "" };
+      }
+    } catch (_) {
+      currentAccountFilters = { status: "all", roleId: "", role: "", dateFrom: "", dateTo: "" };
+    }
+
     const response = await apiService.getCustomerAccounts(
       currentPage,
       10,
-      currentSearch
+      currentSearch,
+      currentAccountFilters
     );
 
     console.log("API Response:", response);
@@ -2925,9 +2938,15 @@ function handleFilterAccounts() {
           const fromEl = modalContent.querySelector("#accounts-filter-from");
           const toEl = modalContent.querySelector("#accounts-filter-to");
 
+          const selectedOption = roleEl.options[roleEl.selectedIndex];
+          const selectedRoleName = selectedOption
+            ? selectedOption.getAttribute("data-role-name") || ""
+            : "";
+
           currentAccountFilters = {
             status: statusEl.value,
-            role: roleEl.value,
+            roleId: roleEl.value || "",
+            role: selectedRoleName,
             dateFrom: fromEl.value,
             dateTo: toEl.value,
           };
@@ -2956,6 +2975,7 @@ function handleFilterAccounts() {
         .addEventListener("click", async () => {
           currentAccountFilters = {
             status: "all",
+            roleId: "",
             role: "",
             dateFrom: "",
             dateTo: "",
@@ -2992,12 +3012,13 @@ function handleFilterAccounts() {
         const roles = (rolesResp && rolesResp.data) || [];
         roles.forEach((r) => {
           if (!r) return;
-          // Use English name if available and language is English, otherwise use Arabic name
           const name = isEnglish && r.nameEn ? r.nameEn : r.name || r.roleName;
-          if (!name) return;
+          const id = r._id || r.id;
+          if (!name || !id) return;
           const opt = document.createElement("option");
-          opt.value = name;
+          opt.value = String(id);
           opt.textContent = name;
+          opt.setAttribute("data-role-name", name);
           roleSelect.appendChild(opt);
         });
       } catch (err) {
@@ -3024,7 +3045,19 @@ function handleFilterAccounts() {
           const roleElLate = accountsFilterModal.querySelector(
             "#accounts-filter-role"
           );
-          roleElLate.value = currentAccountFilters.role || "";
+          if (currentAccountFilters.roleId) {
+            roleElLate.value = currentAccountFilters.roleId;
+          } else if (currentAccountFilters.role) {
+            const targetName = (currentAccountFilters.role || "").toLowerCase();
+            const opts = roleElLate.options;
+            for (let i = 0; i < opts.length; i++) {
+              const n = (opts[i].getAttribute("data-role-name") || "").toLowerCase();
+              if (n === targetName) {
+                roleElLate.selectedIndex = i;
+                break;
+              }
+            }
+          }
         } catch (_) {}
       }, 300);
     } catch (e) {
@@ -3726,7 +3759,7 @@ function hasActiveAccountFilters(filters) {
 
 function applyClientCustomerFilters(customers, filters) {
   try {
-    const { status, role, dateFrom, dateTo } = filters || {};
+    const { status, roleId, role, dateFrom, dateTo } = filters || {};
     const fromTime = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : null;
     const toTime = dateTo ? new Date(dateTo).setHours(23, 59, 59, 999) : null;
 
@@ -3740,8 +3773,15 @@ function applyClientCustomerFilters(customers, filters) {
         if (status === "suspended" && !isSuspended) return false;
       }
 
-      // Role filter (by role name)
-      if (role && role.trim() !== "") {
+      // Role filter - prefer roleId if available, else use role name
+      if (roleId && String(roleId).trim() !== "") {
+        const cRoleId = customer.roleId
+          ? typeof customer.roleId === "object"
+            ? (customer.roleId._id || customer.roleId).toString()
+            : String(customer.roleId)
+          : "";
+        if (!cRoleId || cRoleId !== String(roleId)) return false;
+      } else if (role && role.trim() !== "") {
         const roleName = (getRoleName(customer) || "").toLowerCase();
         if (roleName !== role.toLowerCase()) return false;
       }
