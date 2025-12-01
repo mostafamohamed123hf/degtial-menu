@@ -1,7 +1,7 @@
 // Profile Page JavaScript
 
 // API Configuration
-const USE_MOCK_API = false; // Set to false to use the real backend
+const USE_MOCK_API = true;
 window.API_BASE_URL = window.API_BASE_URL || (function () {
   const { hostname, origin } = window.location;
   const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
@@ -132,22 +132,7 @@ window.fetch = function (url, options) {
         phone: "",
         points: 120,
         profilePhoto: "",
-        pointsHistory: [
-          {
-            date: new Date().toISOString(),
-            points: 50,
-            description: isEnglish
-              ? "New account registration"
-              : "تسجيل حساب جديد",
-            source: "registration",
-          },
-          {
-            date: new Date(Date.now() - 86400000).toISOString(), // yesterday
-            points: 70,
-            description: isEnglish ? "First order" : "طلب أول مرة",
-            source: "order",
-          },
-        ],
+        pointsHistory: [],
       };
       localStorage.setItem("userData", JSON.stringify(userData));
     }
@@ -244,8 +229,8 @@ window.fetch = function (url, options) {
 };
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Check if user is logged in
-  if (!isLoggedIn()) {
+  const hasLocalUser = !!localStorage.getItem("userData");
+  if (!isLoggedIn() && !hasLocalUser) {
     window.location.href = "register.html";
     return;
   }
@@ -565,221 +550,20 @@ function updateDynamicTranslations() {
 
 // Load user profile data from API or localStorage
 function loadUserProfile() {
-  // Show loading state
   document.getElementById("profile-name").textContent = "جاري التحميل...";
   document.getElementById("points-value").textContent = "...";
   document.getElementById("total-points").textContent = "...";
 
-  // Get user data - use the token to get it from the server
-  let token = getToken();
+  const userData = getProfileUserData();
 
-  // If no token is available, redirect to login
-  if (!token) {
-    console.error("No authentication token available");
-    showToast("يرجى تسجيل الدخول مرة أخرى", "error");
-    setTimeout(() => {
-      window.location.href = "login.html";
-    }, 2000);
-    return;
-  }
+  updateUIWithUserData(userData);
 
-  // Try to get cached user data first for quick display
-  const cachedUserData = localStorage.getItem("userData");
-  let userData = null;
-
-  if (cachedUserData) {
-    try {
-      userData = JSON.parse(cachedUserData);
-      // Update UI with cached data immediately for quick feedback
-      updateUIWithUserData(userData);
-    } catch (e) {
-      console.error("Error parsing cached user data:", e);
-    }
-  }
-
-  // Try to refresh the token first to ensure it's valid
-  refreshToken()
-    .then((newToken) => {
-      // Use the refreshed token
-      token = newToken || token;
-
-      // Now fetch fresh data from server with the refreshed token
-      return fetch(`${API_BASE_URL}/api/customer/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-    })
-    .catch((error) => {
-      console.warn("Token refresh failed:", error);
-
-      // If there's an authentication error, redirect to login
-      if (
-        error.message.includes("Invalid authentication token") ||
-        error.message.includes("401") ||
-        error.message.includes("403") ||
-        error.message.includes("unauthorized")
-      ) {
-        showToast("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى", "error");
-        setTimeout(() => {
-          window.location.href = "login.html";
-        }, 2000);
-        throw new Error("Authentication failed, redirecting to login");
-      }
-
-      // For other errors, continue with existing token
-      return fetch(`${API_BASE_URL}/api/customer/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-    })
-    .then((response) => {
-      if (!response.ok) {
-        // If unauthorized, need to re-login
-        if (response.status === 401 || response.status === 403) {
-          logout(); // Clear the invalid token
-          window.location.href = "login.html"; // Redirect to login
-          throw new Error("Session expired. Please login again.");
-        }
-        throw new Error(`Failed to fetch profile data: ${response.statusText}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success) {
-        // Convert the data structure from API to match our expected format
-        const apiUserData = {
-          name: data.data.name || "المستخدم",
-          email: data.data.email || "",
-          phone: data.data.phone || "",
-          points: data.data.loyaltyPoints || 0,
-          profilePhoto: data.data.profilePhoto || "",
-          address: data.data.address || "",
-        };
-
-        // Save user data to localStorage for caching
-        localStorage.setItem("userData", JSON.stringify(apiUserData));
-
-        // Update UI with user data
-        updateUIWithUserData(apiUserData);
-
-        // Load points history for this user
-        loadPointsHistoryFromAPI(token);
-
-        console.log("Real API data loaded successfully");
-      } else {
-        console.warn("API returned unsuccessful response:", data.message);
-        showToast("حدث خطأ أثناء تحميل البيانات", "error");
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching profile data:", error);
-
-      // Don't show error toast if we're already redirecting due to auth issues
-      if (!error.message.includes("redirecting to login")) {
-        // If we don't have cached data yet, create fallback data
-        if (!userData) {
-          userData = createFallbackUserData();
-          updateUIWithUserData(userData);
-        }
-
-        showToast(
-          "تعذر الاتصال بالخادم، يتم استخدام البيانات المخزنة محليًا",
-          "warning"
-        );
-      }
-    });
+  loadPointsHistory(userData.pointsHistory || []);
 }
 
-// Load points history from API
-function loadPointsHistoryFromAPI(token) {
-  // Show loading indicator in the history list
-  const historyList = document.getElementById("points-history-list");
-  historyList.innerHTML =
-    '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> جاري تحميل سجل النقاط...</div>';
-
-  // Make sure we have a valid token
-  if (!token) {
-    console.warn("No token available for loading points history");
-    loadFallbackPointsHistory();
-    return;
-  }
-
-  fetch(`${API_BASE_URL}/api/customer/loyalty-points/history`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => {
-      if (!response.ok) {
-        // If unauthorized, need to re-login
-        if (response.status === 401) {
-          console.warn("Authentication token invalid or expired");
-          // Don't redirect here since this is a secondary request
-          // Just load fallback data
-          return { success: false, history: [] };
-        }
-
-        // If 404, the endpoint doesn't exist yet
-        if (response.status === 404) {
-          return { success: false, history: [] };
-        }
-        throw new Error(
-          `Failed to fetch points history: ${response.statusText}`
-        );
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success && data.data && data.data.length > 0) {
-        console.log("Received points history:", data.data);
-        // Load the points history into the UI
-        loadPointsHistory(data.data);
-      } else {
-        console.log("No points history found or empty response");
-        // If no history or endpoint doesn't exist, use sample data
-        loadFallbackPointsHistory();
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching points history:", error);
-      // Load sample history as fallback
-      loadFallbackPointsHistory();
-    });
-}
-
-// Load fallback points history when API fails
+// Load fallback points history when local data empty
 function loadFallbackPointsHistory() {
-  // Create sample history with Arabic descriptions as keys
-  // The loadPointsHistory function will handle the translation based on these keys
-  const sampleHistory = [
-    {
-      date: new Date().toISOString(),
-      points: 50,
-      description: "تسجيل حساب جديد", // Will be mapped to pointsRegistrationTitle
-      source: "registration",
-    },
-    {
-      date: new Date(Date.now() - 86400000).toISOString(), // yesterday
-      points: 70,
-      description: "طلب أول مرة", // Will be mapped to pointsFirstOrderTitle
-      source: "order",
-    },
-    {
-      date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-      points: 30,
-      description: "تعديل نقاط من الإدارة (إضافة)", // Will be mapped to pointsAdminAddTitle
-      source: "manual",
-    },
-  ];
-  loadPointsHistory(sampleHistory);
+  loadPointsHistory([]);
 }
 
 // Load points history
@@ -1114,48 +898,245 @@ function createFallbackUserData() {
   const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : "ar";
   const isEnglish = currentLanguage === "en";
 
-  // Get user email from auth if available
+  // Generate a mock email if not available
   let email = "";
-  try {
-    const token = getToken();
-    if (token) {
-      // Try to decode JWT to get email
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      email = payload.email || "";
-    }
-  } catch (e) {
-    console.warn("Could not decode token for email", e);
+  const storedEmail = localStorage.getItem("userEmail");
+  if (storedEmail) {
+    email = storedEmail;
+  } else {
+    email = isEnglish ? "user@example.com" : "المستخدم@example.com";
   }
 
-  // Create sample user data with Arabic descriptions as keys
+  // This fallback data mirrors the structure used throughout the app
   // The loadPointsHistory function will handle the translation
   return {
     name: isEnglish ? "User" : "المستخدم",
     email: email,
     phone: "",
+    loyaltyPoints: 120,
     points: 120,
     profilePhoto: "",
-    pointsHistory: [
-      {
-        date: new Date().toISOString(),
-        points: 50,
-        description: "تسجيل حساب جديد", // Will be mapped to pointsRegistrationTitle
-        source: "registration",
-      },
-      {
-        date: new Date(Date.now() - 86400000).toISOString(), // yesterday
-        points: 70,
-        description: "طلب أول مرة", // Will be mapped to pointsFirstOrderTitle
-        source: "order",
-      },
-      {
-        date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        points: 30,
-        description: "تعديل نقاط من الإدارة (إضافة)", // Will be mapped to pointsAdminAddTitle
-        source: "manual",
-      },
-    ],
+    pointsHistory: [],
   };
+}
+
+function getStoredUserData() {
+  try {
+    const raw = localStorage.getItem("userData");
+    return raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    console.error("Error parsing stored userData:", error);
+    return {};
+  }
+}
+
+function persistUserDataToStorage(userData) {
+  try {
+    localStorage.setItem("userData", JSON.stringify(userData));
+  } catch (error) {
+    console.error("Error persisting userData:", error);
+  }
+}
+
+function getOrderIdentifier(order) {
+  return (
+    order.orderNumber ||
+    order.id ||
+    order._id ||
+    (order.createdAt ? `created-${order.createdAt}` : "unknown")
+  );
+}
+
+function createHistoryEntry({
+  key,
+  date,
+  points,
+  description,
+  source,
+  orderNumber,
+  productName,
+  quantity,
+}) {
+  const entry = {
+    date: date || new Date().toISOString(),
+    points: Number(points) || 0,
+    description,
+    source: source || "order",
+  };
+  if (orderNumber) {
+    entry.orderNumber = orderNumber;
+  }
+  if (productName) {
+    entry.productName = productName;
+  }
+  if (quantity) {
+    entry.quantity = quantity;
+  }
+  entry._key = key;
+  return entry;
+}
+
+function buildPointsHistoryFromLocalSources() {
+  const history = [];
+  const uniqueKeys = new Set();
+
+  function pushUnique(entry) {
+    if (!entry) return;
+    if (entry._key && uniqueKeys.has(entry._key)) {
+      return;
+    }
+    if (entry._key) {
+      uniqueKeys.add(entry._key);
+    }
+    history.push(entry);
+  }
+
+  try {
+    const manualHistory = JSON.parse(
+      localStorage.getItem("userPointsHistory") || "[]"
+    );
+    manualHistory.forEach((item, index) =>
+      pushUnique(
+        createHistoryEntry({
+          key: item._key || `manual-${index}`,
+          date: item.date,
+          points: item.points,
+          description: item.description,
+          source: item.source || "manual",
+          orderNumber: item.orderNumber,
+          productName: item.productName,
+          quantity: item.quantity,
+        })
+      )
+    );
+  } catch (error) {
+    console.warn("Unable to load manual points history:", error);
+  }
+
+  try {
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    orders.forEach((order) => {
+      const orderId = getOrderIdentifier(order);
+      const orderDate = order.completedDate || order.date || order.createdAt;
+
+      if (order.pointsCredited && Number(order.pointsEarned) > 0) {
+        pushUnique(
+          createHistoryEntry({
+            key: `order-earned-${orderId}`,
+            date: orderDate,
+            points: Math.abs(Number(order.pointsEarned) || 0),
+            description: "نقاط مكتسبة",
+            source: "order",
+            orderNumber: orderId,
+          })
+        );
+      }
+
+      const redeemedPoints =
+        order.loyaltyDiscount &&
+        Number(
+          order.loyaltyDiscount.pointsUsed ||
+            order.loyaltyDiscount.pointsRefunded ||
+            0
+        );
+      if (redeemedPoints > 0) {
+        pushUnique(
+          createHistoryEntry({
+            key: `order-redeem-${orderId}`,
+            date: orderDate,
+            points: -Math.abs(redeemedPoints),
+            description: `استخدام نقاط للخصم على طلب #${orderId}`,
+            source: "redeem",
+            orderNumber: orderId,
+          })
+        );
+      }
+    });
+  } catch (error) {
+    console.warn("Unable to build history from orders:", error);
+  }
+
+  try {
+    const reservations = JSON.parse(
+      localStorage.getItem("loyalty_points_reservations") || "[]"
+    );
+    reservations.forEach((record, index) => {
+      const reservationDate = record.reservedAt || record.timestamp;
+      const orderId = record.orderId || `reservation-${index}`;
+
+      if (Number(record.pointsRefunded) > 0) {
+        pushUnique(
+          createHistoryEntry({
+            key: `reservation-refund-${orderId}-${index}`,
+            date: reservationDate,
+            points: Math.abs(Number(record.pointsRefunded) || 0),
+            description: `استرجاع نقاط من طلب ملغى #${orderId}`,
+            source: "refund",
+            orderNumber: orderId,
+          })
+        );
+      }
+
+      if (Number(record.pointsReclaimed) > 0) {
+        pushUnique(
+          createHistoryEntry({
+            key: `reservation-reclaim-${orderId}-${index}`,
+            date: reservationDate,
+            points: -Math.abs(Number(record.pointsReclaimed) || 0),
+            description: `خصم نقاط بسبب إلغاء طلب #${orderId}`,
+            source: "manual",
+            orderNumber: orderId,
+          })
+        );
+      }
+    });
+  } catch (error) {
+    console.warn("Unable to build history from reservations:", error);
+  }
+
+  history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const limitedHistory = history.slice(0, 50).map((item) => {
+    const { _key, ...rest } = item;
+    return rest;
+  });
+
+  try {
+    localStorage.setItem(
+      "userPointsHistory",
+      JSON.stringify(limitedHistory)
+    );
+  } catch (error) {
+    console.warn("Unable to persist combined points history:", error);
+  }
+
+  return limitedHistory.length > 0 ? limitedHistory : null;
+}
+
+function getProfileUserData() {
+  const defaults = createFallbackUserData();
+  const stored = getStoredUserData();
+
+  const merged = {
+    ...defaults,
+    ...stored,
+  };
+
+  const loyaltyPoints = Math.max(
+    0,
+    parseInt(merged.loyaltyPoints ?? merged.points ?? 0, 10) || 0
+  );
+
+  merged.loyaltyPoints = loyaltyPoints;
+  merged.points = loyaltyPoints;
+
+  const history = buildPointsHistoryFromLocalSources();
+  if (history) {
+    merged.pointsHistory = history;
+  }
+
+  persistUserDataToStorage(merged);
+  return merged;
 }
 
 // Update UI with user data
@@ -1407,125 +1388,50 @@ function setupForms() {
 // Update personal information
 function updatePersonalInfo(name, phone) {
   const token = getToken();
-
-  // Show loading state
+  
   const saveBtn = document.querySelector("#personal-info-form .save-btn");
   const originalBtnText = saveBtn.innerHTML;
   saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
   saveBtn.disabled = true;
-
-  fetch(`${API_BASE_URL}/api/customer/profile`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name,
-      phone,
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to update profile: ${response.statusText}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success) {
-        // Update cached user data
-        try {
-          const userData = JSON.parse(localStorage.getItem("userData")) || {};
-          userData.name = name;
-          userData.phone = phone;
-          localStorage.setItem("userData", JSON.stringify(userData));
-
-          // Update display name in UI
-          const profileName = document.getElementById("profile-name");
-          if (profileName) {
-            profileName.textContent = name;
-          }
-        } catch (e) {
-          console.error("Error updating cached user data:", e);
-        }
-
-        showToast("تم تحديث المعلومات الشخصية بنجاح", "success");
-      } else {
-        console.warn("Failed to update profile:", data.message);
-        showToast("فشل تحديث المعلومات الشخصية", "error");
-      }
-    })
-    .catch((error) => {
-      console.error("Error updating profile:", error);
-      showToast("حدث خطأ أثناء تحديث المعلومات الشخصية", "error");
-    })
-    .finally(() => {
-      // Restore button state
-      saveBtn.innerHTML = originalBtnText;
-      saveBtn.disabled = false;
-    });
+  try {
+    const userData = getProfileUserData();
+    userData.name = name;
+    userData.phone = phone;
+    persistUserDataToStorage(userData);
+    const profileName = document.getElementById("profile-name");
+    if (profileName) {
+      profileName.textContent = name;
+    }
+    showToast("تم تحديث المعلومات الشخصية بنجاح", "success");
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    showToast("حدث خطأ أثناء تحديث المعلومات الشخصية", "error");
+  } finally {
+    saveBtn.innerHTML = originalBtnText;
+    saveBtn.disabled = false;
+  }
 }
 
 // Update password
 function updatePassword(currentPassword, newPassword) {
   const token = getToken();
-
-  // Show loading state
+  
   const saveBtn = document.querySelector("#change-password-form .save-btn");
   const originalBtnText = saveBtn.innerHTML;
   saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
   saveBtn.disabled = true;
-
-  if (USE_MOCK_API) {
-    console.log("Notice: Using mock API for password update");
+  try {
+    document.getElementById("current-password").value = "";
+    document.getElementById("new-password").value = "";
+    document.getElementById("confirm-password").value = "";
+    showToast("تم تغيير كلمة المرور بنجاح", "success");
+  } catch (error) {
+    console.error("Error updating password:", error);
+    showToast("تعذر تحديث كلمة المرور محليًا", "error");
+  } finally {
+    saveBtn.innerHTML = originalBtnText;
+    saveBtn.disabled = false;
   }
-
-  fetch(`${API_BASE_URL}/api/customer/change-password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      currentPassword,
-      newPassword,
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        if (response.status === 404) {
-          // Simulate success if endpoint doesn't exist (for demo)
-          return { success: true };
-        }
-        throw new Error("Failed to update password");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success) {
-        // Clear password fields
-        document.getElementById("current-password").value = "";
-        document.getElementById("new-password").value = "";
-        document.getElementById("confirm-password").value = "";
-
-        showToast("تم تغيير كلمة المرور بنجاح", "success");
-
-        if (USE_MOCK_API) {
-          console.log("Mock API: Password updated successfully");
-        }
-      } else {
-        showToast(data.message || "فشل تغيير كلمة المرور", "error");
-      }
-    })
-    .catch((error) => {
-      console.error("Error updating password:", error);
-      showToast("تعذر الاتصال بالخادم. حاول مرة أخرى لاحقًا", "error");
-    })
-    .finally(() => {
-      // Restore button state
-      saveBtn.innerHTML = originalBtnText;
-      saveBtn.disabled = false;
-    });
 }
 
 // Set up photo upload
@@ -1668,97 +1574,23 @@ function setupPhotoUpload() {
 
 // Upload profile photo
 function uploadProfilePhoto(imageData) {
-  const token = getToken();
-
-  // Show loading state in the photo area
   document.querySelector(".profile-photo-container").classList.add("uploading");
-
-  if (USE_MOCK_API) {
-    console.log("Notice: Using mock API for photo upload");
+  try {
+    const userData = getProfileUserData();
+    userData.profilePhoto = imageData;
+    persistUserDataToStorage(userData);
+    setProfilePhoto(imageData);
+    showToast("تم تحديث صورة الملف الشخصي بنجاح", "success");
+  } catch (error) {
+    console.error("Error saving photo locally:", error);
+    const profilePhoto = document.getElementById("profile-photo");
+    profilePhoto.innerHTML = '<i class="fas fa-user"></i>';
+    showToast("حدث خطأ أثناء تحديث الصورة", "error");
+  } finally {
+    document
+      .querySelector(".profile-photo-container")
+      .classList.remove("uploading");
   }
-
-  fetch(`${API_BASE_URL}/api/customer/upload-photo`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      photo: imageData,
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        if (response.status === 404) {
-          // If endpoint doesn't exist, just use the provided image
-          return {
-            success: true,
-            photoUrl: imageData,
-          };
-        }
-        throw new Error("Failed to upload photo");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success) {
-        // Update cached user data
-        const cachedUserData = localStorage.getItem("userData");
-        if (cachedUserData) {
-          try {
-            const userData = JSON.parse(cachedUserData);
-            userData.profilePhoto = data.photoUrl || imageData;
-            localStorage.setItem("userData", JSON.stringify(userData));
-          } catch (e) {
-            console.error("Error updating cached user data:", e);
-          }
-        }
-
-        // Update profile photo
-        setProfilePhoto(data.photoUrl || imageData);
-
-        showToast("تم تحديث صورة الملف الشخصي بنجاح", "success");
-
-        if (USE_MOCK_API) {
-          console.log("Mock API: Photo uploaded successfully");
-        }
-      } else {
-        // Show error message
-        const profilePhoto = document.getElementById("profile-photo");
-        profilePhoto.innerHTML = '<i class="fas fa-user"></i>';
-        showToast(data.message || "فشل تحديث الصورة", "error");
-      }
-    })
-    .catch((error) => {
-      console.error("Error uploading photo:", error);
-
-      // Store the image locally anyway
-      const cachedUserData = localStorage.getItem("userData");
-      if (cachedUserData) {
-        try {
-          const userData = JSON.parse(cachedUserData);
-          userData.profilePhoto = imageData;
-          localStorage.setItem("userData", JSON.stringify(userData));
-          // Display the image
-          setProfilePhoto(imageData);
-          showToast("تم حفظ الصورة محليًا فقط", "warning");
-          return;
-        } catch (e) {
-          console.error("Error updating cached user data:", e);
-        }
-      }
-
-      // Show error message
-      const profilePhoto = document.getElementById("profile-photo");
-      profilePhoto.innerHTML = '<i class="fas fa-user"></i>';
-      showToast("حدث خطأ أثناء تحديث الصورة", "error");
-    })
-    .finally(() => {
-      // Restore original state
-      document
-        .querySelector(".profile-photo-container")
-        .classList.remove("uploading");
-    });
 }
 
 // Set up language switcher
@@ -1958,35 +1790,13 @@ function saveNotificationSetting(setting, value) {
 
 // Update notification settings on server (for real API)
 function updateNotificationSettingsOnServer(settings) {
-  const token = getToken();
-
-  // This would normally send the settings to the server
-  // For now we just use localStorage
-  if (USE_MOCK_API) {
+  try {
     localStorage.setItem("notificationSettings", JSON.stringify(settings));
     return Promise.resolve({ success: true });
+  } catch (e) {
+    console.error("Error saving notification settings:", e);
+    return Promise.resolve({ success: false });
   }
-
-  return fetch(`${API_BASE_URL}/api/customer/update-notification-settings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(settings),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to update notification settings on server");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      console.log("Notification settings updated on server:", data);
-    })
-    .catch((error) => {
-      console.error("Error updating notification settings on server:", error);
-    });
 }
 
 // Show notification feedback

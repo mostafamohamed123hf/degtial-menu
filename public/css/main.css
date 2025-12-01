@@ -6146,7 +6146,7 @@ body.light-mode .profile-decorative-line {
 
 .toast-container.toast-center {
 }
-}
+
 
 .toast {
   background-color: var(--card-bg);
@@ -6274,7 +6274,7 @@ body.light-mode .profile-decorative-line {
     min-width: 0;
     max-width: 100%;
   }
-}
+
 
 /* Toast animations */
 @keyframes toast-in {
@@ -6816,6 +6816,17 @@ html[dir="rtl"] input::placeholder {
 html[dir="rtl"] .language-switcher {
   margin-left: 10px;
   margin-right: 0;
+}
+
+.sidebar-settings {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-language-switcher {
+  width: 100%;
+  justify-content: center;
 }
 
 /* Light mode language switcher */

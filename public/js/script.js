@@ -606,63 +606,38 @@ function checkForRecentlyCompletedOrders() {
 
       // Only show rating modal if the order was completed in the last 30 minutes (increased from 5)
       if (currentTime - orderTimestamp < 30 * 60 * 1000) {
-        const apiBase = window.API_BASE_URL || window.location.origin;
+        const orderId = lastCompletedOrder.orderId;
 
-        // Always show rating on index page
         if (isIndexPage()) {
           console.log(
-            "Found recent completed order on index page, checking if it needs rating"
+            "Found recent completed order on index page, verifying completion before prompting for rating"
           );
 
-          // First check if the order is already rated
-          const orderId = lastCompletedOrder.orderId;
+          let isRated = false;
+          try {
+            const ratingsArr = JSON.parse(localStorage.getItem("ratings") || "[]");
+            isRated = ratingsArr.some((r) => String(r.orderId) === String(orderId));
+          } catch (_) {}
 
-          // Check with the server if the order is already rated
-          fetch(`${apiBase}/api/orders/${orderId}`)
-            .then((response) => response.json())
-            .then((data) => {
-              // Only prompt for rating if the order exists and is not rated
-              if (
-                data.success &&
-                data.data &&
-                data.data.isRated !== true &&
-                data.data.status === "completed"
-              ) {
-                // Wait a bit to ensure page is fully loaded
-                setTimeout(() => {
-                  if (typeof promptRatingForCompletedOrder === "function") {
-                    promptRatingForCompletedOrder(orderId);
-                  } else {
-                    showRatingModalForOrder(orderId);
-                  }
-                }, 2000);
-              } else if (
-                data.success &&
-                data.data &&
-                data.data.isRated === true
-              ) {
-                console.log(
-                  `Order ${orderId} is already rated, not showing rating modal`
-                );
-              } else if (
-                data.success &&
-                data.data &&
-                data.data.status !== "completed"
-              ) {
-                startOrderCompletionPoll(orderId);
+          const ordersArr = JSON.parse(localStorage.getItem("orders") || "[]");
+          const matchingOrder = ordersArr.find((o) => {
+            const oid = o.orderNumber || o.orderId || o.id || o._id;
+            return String(oid) === String(orderId);
+          });
+
+          const isCompleted = matchingOrder && matchingOrder.status === "completed";
+
+          if (!isRated && isCompleted) {
+            setTimeout(() => {
+              if (typeof promptRatingForCompletedOrder === "function") {
+                promptRatingForCompletedOrder(orderId);
+              } else {
+                showRatingModalForOrder(orderId);
               }
-            })
-            .catch((error) => {
-              console.error("Error checking order rating status:", error);
-              // Fallback to the original behavior if there's an error
-              setTimeout(() => {
-                if (typeof promptRatingForCompletedOrder === "function") {
-                  promptRatingForCompletedOrder(lastCompletedOrder.orderId);
-                } else {
-                  showRatingModalForOrder(lastCompletedOrder.orderId);
-                }
-              }, 2000);
-            });
+            }, 2000);
+          } else if (isRated) {
+            console.log(`Order ${orderId} already rated; skipping rating modal.`);
+          }
 
           return;
         }
@@ -687,7 +662,7 @@ function checkForRecentlyCompletedOrders() {
     }
 
     // Order completion tracking is now handled via database API calls only
-    console.log("Order completion tracking via database API only");
+    console.log("Order completion tracking via local data only");
   } catch (error) {
     console.error("Error checking for recently completed orders:", error);
   }
@@ -698,25 +673,33 @@ function startOrderCompletionPoll(orderId) {
   try {
     if (!orderId) return;
     if (__orderStatusPollers[orderId]) return;
-    const apiBase = window.API_BASE_URL || window.location.origin;
     const intervalId = setInterval(async () => {
       try {
-        const res = await fetch(`${apiBase}/api/orders/${orderId}`);
-        if (res && res.ok) {
-          const data = await res.json();
-          if (
-            data &&
-            data.success &&
-            data.data &&
-            data.data.status === "completed"
-          ) {
-            clearInterval(__orderStatusPollers[orderId]);
-            delete __orderStatusPollers[orderId];
-            if (typeof promptRatingForCompletedOrder === "function") {
-              promptRatingForCompletedOrder(orderId);
-            } else if (typeof showRatingModalForOrder === "function") {
-              showRatingModalForOrder(orderId);
-            }
+        let statusCompleted = false;
+        try {
+          const ordersArr = JSON.parse(localStorage.getItem('orders') || '[]');
+          const order = ordersArr.find((o) => {
+            const oid = o.orderNumber || o.orderId || o.id || o._id;
+            return String(oid) === String(orderId);
+          });
+          statusCompleted = !!(order && order.status === 'completed');
+        } catch (_) {}
+        if (!statusCompleted) {
+          const lastCompletedOrderStr = sessionStorage.getItem('lastCompletedOrder');
+          if (lastCompletedOrderStr) {
+            try {
+              const lastCompletedOrder = JSON.parse(lastCompletedOrderStr);
+              statusCompleted = String(lastCompletedOrder.orderId) === String(orderId);
+            } catch (_) {}
+          }
+        }
+        if (statusCompleted) {
+          clearInterval(__orderStatusPollers[orderId]);
+          delete __orderStatusPollers[orderId];
+          if (typeof promptRatingForCompletedOrder === 'function') {
+            promptRatingForCompletedOrder(orderId);
+          } else if (typeof showRatingModalForOrder === 'function') {
+            showRatingModalForOrder(orderId);
           }
         }
       } catch (_) {}
@@ -727,241 +710,74 @@ function startOrderCompletionPoll(orderId) {
 
 // Show rating modal for a completed order when rating.js is not available
 function showRatingModalForOrder(orderId) {
-  // First check if products have already been rated
-  const apiBase = window.API_BASE_URL || window.location.origin;
-  fetch(`${apiBase}/api/ratings/order/${orderId}/products`, {
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => response.json())
-    .then((ratingData) => {
-      const alreadyRatedProducts = ratingData.success
-        ? ratingData.ratedProducts
-        : {};
-
-      // Now fetch order details
-      return fetch(`${apiBase}/api/orders/${orderId}`, {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }).then((response) => ({ response, alreadyRatedProducts }));
-    })
-    .then(({ response, alreadyRatedProducts }) => {
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
+  try {
+    const ratingsArr = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const ratedSet = new Set(
+      ratingsArr
+        .filter((r) => String(r.orderId) === String(orderId))
+        .map((r) => (String(r.productId).includes('-') ? String(r.productId).split('-')[0] : String(r.productId)))
+    );
+    let orderObj = null;
+    try {
+      const ordersArr = JSON.parse(localStorage.getItem('orders') || '[]');
+      orderObj = ordersArr.find((o) => {
+        const oid = o.orderNumber || o.orderId || o.id || o._id;
+        return String(oid) === String(orderId);
+      }) || null;
+    } catch (_) {}
+    if (!orderObj) {
+      const lastCompletedOrderStr = sessionStorage.getItem('lastCompletedOrder');
+      if (lastCompletedOrderStr) {
+        try {
+          orderObj = JSON.parse(lastCompletedOrderStr);
+        } catch (_) {}
       }
-      return response.json().then((data) => ({ data, alreadyRatedProducts }));
-    })
-    .then(async ({ data, alreadyRatedProducts }) => {
-      if (
-        data.success &&
-        data.data &&
-        data.data.items &&
-        data.data.items.length > 0
-      ) {
-        // Filter out already rated products
-        const unratedItems = data.data.items.filter((item) => {
-          const itemId = item.id || item.productId || item._id;
-          const baseItemId =
-            itemId && itemId.includes("-") ? itemId.split("-")[0] : itemId;
-          const isAlreadyRated =
-            alreadyRatedProducts[baseItemId] || alreadyRatedProducts[itemId];
-
-          if (isAlreadyRated) {
-            console.log(
-              `Product ${baseItemId} already rated (script.js), skipping`
-            );
-            return false;
-          }
-          return true;
-        });
-
-        // Check if there are any items left to rate
-        if (unratedItems.length === 0) {
-          console.log(
-            "All products in this order have already been rated (script.js)"
-          );
-          return;
-        }
-
-        // Get the first unrated item from the order
-        const firstItem = unratedItems[0];
-        const itemId = firstItem.id || firstItem.productId || firstItem._id;
-
-        // If the item doesn't have an image or has a placeholder, fetch the complete product data
-        if (
-          !firstItem.image ||
-          firstItem.image === "" ||
-          firstItem.image.includes("placeholder")
-        ) {
-          try {
-            // Extract the base product ID by removing any suffix after a dash
-            let baseItemId = itemId;
-            if (baseItemId && baseItemId.includes("-")) {
-              baseItemId = baseItemId.split("-")[0];
-              console.log(
-                `Using base product ID for API request: ${baseItemId}`
-              );
-            }
-
-            console.log(`Fetching complete product data for ${baseItemId}`);
-            const productResponse = await fetch(
-              `${apiBase}/api/products/${baseItemId}`
-            );
-
-            if (productResponse.ok) {
-              const productData = await productResponse.json();
-
-              if (productData.success && productData.data) {
-                // Update item with product data
-                firstItem.image = productData.data.image || firstItem.image;
-
-                // Also update other properties if needed
-                if (!firstItem.name) firstItem.name = productData.data.name;
-                if (!firstItem.price) firstItem.price = productData.data.price;
-
-                console.log(`Updated item with product data: ${itemId}`);
-              }
-            }
-          } catch (fetchError) {
-            console.error(`Error fetching product details: ${fetchError}`);
-          }
-        }
-
-        // Cache the item's image in sessionStorage if it has one
-        if (itemId && firstItem.image) {
-          try {
-            const productImages = JSON.parse(
-              sessionStorage.getItem("productImages") || "{}"
-            );
-            productImages[itemId] = firstItem.image;
-            sessionStorage.setItem(
-              "productImages",
-              JSON.stringify(productImages)
-            );
-            console.log(
-              `Saved image for product ${itemId} in sessionStorage for rating modal`
-            );
-          } catch (err) {
-            console.error(
-              "Error storing product image in sessionStorage:",
-              err
-            );
-          }
-        }
-
-        showRatingModal(firstItem.id, firstItem, orderId);
-      } else {
-        throw new Error("No items found in this order");
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching order details for rating:", error);
-
-      // Try to use the last completed order from sessionStorage as fallback
-      try {
-        const lastCompletedOrderStr =
-          sessionStorage.getItem("lastCompletedOrder");
-        if (lastCompletedOrderStr) {
-          const lastCompletedOrder = JSON.parse(lastCompletedOrderStr);
-          if (lastCompletedOrder.items && lastCompletedOrder.items.length > 0) {
-            const firstItem = lastCompletedOrder.items[0];
-            const itemId = firstItem.id || firstItem.productId || firstItem._id;
-
-            // Try to fetch product details even when using the fallback
-            if (
-              itemId &&
-              (!firstItem.image ||
-                firstItem.image === "" ||
-                firstItem.image.includes("placeholder"))
-            ) {
-              // Extract base product ID for API request
-              let baseItemId = itemId;
-              if (baseItemId && baseItemId.includes("-")) {
-                baseItemId = baseItemId.split("-")[0];
-                console.log(
-                  `Using base product ID for fallback API request: ${baseItemId}`
-                );
-              }
-
-              // Try to fetch the product details
-              fetch(`http://localhost:5000/api/products/${baseItemId}`)
-                .then((res) => (res.ok ? res.json() : null))
-                .then((productData) => {
-                  if (productData && productData.success && productData.data) {
-                    // Update the item with product data
-                    firstItem.image = productData.data.image || firstItem.image;
-
-                    // Store in sessionStorage
-                    if (itemId && firstItem.image) {
-                      try {
-                        const productImages = JSON.parse(
-                          sessionStorage.getItem("productImages") || "{}"
-                        );
-                        productImages[itemId] = firstItem.image;
-                        sessionStorage.setItem(
-                          "productImages",
-                          JSON.stringify(productImages)
-                        );
-                      } catch (err) {
-                        console.error(
-                          "Error storing product image from fallback:",
-                          err
-                        );
-                      }
-                    }
-
-                    // Show the modal with updated data
-                    showRatingModal(firstItem.id, firstItem, orderId);
-                  } else {
-                    // Show modal with existing data if API fails
-                    showRatingModal(firstItem.id, firstItem, orderId);
-                  }
-                })
-                .catch(() => {
-                  // Show modal with existing data if fetch fails
-                  showRatingModal(firstItem.id, firstItem, orderId);
-                });
-            } else {
-              // Store the image in sessionStorage
-              if (itemId && firstItem.image) {
-                try {
-                  const productImages = JSON.parse(
-                    sessionStorage.getItem("productImages") || "{}"
-                  );
-                  productImages[itemId] = firstItem.image;
-                  sessionStorage.setItem(
-                    "productImages",
-                    JSON.stringify(productImages)
-                  );
-                  console.log(
-                    `Saved image from lastCompletedOrder for product ${itemId}`
-                  );
-                } catch (err) {
-                  console.error(
-                    "Error storing product image from lastCompletedOrder:",
-                    err
-                  );
-                }
-              }
-
-              showRatingModal(firstItem.id, firstItem, orderId);
-            }
-          } else {
-            // Show a generic modal if no items found
-            showToast("تعذر عرض نموذج التقييم. يرجى المحاولة لاحقاً.", "error");
-          }
-        } else {
-          showToast("تعذر عرض نموذج التقييم. يرجى المحاولة لاحقاً.", "error");
-        }
-      } catch (fallbackError) {
-        console.error("Error using fallback for order rating:", fallbackError);
-        showToast("تعذر عرض نموذج التقييم. يرجى المحاولة لاحقاً.", "error");
-      }
+    }
+    if (!orderObj || !Array.isArray(orderObj.items) || orderObj.items.length === 0) {
+      showToast("تعذر عرض نموذج التقييم. يرجى المحاولة لاحقاً.", "error");
+      return;
+    }
+    const productsArr = JSON.parse(localStorage.getItem('products') || '[]');
+    const pmap = {};
+    productsArr.forEach((p) => {
+      if (p.id) pmap[p.id] = p;
+      if (p._id) pmap[p._id] = p;
+      if (p.name) pmap[String(p.name).toLowerCase()] = p;
     });
+    const enhancedItems = orderObj.items.map((item) => {
+      if (!item.image || item.image === '' || String(item.image).includes('placeholder')) {
+        const match =
+          (item.id && pmap[item.id]) ||
+          (item.productId && pmap[item.productId]) ||
+          (item.name && pmap[String(item.name).toLowerCase()]);
+        if (match && match.image) {
+          return { ...item, image: match.image };
+        }
+      }
+      return item;
+    });
+    const unratedItems = enhancedItems.filter((item) => {
+      const pid = item.id || item.productId || item._id;
+      const basePid = pid && String(pid).includes('-') ? String(pid).split('-')[0] : pid;
+      return !ratedSet.has(String(basePid)) && !ratedSet.has(String(pid));
+    });
+    if (unratedItems.length === 0) {
+      showToast("تم تقييم جميع منتجات هذا الطلب مسبقاً", "info");
+      return;
+    }
+    const firstItem = unratedItems[0];
+    const itemId = firstItem.id || firstItem.productId || firstItem._id;
+    if (itemId && firstItem.image) {
+      try {
+        const productImages = JSON.parse(sessionStorage.getItem('productImages') || '{}');
+        productImages[itemId] = firstItem.image;
+        sessionStorage.setItem('productImages', JSON.stringify(productImages));
+      } catch (_) {}
+    }
+    showRatingModal(firstItem.id, firstItem, orderId);
+  } catch (error) {
+    showToast("تعذر عرض نموذج التقييم. يرجى المحاولة لاحقاً.", "error");
+  }
 }
 
 // Function to add rating functionality to a product card
@@ -1249,71 +1065,27 @@ function showRatingModal(productId, productData = null, orderId = null) {
 async function submitOrderRating(orderId, productId, rating, comment) {
   try {
     showToast("جاري إرسال التقييم...", "info");
-
-    // First, submit the rating to the server
-    const response = await fetch(`/api/ratings`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        orderId: orderId,
-        productId: productId,
-        rating: rating,
-        comment: comment,
-        customerId: getCustomerId(), // Get customer ID if available
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      // Handle specific error cases
-      if (
-        response.status === 400 &&
-        data.message &&
-        (data.message.includes("already been rated") ||
-          data.message.includes("This order has already been rated"))
-      ) {
-        showToast("تم تقييم هذا الطلب مسبقاً", "info");
-        // Show existing ratings modal
-        if (typeof window.showExistingRatingsModal === "function") {
-          window.showExistingRatingsModal(orderId);
-        }
-        return;
-      }
-      throw new Error(data.message || "Error submitting rating to server");
-    }
-
-    // If server update successful, then update UI with the server-returned average
-    if (data.success && data.data && data.data.averageRating) {
-      // Use the server's calculated average rating
-      const serverAverage = data.data.averageRating;
-
-      // Update product rating in UI
-      updateProductRatingDisplay(productId, serverAverage);
-
-      // Order rating status is now tracked in database only
-
-      // Show confirmation
-      showToast(`تم تقييم الطلب بنجاح (${rating}/5)`, "success");
-
-      // Disable rating in Previous Orders UI if present
-      try {
-        swapOrderRatingButtonToChip(orderId);
-      } catch (_) {}
-    } else {
-      // No fallback - ratings are managed by database only
-      console.log("Rating processed by database, no local calculation needed");
-
-      // Show confirmation
-      showToast(`تم تقييم الطلب بنجاح (${rating}/5)`, "success");
-
-      // Disable rating UI as above when no average returned
-      try {
-        swapOrderRatingButtonToChip(orderId);
-      } catch (_) {}
-    }
+    const saved = localStorage.getItem('ratings');
+    const arr = saved ? JSON.parse(saved) : [];
+    const record = {
+      orderId,
+      productId,
+      rating,
+      comment,
+      customerId: getCustomerId(),
+      timestamp: new Date().toISOString(),
+    };
+    arr.push(record);
+    localStorage.setItem('ratings', JSON.stringify(arr));
+    const productRatings = arr.filter((r) => String(r.productId) === String(productId));
+    const avg = productRatings.length
+      ? productRatings.reduce((s, r) => s + (parseFloat(r.rating) || 0), 0) / productRatings.length
+      : parseFloat(rating) || 0;
+    updateProductRatingDisplay(productId, avg);
+    showToast(`تم تقييم الطلب بنجاح (${rating}/5)`, "success");
+    try {
+      swapOrderRatingButtonToChip(orderId);
+    } catch (_) {}
   } catch (error) {
     console.error("Error submitting order rating:", error);
     showToast("حدث خطأ أثناء تقييم المنتج", "error");
@@ -1324,43 +1096,24 @@ async function submitOrderRating(orderId, productId, rating, comment) {
 async function submitProductRating(productId, rating) {
   try {
     showToast("جاري إرسال التقييم...", "info");
-
-    // First, submit the rating to the server
-    const response = await fetch(`/api/ratings/product`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        productId: productId,
-        rating: rating,
-        customerId: getCustomerId(), // Get customer ID if available
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Error submitting rating to server");
-    }
-
-    // If server update successful, then update UI with the server-returned average
-    if (data.success && data.data && data.data.averageRating) {
-      // Use the server's calculated average rating
-      const serverAverage = data.data.averageRating;
-
-      // Update product rating in UI
-      updateProductRatingDisplay(productId, serverAverage);
-
-      // Show confirmation
-      showToast(`تم تقييم المنتج بنجاح (${rating}/5)`, "success");
-    } else {
-      // No fallback - ratings are managed by database only
-      console.log("Rating processed by database, no local calculation needed");
-
-      // Show confirmation
-      showToast(`تم تقييم المنتج بنجاح (${rating}/5)`, "success");
-    }
+    const saved = localStorage.getItem('ratings');
+    const arr = saved ? JSON.parse(saved) : [];
+    const record = {
+      orderId: null,
+      productId,
+      rating,
+      comment: '',
+      customerId: getCustomerId(),
+      timestamp: new Date().toISOString(),
+    };
+    arr.push(record);
+    localStorage.setItem('ratings', JSON.stringify(arr));
+    const productRatings = arr.filter((r) => String(r.productId) === String(productId));
+    const avg = productRatings.length
+      ? productRatings.reduce((s, r) => s + (parseFloat(r.rating) || 0), 0) / productRatings.length
+      : parseFloat(rating) || 0;
+    updateProductRatingDisplay(productId, avg);
+    showToast(`تم تقييم المنتج بنجاح (${rating}/5)`, "success");
   } catch (error) {
     console.error("Error submitting product rating:", error);
     showToast("حدث خطأ أثناء تقييم المنتج", "error");
@@ -1490,10 +1243,6 @@ function initCategorySelection() {
         }
       });
 
-      // Scroll to product grid with smooth animation
-      if (productGrid) {
-        productGrid.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
     });
   });
 }
@@ -1760,56 +1509,22 @@ function initThemeToggleFallback() {
   });
 }
 
-// Function to load categories dynamically from API
 async function loadCategories() {
   const categoryFiltersContainer = document.getElementById("category-filters");
   if (!categoryFiltersContainer) return;
 
   try {
-    console.log("Loading categories from API...");
-    const response = await fetch(`${API_BASE_URL}/api/categories`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log("Categories API Response:", result);
-
-      if (result.success && result.data && result.data.length > 0) {
-        console.log(`Loaded ${result.data.length} categories from API`);
-        renderCategoryFilters(result.data);
-        return;
-      } else {
-        console.warn("No categories found in API response");
-      }
-    } else {
-      console.warn(
-        `Categories API request failed with status: ${response.status}`
-      );
-    }
-  } catch (error) {
-    console.error("Error loading categories from API:", error);
-  }
-
-  // If API fails, try localStorage
-  try {
     const savedCategories = localStorage.getItem("categories");
     if (savedCategories) {
       const categories = JSON.parse(savedCategories);
-      if (categories.length > 0) {
-        console.log(`Loaded ${categories.length} categories from localStorage`);
+      if (Array.isArray(categories) && categories.length > 0) {
         renderCategoryFilters(categories);
         return;
       }
     }
-  } catch (error) {
-    console.error("Error loading categories from localStorage:", error);
-  }
+  } catch (_) {}
 
-  console.log("No categories available - only 'All' filter will be shown");
+  renderCategoryFilters([]);
 }
 
 // Function to render category filters
@@ -1931,13 +1646,6 @@ function initCategoryFilter() {
         }
       });
 
-      // Only scroll if product grid is not visible in viewport
-      const rect = productGrid.getBoundingClientRect();
-      const isVisible = rect.top >= 0 && rect.top <= window.innerHeight;
-
-      if (!isVisible) {
-        productGrid.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
     });
   });
 
@@ -2435,6 +2143,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Listen for changes in localStorage (like when the cart page updates the cart)
   window.addEventListener("storage", function (e) {
+    if (e.key === "products") {
+      console.log("Detected products update in localStorage, reloading catalog");
+      loadProducts();
+    }
+
     if (e.key === "menuItems" || e.key === "original_prices") {
       console.log("Storage event detected for menu items, refreshing products");
       loadProducts();
@@ -2881,77 +2594,30 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Function to fetch free items from API
   async function loadFreeItems() {
-    console.log("🔄 Loading free items data from API...");
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/customer/loyalty/free-items`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && Array.isArray(result.data)) {
-          freeItemsData = result.data;
-          console.log("✅ Loaded free items successfully:", freeItemsData);
-          console.log(`   Total free items: ${freeItemsData.length}`);
-          freeItemsData.forEach((item) => {
-            console.log(
-              `   - Product ID: ${item.productId}, Points Required: ${item.pointsRequired}`
-            );
-          });
-        } else {
-          console.warn("⚠️ Free items API returned unexpected format:", result);
-        }
-      } else {
-        console.error("❌ Failed to load free items, status:", response.status);
-      }
-    } catch (error) {
-      console.error("❌ Error fetching free items:", error);
+      const local = localStorage.getItem("freeItems");
+      freeItemsData = local ? JSON.parse(local) : [];
+    } catch (_) {
+      freeItemsData = [];
     }
   }
 
   // Function to fetch user loyalty points
   async function loadUserPoints() {
     try {
-      // Check if user is logged in
-      if (typeof isLoggedIn === "function" && isLoggedIn()) {
-        const token =
-          typeof getToken === "function"
-            ? getToken()
-            : localStorage.getItem("token");
-
-        if (token) {
-          const response = await fetch(
-            `${API_BASE_URL}/api/customer/loyalty-points`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.data) {
-              userLoyaltyPoints = result.data.loyaltyPoints || 0;
-              console.log("User loyalty points:", userLoyaltyPoints);
-            }
-          }
-        }
+      const userStr = localStorage.getItem("userData");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userLoyaltyPoints = user.loyaltyPoints || user.points || 0;
+      } else {
+        userLoyaltyPoints = 0;
       }
-    } catch (error) {
-      console.error("Error fetching user points:", error);
+    } catch (_) {
+      userLoyaltyPoints = 0;
     }
   }
 
-  // Function to load products from API
+  // Function to load products from API with local overrides support
   async function loadProducts() {
     const productGrid = document.querySelector(".product-grid");
     console.log("Starting to load products...");
@@ -2969,71 +2635,201 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Load free items and user points in parallel
     await Promise.all([loadFreeItems(), loadUserPoints()]);
 
+    const localProducts = getLocalProductsFromStorage();
+    let apiProducts = [];
+
     try {
-      console.log("Attempting to fetch products from API...");
-      // Try to fetch products from API
-      const response = await fetch(`${API_BASE_URL}/api/products`, {
+      apiProducts = await fetchProductsFromApi();
+    } catch (error) {
+      console.error("Failed to load products from API:", error);
+    }
+
+    let productsToRender = [];
+    if (localProducts.length && apiProducts.length) {
+      productsToRender = mergeProducts(apiProducts, localProducts);
+    } else if (localProducts.length) {
+      productsToRender = localProducts;
+    } else if (apiProducts.length) {
+      productsToRender = apiProducts;
+    }
+
+    if (!productsToRender.length) {
+      productsToRender = getCachedDatabaseProducts();
+    }
+
+    if (productsToRender.length) {
+      try {
+        localStorage.setItem("products", JSON.stringify(productsToRender));
+      } catch (error) {
+        console.warn("Failed to cache products in localStorage:", error);
+      }
+      renderProducts(productsToRender);
+      return;
+    }
+
+    showEmptyProductsMessage();
+  }
+
+  function getLocalProductsFromStorage() {
+    try {
+      const savedProducts = localStorage.getItem("products");
+      const parsed = savedProducts ? JSON.parse(savedProducts) : [];
+      return normalizeProductsArray(parsed, { preserveRating: true });
+    } catch (error) {
+      console.warn("Failed to parse local products:", error);
+      return [];
+    }
+  }
+
+  function getCachedDatabaseProducts() {
+    try {
+      const cached = localStorage.getItem("products_db_cache");
+      const parsed = cached ? JSON.parse(cached) : [];
+      return normalizeProductsArray(parsed);
+    } catch (error) {
+      console.warn("Failed to parse cached API products:", error);
+      return [];
+    }
+  }
+
+  function mergeProducts(baseProducts = [], overrideProducts = []) {
+    const merged = new Map();
+    baseProducts.forEach((product) => {
+      if (product && product.id) {
+        merged.set(product.id, product);
+      }
+    });
+    overrideProducts.forEach((product) => {
+      if (product && product.id) {
+        merged.set(product.id, product);
+      }
+    });
+    return Array.from(merged.values());
+  }
+
+  async function fetchProductsFromApi() {
+    const baseUrl = (window.API_BASE_URL || window.location.origin).replace(/\/$/, "");
+    const endpoint = `${baseUrl}/api/products`;
+
+    try {
+      const response = await fetch(endpoint, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
 
-      console.log("API Response status:", response.status);
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log("API Response:", result);
-
-        if (result.success && result.data && result.data.length > 0) {
-          console.log(`Loaded ${result.data.length} products from API`);
-          console.log("First product:", result.data[0]);
-
-          // Store all product images in sessionStorage right after they're fetched
-          try {
-            const productImages = JSON.parse(
-              sessionStorage.getItem("productImages") || "{}"
-            );
-            let updated = false;
-
-            result.data.forEach((product) => {
-              if (product.id && product.image && !productImages[product.id]) {
-                productImages[product.id] = product.image;
-                updated = true;
-              }
-            });
-
-            if (updated) {
-              sessionStorage.setItem(
-                "productImages",
-                JSON.stringify(productImages)
-              );
-              console.log(
-                "Stored product images from API in sessionStorage for rating use"
-              );
-            }
-          } catch (err) {
-            console.error("Error storing product images from API:", err);
-          }
-
-          // Render the products
-          renderProducts(result.data);
-          return;
-        } else {
-          console.warn("API returned no products or invalid response format");
-          console.warn("Response:", result);
-          showEmptyProductsMessage();
-        }
-      } else {
-        console.warn(`API request failed with status: ${response.status}`);
-        const errorText = await response.text();
-        console.warn("Error response:", errorText);
-        showEmptyProductsMessage();
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
       }
+
+      const result = await response.json();
+      if (result && result.success && Array.isArray(result.data)) {
+        const normalized = normalizeProductsArray(result.data, {
+          preserveRating: false,
+        });
+        try {
+          localStorage.setItem("products_db_cache", JSON.stringify(normalized));
+        } catch (error) {
+          console.warn("Failed to cache API products:", error);
+        }
+        return normalized;
+      }
+
+      return [];
     } catch (error) {
       console.error("Error fetching products from API:", error);
-      showEmptyProductsMessage();
+      return getCachedDatabaseProducts();
     }
+  }
+
+  function normalizeProductsArray(products, options = {}) {
+    if (!Array.isArray(products)) {
+      return [];
+    }
+    return products.map((product, index) =>
+      normalizeProductData(product, index, options)
+    );
+  }
+
+  function normalizeProductData(product = {}, index = 0, options = {}) {
+    const { preserveRating = false } = options;
+    const fallbackId = `product-${index}-${Date.now()}`;
+    const productId =
+      (product.id && String(product.id)) ||
+      (product._id && String(product._id)) ||
+      (product.slug && String(product.slug)) ||
+      fallbackId;
+
+    return {
+      id: productId,
+      _id: product._id || productId,
+      name:
+        product.name ||
+        product.nameAr ||
+        product.title ||
+        product.name_en ||
+        "",
+      nameEn:
+        product.nameEn ||
+        product.name_en ||
+        product.name ||
+        product.nameAr ||
+        "",
+      description:
+        product.description ||
+        product.descriptionAr ||
+        product.details ||
+        "",
+      descriptionEn:
+        product.descriptionEn ||
+        product.description_en ||
+        product.description ||
+        "",
+      price:
+        parseFloat(
+          product.price ??
+            product.defaultPrice ??
+            product.discountedPrice ??
+            0
+        ) || 0,
+      discountedPrice:
+        parseFloat(
+          product.discountedPrice ??
+            product.discounted_price ??
+            product.offerPrice ??
+            0
+        ) || 0,
+      category:
+        product.category ||
+        product.categoryId ||
+        product.category_id ||
+        "general",
+      image: product.image || product.imageUrl || product.image_url || "",
+      addOns: Array.isArray(product.addOns)
+        ? product.addOns
+        : Array.isArray(product.addons)
+        ? product.addons
+        : [],
+      rating:
+        preserveRating && product.rating !== undefined
+          ? (() => {
+              if (typeof product.rating === "number") {
+                return Number.isNaN(product.rating) ? 0 : product.rating;
+              }
+              if (typeof product.rating === "string") {
+                const parsed = parseFloat(product.rating);
+                return Number.isNaN(parsed) ? 0 : parsed;
+              }
+              return 0;
+            })()
+          : 0,
+      totalOrdered:
+        parseInt(product.totalOrdered || product.total_orders || 0, 10) || 0,
+      averagePrice:
+        parseFloat(product.averagePrice || product.avgPrice || product.price || 0) ||
+        0,
+    };
   }
 
   // Removed createDefaultProducts function - no longer needed
@@ -3124,7 +2920,45 @@ document.addEventListener("DOMContentLoaded", async function () {
           ? product.descriptionEn
           : product.description;
       // Use product rating from database only
-      const displayRating = product.rating || 0;
+      const displayRating = (() => {
+        try {
+          const ratingsData = JSON.parse(
+            localStorage.getItem("ratings") || "[]"
+          );
+          if (Array.isArray(ratingsData) && ratingsData.length > 0) {
+            const relevantRatings = ratingsData.filter((entry) => {
+              if (!entry || typeof entry !== "object") return false;
+              const entryId = String(entry.productId || "");
+              if (!entryId) return false;
+              const normalizedEntryId = entryId.includes("-")
+                ? entryId.split("-")[0]
+                : entryId;
+              const candidates = [product.id, product._id]
+                .filter(Boolean)
+                .map((candidate) =>
+                  String(candidate).includes("-")
+                    ? String(candidate).split("-")[0]
+                    : String(candidate)
+                );
+              return candidates.includes(normalizedEntryId);
+            });
+
+            if (relevantRatings.length) {
+              const average =
+                relevantRatings.reduce((sum, item) => {
+                  const value = parseFloat(item.rating);
+                  return sum + (Number.isNaN(value) ? 0 : value);
+                }, 0) / relevantRatings.length;
+              return Math.round(average * 10) / 10;
+            }
+          }
+        } catch (error) {
+          console.warn("Failed to read local ratings:", error);
+        }
+        return typeof product.rating === "number" && !Number.isNaN(product.rating)
+          ? product.rating
+          : 0;
+      })();
 
       const productCard = document.createElement("div");
       productCard.className = "product-card";
@@ -3311,76 +3145,38 @@ document.addEventListener("DOMContentLoaded", async function () {
   async function checkProductAddons(id, name, price, image, description) {
     try {
       console.log(`Checking add-ons for product: ${id}`);
+      // Load products from localStorage
+      const saved = localStorage.getItem("products");
+      const products = saved ? JSON.parse(saved) : [];
+      const product = (products || []).find((p) => String(p.id) === String(id));
 
-      // Try to fetch product details from API
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/products/${id}`);
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log("Product details API response:", result);
-
-          if (result.success && result.data) {
-            const product = result.data;
-
-            // Store the product _id in sessionStorage for later matching with free items
-            if (product._id && product.id) {
-              try {
-                const namesMap = JSON.parse(
-                  sessionStorage.getItem("productNames") || "{}"
-                );
-                if (!namesMap[product.id]) {
-                  namesMap[product.id] = {};
-                }
-                namesMap[product.id]._id = product._id;
-                namesMap[product.id].name =
-                  product.name || namesMap[product.id].name || "";
-                namesMap[product.id].nameEn =
-                  product.nameEn || namesMap[product.id].nameEn || "";
-                sessionStorage.setItem(
-                  "productNames",
-                  JSON.stringify(namesMap)
-                );
-                console.log(
-                  `Stored product _id for ${product.id}: ${product._id}`
-                );
-              } catch (e) {
-                console.warn("Could not store product _id:", e);
-              }
-            }
-
-            // Check if product has add-ons
-            if (
-              product.addOns &&
-              product.addOns.length > 0 &&
-              product.addOns.some(
-                (section) => section.options && section.options.length > 0
-              )
-            ) {
-              console.log(
-                `Found ${product.addOns.length} add-on sections for ${id}`
-              );
-              // Show add-ons modal with the product data and corrected price
-              showAddonsModal(product, image, price);
-              return;
-            } else {
-              console.log(`No add-ons found for product ${id} from API`);
-            }
-          }
-        } else {
-          console.warn(`API returned ${response.status} for product ${id}`);
+      if (product) {
+        // Store the product _id in sessionStorage for later matching with free items
+        if (product._id && product.id) {
+          try {
+            const namesMap = JSON.parse(sessionStorage.getItem("productNames") || "{}");
+            if (!namesMap[product.id]) namesMap[product.id] = {};
+            namesMap[product.id]._id = product._id;
+            namesMap[product.id].name = product.name || namesMap[product.id].name || "";
+            namesMap[product.id].nameEn = product.nameEn || namesMap[product.id].nameEn || "";
+            sessionStorage.setItem("productNames", JSON.stringify(namesMap));
+          } catch (e) {}
         }
-      } catch (apiError) {
-        console.warn("Error fetching product from API:", apiError);
+
+        if (
+          product.addOns &&
+          product.addOns.length > 0 &&
+          product.addOns.some((section) => section.options && section.options.length > 0)
+        ) {
+          showAddonsModal(product, image, price);
+          return;
+        }
       }
 
-      // If we get here, product has no add-ons, add directly to cart
-      console.log(`No add-ons for ${id}, adding directly to cart`);
+      // No addons found or product missing locally, add directly
       addToCart(id, name, price, image);
       showCartNotification();
     } catch (error) {
-      console.error("Error in checkProductAddons:", error);
-      // Fallback: add to cart directly without add-ons
       addToCart(id, name, price, image);
       showCartNotification();
     }
@@ -4340,38 +4136,16 @@ document.addEventListener("DOMContentLoaded", async function () {
               hostname === "localhost" || hostname === "127.0.0.1";
             return isLocal ? "http://localhost:5000" : origin;
           })();
-        const sessionUrl = qidParam
-          ? `${baseUrl}/api/table/session?table=${table}&qid=${encodeURIComponent(
-              qidParam
-            )}`
-          : `${baseUrl}/api/table/session?table=${table}`;
-        fetch(sessionUrl)
-          .then((r) => r.json())
-          .then((d) => {
-            if (d && d.success && d.token) {
-              sessionStorage.setItem("orderSessionToken", d.token);
-              sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
-              sessionStorage.setItem("orderSessionTable", table);
-              const lang = localStorage.getItem("public-language") || "ar";
-              const msg =
-                lang === "en"
-                  ? "Ordering enabled for 20 minutes"
-                  : "تم تفعيل الطلب لمدة 20 دقيقة";
-              if (typeof showToast === "function") {
-                showToast(msg, "success", 3000);
-              }
-            } else if (!qidParam) {
-              const lang = localStorage.getItem("public-language") || "ar";
-              const warn =
-                lang === "en"
-                  ? "QR validation required. Please open via table QR"
-                  : "يتطلب التحقق عبر رمز QR. يرجى فتح الصفحة عبر رمز الطاولة";
-              if (typeof showToast === "function") {
-                showToast(warn, "warning", 3000);
-              }
-            }
-          })
-          .catch(() => {});
+        const token = `local-${table}-${Date.now()}`;
+        const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+        sessionStorage.setItem("orderSessionToken", token);
+        sessionStorage.setItem("orderSessionExpiresAt", expiresAt);
+        sessionStorage.setItem("orderSessionTable", table);
+        const lang = localStorage.getItem("public-language") || "ar";
+        const msg = lang === "en" ? "Ordering enabled for 20 minutes" : "تم تفعيل الطلب لمدة 20 دقيقة";
+        if (typeof showToast === "function") {
+          showToast(msg, "success", 3000);
+        }
       } catch (_) {}
     }
 
@@ -4603,7 +4377,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     return;
                   }
                 } catch (_) {}
-                const baseUrl =
+                if (scannedQid) {
+                  const baseUrl =
                   window.API_BASE_URL ||
                   (function () {
                     const { hostname, origin } = window.location;
@@ -4611,25 +4386,16 @@ document.addEventListener("DOMContentLoaded", async function () {
                       hostname === "localhost" || hostname === "127.0.0.1";
                     return isLocal ? "http://localhost:5000" : origin;
                   })();
-                const sessionUrl = scannedQid
-                  ? `${baseUrl}/api/table/session?table=${targetTable}&qid=${encodeURIComponent(
-                      scannedQid
-                    )}`
-                  : `${baseUrl}/api/table/session?table=${targetTable}`;
-                const r = await fetch(sessionUrl);
-                const d = await r.json();
-                if (d && d.success && d.token) {
-                  sessionStorage.setItem("orderSessionToken", d.token);
-                  sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
+                  const token = `local-${targetTable}-${Date.now()}`;
+                  const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+                  sessionStorage.setItem("orderSessionToken", token);
+                  sessionStorage.setItem("orderSessionExpiresAt", expiresAt);
                   sessionStorage.setItem("orderSessionTable", targetTable);
                   sessionStorage.setItem("tableNumber", targetTable);
                   localStorage.setItem("tableNumber", targetTable);
                   const okMsg =
-                    lang === "en"
-                      ? "Ordering enabled for 20 minutes"
-                      : "تم تفعيل الطلب لمدة 20 دقيقة";
-                  if (typeof showToast === "function")
-                    showToast(okMsg, "success", 3000);
+                    lang === "en" ? "Ordering enabled for 20 minutes" : "تم تفعيل الطلب لمدة 20 دقيقة";
+                  if (typeof showToast === "function") showToast(okMsg, "success", 3000);
                   stop();
                 } else {
                   const errMsg =
@@ -4854,69 +4620,39 @@ function initReservationForm() {
     }
 
     // Show loading message
-    showReservationMessage("جاري إرسال طلب الحجز...", "loading");
+    showReservationMessage("جاري حفظ طلب الحجز محليًا...", "loading");
 
     try {
-      // First upload the ID card photo
-      const uploadResponse = await fetch(`${API_BASE_URL}/api/upload/idcard`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageData: idCardPhotoData,
-        }),
-      });
+      const reservation = {
+        id: `RSV-${Date.now().toString(36).toUpperCase()}`,
+        name,
+        phone,
+        guests: parseInt(guests),
+        date,
+        time,
+        notes,
+        idCardPhoto: idCardPhotoData,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
 
-      const uploadResult = await uploadResponse.json();
+      const saved = localStorage.getItem("reservations");
+      const list = saved ? JSON.parse(saved) : [];
+      list.push(reservation);
+      localStorage.setItem("reservations", JSON.stringify(list));
 
-      if (!uploadResult.success) {
-        throw new Error("فشل في تحميل صورة الهوية");
-      }
-
-      // Send reservation data to the server
-      const response = await fetch(`${API_BASE_URL}/api/reservations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          phone,
-          guests,
-          date,
-          time,
-          notes,
-          idCardPhoto: uploadResult.imageUrl,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showReservationMessage(
-          "تم استلام طلب الحجز الخاص بك. سنتصل بك قريبًا للتأكيد.",
-          "success"
-        );
-        reservationForm.reset();
-        idCardPreview.innerHTML = "<p>اضغط لتحميل صورة الهوية</p>";
-        idCardPreview.classList.remove("has-image");
-        idCardPhotoData = null;
-      } else {
-        // Check for specific error message about existing reservation
-        if (result.error.includes("لديك حجز نشط بالفعل")) {
-          showReservationMessage(result.error, "error");
-        } else {
-          showReservationMessage(
-            "حدث خطأ أثناء إرسال طلب الحجز. يرجى المحاولة مرة أخرى.",
-            "error"
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error submitting reservation:", error);
       showReservationMessage(
-        "حدث خطأ أثناء إرسال طلب الحجز. يرجى المحاولة مرة أخرى.",
+        "تم استلام طلب الحجز الخاص بك محليًا. سنتصل بك قريبًا للتأكيد.",
+        "success"
+      );
+      reservationForm.reset();
+      idCardPreview.innerHTML = "<p>اضغط لتحميل صورة الهوية</p>";
+      idCardPreview.classList.remove("has-image");
+      idCardPhotoData = null;
+    } catch (error) {
+      console.error("Error saving reservation locally:", error);
+      showReservationMessage(
+        "حدث خطأ أثناء حفظ طلب الحجز محليًا. يرجى المحاولة مرة أخرى.",
         "error"
       );
     }
@@ -4961,7 +4697,6 @@ function isOfferExpired(offer) {
   return now > endDate;
 }
 
-// Function to load offers from API
 async function loadOffers() {
   const offersGrid = document.querySelector(".offers-grid");
   if (!offersGrid) return;
@@ -4979,61 +4714,22 @@ async function loadOffers() {
     typeof getTranslation === "function" ? getTranslation : (key) => key;
 
   try {
-    // Check if user is logged in
-    const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+    const savedOffers = localStorage.getItem("offers");
+    const offers = savedOffers ? JSON.parse(savedOffers) : [];
 
-    // Always use the eligible offers endpoint (works for both logged-in and guest users)
-    const apiUrl = `${API_BASE_URL}/api/offers/eligible?active=true`;
-    const headers = {};
-
-    // Add token if user is logged in
-    if (loggedIn) {
-      const token =
-        typeof getToken === "function"
-          ? getToken()
-          : localStorage.getItem("token");
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
-    // Fetch offers from API
-    const response = await fetch(apiUrl, { headers });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch offers");
-    }
-
-    const data = await response.json();
-    const offers = data.data || [];
-
-    // If user is logged in and we have customerSpending info, log it for debugging
-    if (loggedIn && data.customerSpending !== undefined) {
-      console.log(`Customer total spending: ${data.customerSpending} EGP`);
-      console.log(`Showing ${data.count} eligible offers`);
-    }
-
-    // Filter only active and non-expired offers
     const activeOffers = offers.filter(
       (offer) => offer.isActive && !isOfferExpired(offer)
     );
 
     if (activeOffers.length === 0) {
-      // Show empty state message when no offers in database
       showEmptyOffersState(offersGrid, currentLang);
       return;
     }
 
-    // Load featured offer banner
     loadFeaturedOfferBanner(activeOffers, currentLang, currencyText);
 
-    // Get customer spending for display purposes (if available)
-    const customerSpending = data.customerSpending || 0;
-
-    // Filter out featured offers from the grid (they only appear in the banner)
     const nonFeaturedOffers = activeOffers.filter((offer) => !offer.isFeatured);
 
-    // Render offers (excluding featured offers)
     offersGrid.innerHTML = nonFeaturedOffers
       .map((offer) => {
         const title =
@@ -5115,11 +4811,9 @@ async function loadOffers() {
       })
       .join("");
 
-    // Fix the offer section event handlers
     fixOffersSection();
   } catch (error) {
     console.error("Error loading offers:", error);
-    // Show empty state when there's an error
     showEmptyOffersState(offersGrid, currentLang);
   }
 }
@@ -5324,33 +5018,14 @@ function fixOffersSection() {
             headers.Authorization = `Bearer ${token}`;
           }
 
-          const response = await fetch(
-            `${API_BASE_URL}/api/offers/${offerId}/claim`,
-            {
-              method: "POST",
-              headers: headers,
+          // Mark offer as claimed locally
+          try {
+            const claimed = JSON.parse(localStorage.getItem("claimedOffers") || "[]");
+            if (!claimed.includes(offerId)) {
+              claimed.push(offerId);
+              localStorage.setItem("claimedOffers", JSON.stringify(claimed));
             }
-          );
-
-          const data = await response.json();
-
-          if (!data.success) {
-            // Show error message if offer cannot be claimed
-            const currentLang =
-              typeof getCurrentLanguage === "function"
-                ? getCurrentLanguage()
-                : "ar";
-            const errorMsg =
-              currentLang === "en"
-                ? data.message || "This offer is no longer available"
-                : data.message || "هذا العرض لم يعد متاحاً";
-
-            alert(errorMsg);
-
-            // Reload offers to update the display
-            loadOffers();
-            return;
-          }
+          } catch (_) {}
 
           console.log("Offer claimed successfully:", data);
         } catch (error) {
@@ -5518,83 +5193,23 @@ async function loadPreviousOrders() {
   }
 
   try {
-    // Check if user is logged in
-    if (isLoggedIn()) {
-      // Get the token - ensure we're using the correct function from auth.js
-      const token = localStorage.getItem("token");
+    let orders = [];
+    try {
+      const storedOrders = localStorage.getItem("orders");
+      orders = storedOrders ? JSON.parse(storedOrders) : [];
+    } catch (_) {
+      orders = [];
+    }
 
-      if (!token) {
-        console.log("No token found in localStorage");
-        showLoginPrompt(
-          getTranslation("loginRequired"),
-          getTranslation("pleaseLoginToViewOrders")
-        );
-        return;
-      }
+    // Hide spinner before rendering
+    ordersSpinner.style.display = "none";
 
-      console.log("Token exists, attempting to fetch orders");
-
-      try {
-        // Make API call with token
-        const response = await fetch(`${API_BASE_URL}/api/orders/my-orders`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include", // Include cookies in the request
-        });
-
-        console.log("API response status:", response.status);
-
-        // Handle unauthorized status (401)
-        if (response.status === 401) {
-          console.log("Token invalid or expired, showing login prompt");
-          // Token is invalid, clear it
-          localStorage.removeItem("token");
-          localStorage.removeItem("tokenExpiration");
-          showLoginPrompt(
-            getTranslation("sessionExpired"),
-            getTranslation("pleaseLoginAgainToViewOrders")
-          );
-          return;
-        }
-
-        if (!response.ok) {
-          // For other errors, show empty state
-          console.log("API error:", response.status);
-          showEmptyOrdersState();
-          return;
-        }
-
-        const data = await response.json();
-
-        // Always hide spinner before showing content
-        ordersSpinner.style.display = "none";
-
-        if (data.success && data.data && data.data.length > 0) {
-          // Ensure products are loaded in sessionStorage for language support
-          await ensureProductsLoaded();
-
-          // We have orders, render them
-          renderPreviousOrders(data.data);
-          initOrderStatusFilters();
-        } else {
-          // No orders found
-          showEmptyOrdersState();
-        }
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        ordersSpinner.style.display = "none";
-        showEmptyOrdersState();
-      }
+    if (Array.isArray(orders) && orders.length > 0) {
+      await ensureProductsLoaded();
+      renderPreviousOrders(orders);
+      initOrderStatusFilters();
     } else {
-      // Not logged in
-      ordersSpinner.style.display = "none";
-      showLoginPrompt(
-        getTranslation("loginRequired"),
-        getTranslation("pleaseLoginToViewOrders")
-      );
+      showEmptyOrdersState();
     }
   } catch (error) {
     console.error("Unexpected error in loadPreviousOrders:", error);
@@ -5664,35 +5279,27 @@ async function ensureProductsLoaded() {
       return;
     }
 
-    // Otherwise, fetch products from API
-    console.log("Loading products for language support...");
-    const response = await fetch(`${API_BASE_URL}/api/products`);
-
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success && result.data) {
-        const products = result.data;
-        const newProductNames = {};
-
-        products.forEach((product) => {
-          if (product.id) {
-            newProductNames[product.id] = {
-              _id: product._id || "", // Store MongoDB _id for matching with free items
-              name: product.name,
-              nameEn: product.nameEn || "",
-              description: product.description || "",
-              descriptionEn: product.descriptionEn || "",
-            };
-          }
-        });
-
-        sessionStorage.setItem("productNames", JSON.stringify(newProductNames));
-        console.log(
-          `Loaded ${
-            Object.keys(newProductNames).length
-          } products for language support`
-        );
-      }
+    // Otherwise, load products from localStorage
+    console.log("Loading products for language support from localStorage...");
+    const savedProducts = localStorage.getItem("products");
+    const products = savedProducts ? JSON.parse(savedProducts) : [];
+    if (Array.isArray(products) && products.length > 0) {
+      const newProductNames = {};
+      products.forEach((product) => {
+        if (product.id) {
+          newProductNames[product.id] = {
+            _id: product._id || "",
+            name: product.name,
+            nameEn: product.nameEn || "",
+            description: product.description || "",
+            descriptionEn: product.descriptionEn || "",
+          };
+        }
+      });
+      sessionStorage.setItem("productNames", JSON.stringify(newProductNames));
+      console.log(
+        `Loaded ${Object.keys(newProductNames).length} products for language support`
+      );
     }
   } catch (error) {
     console.warn("Could not load products for language support:", error);
@@ -6249,62 +5856,10 @@ async function handleReorder(orderId) {
       }
     }
 
-    // If not found anywhere, try API as last resort
     if (!order) {
-      try {
-        // Get token for authentication
-        const token = getToken();
-        if (!token) {
-          hideToast(loadingToast);
-          showLoginPrompt(
-            getTranslation("loginRequired"),
-            getTranslation("pleaseLoginToReorder")
-          );
-          return;
-        }
-
-        console.log(`Fetching order details for reorder from API: ${orderId}`);
-
-        // Call the API with a timeout
-        const controller = new AbortController();
-        const signal = controller.signal;
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-        const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal,
-        }).catch((error) => {
-          if (error.name === "AbortError") {
-            console.log("API request timed out");
-            throw new Error("API request timed out");
-          }
-          throw error;
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const responseData = await response.json();
-
-        if (!responseData.success || !responseData.data) {
-          throw new Error("Invalid API response format");
-        }
-
-        order = responseData.data;
-
-        // Store for future use
-        storeOrderInSession(order);
-      } catch (apiError) {
-        console.error("API error:", apiError);
-        hideToast(loadingToast);
-        showToast("عذراً، لم نتمكن من إيجاد تفاصيل الطلب", "error", 3000);
-        return;
-      }
+      hideToast(loadingToast);
+      showToast("عذراً، لم نتمكن من إيجاد تفاصيل الطلب", "error", 3000);
+      return;
     }
 
     // Make sure we have the order now
@@ -6611,68 +6166,8 @@ async function showOrderDetails(orderId) {
       }
     }
 
-    // If not found in localStorage or sessionStorage, try API
+    // If not found in localStorage أو sessionStorage، حاول استخدام بيانات الواجهة إن وجدت
     try {
-      // Get token for authentication
-      const token = getToken();
-      if (!token) {
-        hideToast(loadingToast);
-        showLoginPrompt(
-          getTranslation("loginRequired"),
-          getTranslation("pleaseLoginToViewOrderDetails")
-        );
-        return;
-      }
-
-      console.log(`Fetching order details from API for: ${orderId}`);
-
-      // Call the API with a timeout to prevent long-running requests
-      const controller = new AbortController();
-      const signal = controller.signal;
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal,
-      }).catch((error) => {
-        if (error.name === "AbortError") {
-          console.log("API request timed out");
-          throw new Error("API request timed out");
-        }
-        throw error;
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.status === 500) {
-        // For server errors, let's try a backup approach
-        throw new Error("Server error");
-      }
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const responseData = await response.json();
-      console.log("API response:", responseData);
-
-      if (!responseData.success || !responseData.data) {
-        throw new Error("Invalid API response format");
-      }
-
-      // Store the order in sessionStorage for future quick access
-      const order = responseData.data;
-      storeOrderInSession(order);
-
-      // Hide loading toast and show the modal
-      hideToast(loadingToast);
-      createOrderDetailsModal(order);
-    } catch (apiError) {
-      console.error("API error:", apiError);
-
-      // If API fails, try using data from the orders grid if available
       const orderCards = document.querySelectorAll(".order-card");
       for (const card of orderCards) {
         const cardOrderId = card.querySelector(".order-id").textContent;
@@ -6754,6 +6249,9 @@ async function showOrderDetails(orderId) {
 
       hideToast(loadingToast);
       createOrderDetailsModal(minimalOrder);
+    } catch (_) {
+      hideToast(loadingToast);
+      showToast("عذراً، لم نتمكن من إيجاد تفاصيل الطلب", "error", 3000);
     }
   } catch (error) {
     console.error("Error showing order details:", error);
@@ -8640,45 +8138,22 @@ function handleOrderCompletedForRating(orderData) {
           item.image === "" ||
           (item.image && item.image.includes("placeholder"))
         ) {
-          // Fetch complete product data without authentication
-          return fetch(`http://localhost:5000/api/products/${itemId}`, {
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-          })
-            .then((response) => response.json())
-            .then((productData) => {
-              if (productData && productData.success && productData.data) {
-                // Update item with product data
-                item.image = productData.data.image || item.image;
-
-                // Also update other properties if needed
-                if (!item.name) item.name = productData.data.name;
-                if (!item.price) item.price = productData.data.price;
-
-                console.log(
-                  `Updated item ${itemId} with product data from API`
-                );
-
-                // Store in sessionStorage
-                if (item.image) {
-                  productImages[itemId] = item.image;
-                  updated = true;
-                  console.log(
-                    `Stored product image in sessionStorage for item: ${itemId}`
-                  );
-                }
+          // Load complete product data from localStorage
+          try {
+            const savedProducts = localStorage.getItem("products");
+            const products = savedProducts ? JSON.parse(savedProducts) : [];
+            const product = products.find((p) => String(p.id) === String(itemId) || String(p._id) === String(itemId));
+            if (product) {
+              item.image = product.image || item.image;
+              if (!item.name) item.name = product.name;
+              if (!item.price) item.price = product.price;
+              if (item.image) {
+                productImages[itemId] = item.image;
+                updated = true;
               }
-              return item;
-            })
-            .catch((error) => {
-              console.error(
-                `Error fetching product data for item ${itemId}:`,
-                error
-              );
-              return item; // Return original item on error
-            });
+            }
+          } catch (e) {}
+          return item;
         } else if (item.image) {
           // If item already has an image, just store it
           productImages[itemId] = item.image;

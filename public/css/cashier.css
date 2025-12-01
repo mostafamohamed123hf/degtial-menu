@@ -445,6 +445,62 @@ body.light-mode {
   --admin-modal-overlay: rgba(0, 0, 0, 0.4);
 }
 
+body.light-mode header {
+  background-color: transparent;
+}
+
+body.light-mode .cashier-content {
+  background-color: #f0f2f5;
+  border-radius: 20px;
+  padding: 30px 24px;
+  margin-top: 10px;
+}
+
+body.light-mode .cashier-section {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+body.light-mode .cashier-section .section-title {
+  color: var(--cashier-primary-dark);
+  background: linear-gradient(135deg, rgba(66, 209, 88, 0.12), rgba(49, 168, 69, 0.05));
+  box-shadow: none;
+}
+
+body.light-mode #active-orders-section .section-title::before,
+body.light-mode #quick-processing-section .section-title::before,
+body.light-mode #reservations-section .section-title::before,
+body.light-mode #recent-activity-section .section-title::before {
+  color: var(--cashier-primary-dark);
+}
+
+body.light-mode .reservation-card,
+body.light-mode .order-card,
+body.light-mode .activity-item,
+body.light-mode .empty-message,
+body.light-mode .no-orders-message {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+  color: var(--admin-text-dark);
+}
+
+body.light-mode .order-header,
+body.light-mode .reservation-header,
+body.light-mode .order-footer,
+body.light-mode .reservation-footer {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .reservation-info,
+body.light-mode .reservation-details,
+body.light-mode .order-totals,
+body.light-mode .order-item {
+  background-color: #f8fafc;
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
 body:not(.light-mode) {
   --admin-text-color: var(--admin-text-light);
   --admin-bg-color: #121212;
@@ -2669,6 +2725,29 @@ body:not(.light-mode) .reservation-count {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.language-switcher-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--admin-border-color);
+  background-color: var(--admin-bg-color);
+  color: var(--admin-text-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.language-switcher-btn:hover {
+  background-color: var(--cashier-primary);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(66, 209, 88, 0.2);
+}
+
+html[lang="en"] .language-switcher-btn {
+  font-family: "Cairo", sans-serif;
 }
 
 /* Notification toggle button */

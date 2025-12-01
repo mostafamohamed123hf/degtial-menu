@@ -7,6 +7,8 @@
     const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
     return isLocal ? "http://localhost:5000/api" : `${origin}/api`;
   })();
+  const DEFAULT_HERO_BANNER_IMAGE =
+    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800";
   let currentSettings = {};
 
   // Initialize global settings when DOM is loaded
@@ -141,35 +143,25 @@
   async function loadGlobalSettings() {
     try {
       showLoadingState(true);
-
-      const response = await fetch(`${API_BASE_URL}/global-settings`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        currentSettings = result.data;
-        populateForm(result.data);
+      const saved = localStorage.getItem("globalSettings");
+      if (saved) {
+        try {
+          currentSettings = JSON.parse(saved) || {};
+        } catch (_) {
+          currentSettings = {};
+        }
+        if (!currentSettings.heroBannerImage) {
+          currentSettings.heroBannerImage = DEFAULT_HERO_BANNER_IMAGE;
+          localStorage.setItem("globalSettings", JSON.stringify(currentSettings));
+        }
+        populateForm(currentSettings);
         showNotification(
           getTranslation("settingsLoaded", "Settings loaded successfully"),
           "success"
         );
       } else {
-        throw new Error(result.message || "Failed to load settings");
+        initializeDefaultSettings();
       }
-    } catch (error) {
-      console.error("Error loading global settings:", error);
-      showNotification(
-        getTranslation("errorLoadingSettings", "Error loading settings"),
-        "error"
-      );
-
-      // Initialize with default values if loading fails
-      initializeDefaultSettings();
     } finally {
       showLoadingState(false);
     }
@@ -250,7 +242,7 @@
     document.getElementById("hero-banner-category").value =
       settings.heroBannerCategory || "burger";
     document.getElementById("hero-banner-image").value =
-      settings.heroBannerImage || "";
+      settings.heroBannerImage || DEFAULT_HERO_BANNER_IMAGE;
 
     // Update preview
     updateHeroBannerPreview();
@@ -259,8 +251,6 @@
   async function saveGlobalSettings() {
     try {
       showLoadingState(true);
-
-      // Collect form data
       const formData = {
         workingHoursStart: document.getElementById("working-hours-start").value,
         workingHoursEnd: document.getElementById("working-hours-end").value,
@@ -304,54 +294,26 @@
           ) || 0,
         heroBannerCategory: document.getElementById("hero-banner-category")
           .value,
-        heroBannerImage: document.getElementById("hero-banner-image").value,
+        heroBannerImage:
+          document.getElementById("hero-banner-image").value ||
+          DEFAULT_HERO_BANNER_IMAGE,
       };
-
-      // Get auth token
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
-        throw new Error("Authentication required");
+      currentSettings = formData;
+      localStorage.setItem("globalSettings", JSON.stringify(currentSettings));
+      if (window.globalSettings) {
+        window.globalSettings.currency = currentSettings.currency;
+        window.globalSettings.currencyCode = currentSettings.currency;
       }
-
-      // Get CSRF token
-      const csrfToken = await getCSRFToken();
-
-      const response = await fetch(`${API_BASE_URL}/global-settings`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        currentSettings = result.data;
-
-        // Update window.globalSettings with new currency value
-        if (window.globalSettings) {
-          window.globalSettings.currency = result.data.currency;
-          window.globalSettings.currencyCode = result.data.currency;
-        }
-
-        showNotification(
-          getTranslation("settingsSaved", "Settings saved successfully!"),
-          "success"
-        );
-
-        // Broadcast settings update to all connected clients
-        broadcastSettingsUpdate(result.data);
-      } else {
-        throw new Error(result.message || "Failed to save settings");
-      }
+      showNotification(
+        getTranslation("settingsSaved", "Settings saved successfully!"),
+        "success"
+      );
+      broadcastSettingsUpdate(currentSettings);
     } catch (error) {
       console.error("Error saving global settings:", error);
       showNotification(
         getTranslation("errorSavingSettings", "Error saving settings: ") +
-          error.message,
+          (error && error.message ? error.message : ""),
         "error"
       );
     } finally {
@@ -362,45 +324,53 @@
   async function resetToDefaultSettings() {
     try {
       showLoadingState(true);
-
-      // Get auth token
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
-      // Get CSRF token
-      const csrfToken = await getCSRFToken();
-
-      const response = await fetch(
-        `${API_BASE_URL}/global-settings/initialize`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "X-CSRF-Token": csrfToken,
-          },
-        }
+      initializeDefaultSettings();
+      const defaults = {
+        workingHoursStart: document.getElementById("working-hours-start").value,
+        workingHoursEnd: document.getElementById("working-hours-end").value,
+        workingDays: Array.from(
+          document.querySelectorAll(
+            '.day-checkbox input[type="checkbox"]:checked'
+          )
+        ).map((cb) => cb.value),
+        contactPhone: document.getElementById("contact-phone").value,
+        contactWhatsapp: document.getElementById("contact-whatsapp").value,
+        contactEmail: document.getElementById("contact-email").value,
+        currency: document.getElementById("currency-code").value,
+        defaultLanguage:
+          document.getElementById("default-language")?.value || "ar",
+        restaurantName: document.getElementById("restaurant-name").value,
+        restaurantNameEn: document.getElementById("restaurant-name-en").value,
+        restaurantAddress: document.getElementById("restaurant-address").value,
+        restaurantAddressEn: document.getElementById("restaurant-address-en")
+          .value,
+        socialFacebook: document.getElementById("social-facebook").value,
+        socialInstagram: document.getElementById("social-instagram").value,
+        socialTwitter: document.getElementById("social-twitter").value,
+        heroBannerEnabled: document.getElementById("hero-banner-enabled").checked,
+        heroBannerTitle: document.getElementById("hero-banner-title").value,
+        heroBannerTitleEn: document.getElementById("hero-banner-title-en").value,
+        heroBannerDescription: document.getElementById("hero-banner-description").value,
+        heroBannerDescriptionEn: document.getElementById("hero-banner-description-en").value,
+        heroBannerOriginalPrice: parseFloat(document.getElementById("hero-banner-original-price").value) || 0,
+        heroBannerDiscountedPrice: parseFloat(document.getElementById("hero-banner-discounted-price").value) || 0,
+        heroBannerCategory: document.getElementById("hero-banner-category").value,
+        heroBannerImage:
+          document.getElementById("hero-banner-image").value ||
+          DEFAULT_HERO_BANNER_IMAGE,
+      };
+      currentSettings = defaults;
+      localStorage.setItem("globalSettings", JSON.stringify(currentSettings));
+      showNotification(
+        getTranslation("settingsReset", "Settings reset to default!"),
+        "success"
       );
-
-      const result = await response.json();
-
-      if (result.success) {
-        showNotification(
-          getTranslation("settingsReset", "Settings reset to default!"),
-          "success"
-        );
-        // Reload settings
-        await loadGlobalSettings();
-      } else {
-        throw new Error(result.message || "Failed to reset settings");
-      }
+      broadcastSettingsUpdate(currentSettings);
     } catch (error) {
       console.error("Error resetting settings:", error);
       showNotification(
         getTranslation("errorResettingSettings", "Error resetting settings: ") +
-          error.message,
+          (error && error.message ? error.message : ""),
         "error"
       );
     } finally {
@@ -434,6 +404,7 @@
       socialFacebook: "",
       socialInstagram: "",
       socialTwitter: "",
+      heroBannerImage: DEFAULT_HERO_BANNER_IMAGE,
     };
 
     populateForm(defaultSettings);

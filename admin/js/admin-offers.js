@@ -213,35 +213,20 @@ const OffersManager = {
 
   async loadOffers() {
     const spinner = document.getElementById("offers-spinner");
-    const offersList = document.getElementById("offers-list");
-
     try {
       if (spinner) spinner.style.display = "block";
-
-      const response = await fetch(`${API_BASE_URL}/offers`, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch offers");
+      const cached = localStorage.getItem("offers");
+      if (cached) {
+        try {
+          this.offers = JSON.parse(cached) || [];
+        } catch (_) {
+          this.offers = [];
+        }
+      } else {
+        this.offers = [];
       }
-
-      const data = await response.json();
-      this.offers = data.data || [];
       this.updateStatistics();
       this.renderOffers();
-    } catch (error) {
-      console.error("Error loading offers:", error);
-      if (offersList) {
-        offersList.innerHTML = `
-          <div class="error-message">
-            <i class="fas fa-exclamation-circle"></i>
-            <p>فشل تحميل العروض. يرجى المحاولة مرة أخرى.</p>
-          </div>
-        `;
-      }
     } finally {
       if (spinner) spinner.style.display = "none";
     }
@@ -1165,45 +1150,14 @@ const OffersManager = {
         statusText.textContent = t("uploadingImage") || "جاري رفع الصورة...";
         
         try {
-          // Upload compressed image to server
-          const response = await fetch(`${API_BASE_URL}/upload/image`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              imageData: compressedDataUrl
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to upload image');
-          }
-
-          const result = await response.json();
-          
-          if (!result.success || !result.imageUrl) {
-            throw new Error('Invalid response from server');
-          }
-
-          console.log("Offer image uploaded successfully:", result.imageUrl);
-
-          // Update preview with the uploaded image URL
-          // Remove /api from API_BASE_URL for asset URLs since assets are served from root
-          const baseUrl = API_BASE_URL.replace('/api', '');
-          const imageUrl = `${baseUrl}${result.imageUrl}`;
+          const imageUrl = compressedDataUrl;
           imagePreview.innerHTML = `<img src="${imageUrl}" alt="Offer preview" id="offer-preview-img" />`;
-          
-          // Set final image value to URL (not base64)
-          imageFinal.value = result.imageUrl;
-          
-          // Update status
+          imageFinal.value = imageUrl;
           wrapper.classList.add("has-file");
-          statusText.textContent = t("imageUploadedSuccess") || "تم رفع الصورة بنجاح";
+          statusText.textContent = t("imageUploadedSuccess") || "تم حفظ الصورة";
         } catch (uploadError) {
-          console.error("Error uploading offer image:", uploadError);
-          statusText.textContent = uploadError.message || t("fileReadError") || "فشل رفع الصورة";
+          console.error("Error processing offer image:", uploadError);
+          statusText.textContent = uploadError.message || t("fileReadError") || "فشل معالجة الصورة";
           wrapper.classList.add("error");
         }
       }).catch((error) => {
@@ -1463,64 +1417,30 @@ const OffersManager = {
     console.log("Sending offer data:", formData);
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-
-      const url = offerId
-        ? `${API_BASE_URL}/offers/${offerId}`
-        : `${API_BASE_URL}/offers`;
-      const method = offerId ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Server validation error:", error);
-        
-        // Log detailed validation errors
-        if (error.errors && Array.isArray(error.errors)) {
-          console.error("Validation errors details:", error.errors);
-          
-          // Show specific validation errors to user
-          const errorMessages = error.errors.map(err => {
-            if (typeof err === 'string') return err;
-            return err.message || err.msg || err.error || JSON.stringify(err);
-          }).join(", ");
-          
-          throw new Error(errorMessages || error.message || "Validation Error");
+      if (offerId) {
+        const idx = this.offers.findIndex(o => o.id === offerId);
+        if (idx !== -1) {
+          this.offers[idx] = { ...this.offers[idx], ...formData };
         }
-        
-        throw new Error(error.message || error.error || "Failed to save offer");
+      } else {
+        const newId = formData.id || `offer_${Date.now()}`;
+        this.offers.push({ ...formData, id: newId });
       }
-
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       const successMsg = offerId 
         ? (t("offerUpdatedSuccess") || "تم تحديث العرض بنجاح") 
         : (t("offerAddedSuccess") || "تم إضافة العرض بنجاح");
-      
       if (typeof showNotification === 'function') {
         showNotification(successMsg, "success");
       }
-      
-      // Close modal
       this.closeOfferModal();
-      
-      await this.loadOffers();
+      this.updateStatistics();
+      this.renderOffers();
     } catch (error) {
       console.error("Error saving offer:", error);
       const errorMsg = t("offerSaveFailed") || "فشل حفظ العرض";
-      
       if (typeof showNotification === 'function') {
-        showNotification(errorMsg + ": " + error.message, "error");
-      } else {
-        alert(errorMsg + ": " + error.message);
+        showNotification(errorMsg + ": " + (error && error.message ? error.message : ''), "error");
       }
     }
   },
@@ -1530,41 +1450,19 @@ const OffersManager = {
     if (!offer) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-
-      const response = await fetch(`${API_BASE_URL}/offers/${offerId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify({ ...offer, isActive: !offer.isActive }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to toggle offer status");
-      }
-
-      // Update the local offer object immediately
       offer.isActive = !offer.isActive;
-
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       const t = typeof getTranslation === 'function' ? getTranslation : (key) => key;
       const statusMsg = t("offerStatusUpdated") || "تم تحديث حالة العرض بنجاح";
-      
       if (typeof showNotification === 'function') {
         showNotification(statusMsg, "success");
       }
-      
-      // Re-render the offers list to show the change immediately
       this.renderOffers();
       this.updateStatistics();
     } catch (error) {
       console.error("Error toggling offer status:", error);
       const t = typeof getTranslation === 'function' ? getTranslation : (key) => key;
       const toggleErrorMsg = t("offerStatusUpdateFailed") || "فشل تحديث حالة العرض";
-      
       if (typeof showNotification === 'function') {
         showNotification(toggleErrorMsg, "error");
       }
@@ -1581,32 +1479,17 @@ const OffersManager = {
     if (!confirmed) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-
-      const response = await fetch(`${API_BASE_URL}/offers/${offerId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "X-CSRF-Token": csrfToken,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete offer");
-      }
-
+      this.offers = this.offers.filter((o) => o.id !== offerId);
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       const deleteMsg = t("offerDeletedSuccess") || "تم حذف العرض بنجاح";
-      
       if (typeof showNotification === 'function') {
         showNotification(deleteMsg, "success");
       }
-      
-      await this.loadOffers();
+      this.updateStatistics();
+      this.renderOffers();
     } catch (error) {
       console.error("Error deleting offer:", error);
       const deleteErrorMsg = t("offerDeleteFailed") || "فشل حذف العرض";
-      
       if (typeof showNotification === 'function') {
         showNotification(deleteErrorMsg, "error");
       }
@@ -1684,28 +1567,15 @@ const OffersManager = {
     if (!confirm(confirmMsg)) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-      
-      const promises = Array.from(this.selectedOffers).map(async (offerId) => {
+      Array.from(this.selectedOffers).forEach((offerId) => {
         const offer = this.offers.find(o => o.id === offerId);
-        if (!offer) return;
-        
-        return fetch(`${API_BASE_URL}/offers/${offerId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "X-CSRF-Token": csrfToken,
-          },
-          body: JSON.stringify({ ...offer, isActive: true }),
-        });
+        if (offer) offer.isActive = true;
       });
-      
-      await Promise.all(promises);
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       showNotification(t('bulkActivateSuccess') || 'تم تفعيل العروض بنجاح', "success");
       this.selectedOffers.clear();
-      await this.loadOffers();
+      this.updateStatistics();
+      this.renderOffers();
     } catch (error) {
       console.error("Error bulk activating offers:", error);
       showNotification(t('bulkActivateFailed') || 'فشل تفعيل العروض', "error");
@@ -1720,28 +1590,15 @@ const OffersManager = {
     if (!confirm(confirmMsg)) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-      
-      const promises = Array.from(this.selectedOffers).map(async (offerId) => {
+      Array.from(this.selectedOffers).forEach((offerId) => {
         const offer = this.offers.find(o => o.id === offerId);
-        if (!offer) return;
-        
-        return fetch(`${API_BASE_URL}/offers/${offerId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "X-CSRF-Token": csrfToken,
-          },
-          body: JSON.stringify({ ...offer, isActive: false }),
-        });
+        if (offer) offer.isActive = false;
       });
-      
-      await Promise.all(promises);
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       showNotification(t('bulkDeactivateSuccess') || 'تم إلغاء تفعيل العروض بنجاح', "success");
       this.selectedOffers.clear();
-      await this.loadOffers();
+      this.updateStatistics();
+      this.renderOffers();
     } catch (error) {
       console.error("Error bulk deactivating offers:", error);
       showNotification(t('bulkDeactivateFailed') || 'فشل إلغاء تفعيل العروض', "error");
@@ -1756,28 +1613,20 @@ const OffersManager = {
     if (!confirm(confirmMsg)) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-      
-      const promises = Array.from(this.selectedOffers).map(async (offerId) => {
+      const existingFeatured = this.offers.find(o => o.isFeatured);
+      Array.from(this.selectedOffers).forEach((offerId) => {
         const offer = this.offers.find(o => o.id === offerId);
         if (!offer) return;
-        
-        return fetch(`${API_BASE_URL}/offers/${offerId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "X-CSRF-Token": csrfToken,
-          },
-          body: JSON.stringify({ ...offer, isFeatured: true }),
-        });
+        if (existingFeatured && existingFeatured.id !== offerId) {
+          return;
+        }
+        offer.isFeatured = true;
       });
-      
-      await Promise.all(promises);
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       showNotification(t('bulkFeatureSuccess') || 'تم جعل العروض مميزة بنجاح', "success");
       this.selectedOffers.clear();
-      await this.loadOffers();
+      this.updateStatistics();
+      this.renderOffers();
     } catch (error) {
       console.error("Error bulk featuring offers:", error);
       showNotification(t('bulkFeatureFailed') || 'فشل جعل العروض مميزة', "error");
@@ -1792,23 +1641,13 @@ const OffersManager = {
     if (!confirm(confirmMsg)) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const csrfToken = localStorage.getItem("csrfToken");
-      
-      const promises = Array.from(this.selectedOffers).map(offerId => 
-        fetch(`${API_BASE_URL}/offers/${offerId}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "X-CSRF-Token": csrfToken,
-          },
-        })
-      );
-      
-      await Promise.all(promises);
+      const ids = Array.from(this.selectedOffers);
+      this.offers = this.offers.filter(o => !ids.includes(o.id));
+      localStorage.setItem("offers", JSON.stringify(this.offers));
       showNotification(t('bulkDeleteSuccess') || 'تم حذف العروض بنجاح', "success");
       this.selectedOffers.clear();
-      await this.loadOffers();
+      this.updateStatistics();
+      this.renderOffers();
     } catch (error) {
       console.error("Error bulk deleting offers:", error);
       showNotification(t('bulkDeleteFailed') || 'فشل حذف العروض', "error");

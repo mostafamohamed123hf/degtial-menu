@@ -26,9 +26,8 @@
         <div class="menu-icon" id="sidebar-toggle">
           <i class="fas fa-bars"></i>
         </div>
-        <div class="page-title" data-i18n="profileTitle">الملف الشخصي</div>
         <div class="toggle-switch">
-          <span class="toggle-label" data-i18n="themeToggle">الوضع</span>
+         
           <div class="toggle-switch-container">
             <input type="checkbox" id="switch" checked="" />
             <label for="switch"></label>
@@ -80,12 +79,6 @@
               <span data-i18n="sidebarReservation">احجز طاولة</span>
             </a>
           </li>
-          <li class="sidebar-item">
-            <a href="#" class="sidebar-link">
-              <i class="fas fa-phone"></i>
-              <span data-i18n="sidebarContactUs">اتصل بنا</span>
-            </a>
-          </li>
           <!-- Cashier Panel Link (Hidden by default, shown only for cashier users) -->
           <li class="sidebar-item cashier-only-item" style="display: none">
             <a href="/public/pages/cashier.html" class="sidebar-link">
@@ -118,6 +111,16 @@
             </a>
           </li>
         </ul>
+
+        <div class="sidebar-settings">
+          <button
+            id="sidebar-language-switcher"
+            class="language-switcher sidebar-language-switcher"
+            type="button"
+            data-i18n="switchLanguage">
+            English
+          </button>
+        </div>
       </div>
       <div class="sidebar-footer" data-i18n="sidebarFooter">
         جميع الحقوق محفوظة © ديجيتال منيو 2025

@@ -54,17 +54,20 @@ async function loadAdminGlobalSettings() {
     const response = await fetch(`${API_BASE_URL}/global-settings`);
     const result = await response.json();
 
-  if (result.success && result.data) {
-    window.globalSettings = {
-      ...result.data,
-      currencyCode: result.data.currency, // Ensure currencyCode is set for English display
-      loaded: true,
-    };
-    console.log("Admin global settings loaded:", window.globalSettings);
+    if (result.success && result.data) {
+      window.globalSettings = {
+        ...result.data,
+        currencyCode: result.data.currency, // Ensure currencyCode is set for English display
+        loaded: true,
+      };
+      console.log("Admin global settings loaded:", window.globalSettings);
 
-    try {
-      localStorage.setItem("admin-currency-code", window.globalSettings.currency);
-    } catch (_) {}
+      try {
+        localStorage.setItem(
+          "admin-currency-code",
+          window.globalSettings.currency
+        );
+      } catch (_) {}
 
       // Dispatch event to notify other scripts
       window.dispatchEvent(
@@ -89,6 +92,7 @@ if (document.readyState === "loading") {
 }
 
 let currentOrderDetailsModalData = null;
+let noSalesDataToastShown = false;
 
 /**
  * Shows an admin notification at the bottom middle of the screen
@@ -972,71 +976,74 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function loadProducts() {
     try {
-      const apiService = new ApiService();
-
-      // Cache-first: render cached products immediately
       const cached = localStorage.getItem("products");
       if (cached) {
         try {
           products = JSON.parse(cached);
-          renderProducts();
-        } catch (_) {}
-      }
-
-      // Fetch fresh data with shorter timeout
-      const response = await apiService.request(
-        "products",
-        "GET",
-        null,
-        { signal: AbortSignal.timeout(10000) }
-      );
-
-      if (response && response.success && Array.isArray(response.data)) {
-        products = response.data;
-        localStorage.setItem("products", JSON.stringify(products));
-        renderProducts();
-      } else if (!cached) {
+        } catch (_) {
+          products = [];
+        }
+      } else {
         products = [];
-        renderProducts();
       }
+      renderProducts();
+
+      try {
+        const apiService = new ApiService();
+        const response = await apiService.getProducts();
+        if (response && response.success && Array.isArray(response.data)) {
+          const mapped = response.data.map((p) => ({
+            id: p.id || p._id || generateUniqueId(),
+            name: p.name || "",
+            nameEn: p.nameEn || p.name_en || "",
+            description: p.description || "",
+            descriptionEn: p.descriptionEn || p.description_en || "",
+            price: parseFloat(p.price) || 0,
+            discountedPrice:
+              parseFloat(p.discountedPrice || p.discounted_price || 0) || 0,
+            category: p.category || p.categoryId || p.category_id || "general",
+            image: p.image || p.imageUrl || "",
+            addOns: Array.isArray(p.addOns) ? p.addOns : [],
+            totalOrdered: p.totalOrdered || 0,
+            averagePrice: p.averagePrice || 0,
+          }));
+          products = mapped;
+          localStorage.setItem("products", JSON.stringify(products));
+          renderProducts();
+        }
+      } catch (_) {}
     } catch (error) {
       const cached = localStorage.getItem("products");
       if (cached) {
         try {
           products = JSON.parse(cached);
-          renderProducts();
-        } catch (_) {}
+        } catch (_) {
+          products = [];
+        }
+      } else {
+        products = [];
       }
+      renderProducts();
     }
   }
 
   async function loadOrders() {
     try {
-      const apiService = new ApiService();
-
-      // Cache-first
       const savedOrders = localStorage.getItem("orders");
       if (savedOrders) {
         try {
           orders = JSON.parse(savedOrders);
-          updateStats();
-        } catch (_) {}
+        } catch (_) {
+          orders = [];
+        }
+      } else {
+        orders = [];
       }
-
-      // Fetch fresh with timeout and explicit limit
-      const response = await apiService.request(
-        "orders?limit=50",
-        "GET",
-        null,
-        { signal: AbortSignal.timeout(10000) }
-      );
-
-      if (response && response.success && Array.isArray(response.data)) {
-        orders = response.data;
-        localStorage.setItem("orders", JSON.stringify(orders));
-        updateStats();
-      }
-    } catch (_) {}
+      updateStats();
+    } catch (_) {
+      orders = [];
+      updateStats();
+    }
   }
 
   function loadVouchers() {
@@ -1048,39 +1055,6 @@ document.addEventListener("DOMContentLoaded", function () {
         updateStats();
       } catch (_) {}
     }
-
-    try {
-      const apiService = new ApiService();
-      apiService
-        .request("vouchers", "GET", null, { signal: AbortSignal.timeout(10000) })
-        .then((response) => {
-          if (response.success && response.data && response.data.length > 0) {
-            vouchers = response.data.map((backendVoucher) => {
-              return {
-                id: backendVoucher.id || generateUniqueId(),
-                _id: backendVoucher._id,
-                code: backendVoucher.code,
-                discount: backendVoucher.value,
-                minOrderAmount: backendVoucher.minOrderValue || 0,
-                category:
-                  backendVoucher.applicableCategories?.length > 0
-                    ? backendVoucher.applicableCategories[0]
-                    : "all",
-                expiryDate: backendVoucher.endDate,
-                dateCreated:
-                  backendVoucher.createdAt ||
-                  backendVoucher.startDate ||
-                  new Date().toISOString(),
-                isActive: backendVoucher.isActive,
-              };
-            });
-            localStorage.setItem("vouchers", JSON.stringify(vouchers));
-            renderVouchers();
-            updateStats();
-          }
-        })
-        .catch(() => {});
-    } catch (_) {}
   }
 
   function loadTaxSettings() {
@@ -1188,124 +1162,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // Functions - Stats
   async function updateStats() {
     try {
-      // Initialize API service
-      const apiService = new ApiService();
-
-      console.log("[DEBUG] Fetching dashboard stats from API");
-
-      // Fetch dashboard stats from API
-      const response = await apiService.getDashboardStats();
-      console.log("[DEBUG] Dashboard stats API response:", response);
-
-      // First check if we have a valid response object
-      if (!response) {
-        console.warn("Received empty response from dashboard stats API");
-        updateStatsFromLocalData();
-        return;
-      }
-
-      // Check if the response has success property and it's true
-      if (response && response.totalOrders !== undefined) {
-        const stats = response;
-        console.log("Dashboard stats loaded:", stats);
-
-        // Format earnings with thousands separator
-        const formattedEarnings = stats.totalEarnings
-          .toFixed(2)
-          .replace(/\d(?=(\d{3})+\.)/g, "$&,");
-
-        // Format today's earnings
-        const formattedTodaysEarnings = stats.todayEarnings
-          .toFixed(2)
-          .replace(/\d(?=(\d{3})+\.)/g, "$&,");
-
-        // Get currency text based on language
-        const currencyText = getCurrencyText();
-
-        // Update UI
-        // Keep currency in a span for live i18n updates
-        totalEarningsElement.innerHTML = `${formattedEarnings} <span class="currency-text">${currencyText}</span>`;
-        totalOrdersElement.textContent = stats.totalOrders;
-        totalProductsElement.textContent = products.length;
-        totalVouchersElement.textContent = vouchers.length;
-
-        const averageOrderValue =
-          stats.totalOrders > 0 ? stats.totalEarnings / stats.totalOrders : 0;
-        const formattedAverageOrderValue = averageOrderValue
-          .toFixed(2)
-          .replace(/\d(?=(\d{3})+\.)/g, "$&,");
-
-        if (averageOrderValueElement) {
-          averageOrderValueElement.innerHTML = `${formattedAverageOrderValue} <span class="currency-text">${currencyText}</span>`;
-        }
-
-        // Update today's stats
-        const todayOrdersElement = document.getElementById("today-orders");
-        const todayEarningsElement = document.getElementById("today-earnings");
-
-        if (todayOrdersElement) {
-          todayOrdersElement.textContent = stats.todayOrders;
-        }
-
-        if (todayEarningsElement) {
-          const currencySpan =
-            todayEarningsElement.querySelector(".currency-text");
-          if (currencySpan) {
-            currencySpan.textContent = currencyText;
-            todayEarningsElement.firstChild.textContent = `${formattedTodaysEarnings} `;
-          } else {
-            todayEarningsElement.textContent = `${formattedTodaysEarnings} ${currencyText}`;
-          }
-        }
-
-        // Initialize sales chart if not already initialized
-        if (!salesChart) {
-          initSalesChart();
-        } else {
-          // Get the active period or default to 'week'
-          const activePeriodBtn = document.querySelector(
-            ".chart-period-btn.active"
-          );
-          const period = activePeriodBtn
-            ? activePeriodBtn.dataset.period
-            : "week";
-
-          // Load sales data from database with the active period
-          loadSalesDataFromDatabase(period);
-        }
-
-        // Update crowded hours chart if it exists
-        if (document.getElementById("crowded-hours-chart")) {
-          renderCrowdedHoursChart();
-        }
-
-        // Apply animation to stats when they change
-        animateStatsChange();
-
-        // Update recent orders list with data from API
-        if (response.recentOrders) {
-          updateRecentOrdersFromAPI(response.recentOrders);
-        } else {
-          updateRecentOrders();
-        }
-
-        // Load best products
-        loadBestProducts();
-
-        // Update dashboard offer stats
-        updateDashboardOfferStats();
-      } else {
-        const errorMessage =
-          response.message || response.error || "Unknown error";
-        console.warn(
-          `Failed to load dashboard stats from API: ${errorMessage}`
-        );
-        // Fallback to local calculation
-        updateStatsFromLocalData();
-      }
+      updateStatsFromLocalData();
     } catch (error) {
-      console.error("Error updating stats from API:", error);
-      // Fallback to local calculation
       updateStatsFromLocalData();
     }
   }
@@ -1410,8 +1268,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load best products
     loadBestProducts();
 
-    // Update dashboard offer stats
-    updateDashboardOfferStats();
+    // Recent orders and best products already updated locally
   }
 
   // Function to update dashboard offer statistics
@@ -2365,7 +2222,10 @@ document.addEventListener("DOMContentLoaded", function () {
           const option = document.createElement("option");
           option.value = targetValue;
           option.textContent = targetValue;
-          productCategorySelect.insertBefore(option, productCategorySelect.firstChild);
+          productCategorySelect.insertBefore(
+            option,
+            productCategorySelect.firstChild
+          );
         }
         productCategorySelect.value = targetValue;
       }
@@ -2487,9 +2347,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     try {
-      // Initialize API service
-      const apiService = new ApiService();
-
       // Get add-ons data if any
       const addOns = collectAddonsData();
 
@@ -2507,14 +2364,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Check if this is a new product or an edit
       if (productId) {
-        // Update existing product
+        // Update existing product locally
         console.log(`Updating product with ID: ${productId}`, productData);
-        const response = await apiService.updateProduct(productId, productData);
-
-        if (!response.success) {
-          throw new Error(response.message || "Failed to update product");
-        }
-
         // Find the product in the products array and update it
         const productIndex = products.findIndex((p) => p.id === productId);
         if (productIndex !== -1) {
@@ -2524,27 +2375,15 @@ document.addEventListener("DOMContentLoaded", function () {
             id: productId,
           };
         }
-
         showNotification(getTranslation("productUpdatedSuccess"), "success");
       } else {
-        // Add new product
+        // Add new product locally
         console.log("Creating new product:", productData);
         // Generate unique ID for the new product
         const newProductId = generateUniqueId();
         productData.id = newProductId;
-
-        const response = await apiService.createProduct(productData);
-
-        if (!response.success) {
-          throw new Error(response.message || "Failed to create product");
-        }
-
         // Add to products array
-        products.push({
-          id: response.data.id || newProductId,
-          ...productData,
-        });
-
+        products.push({ id: newProductId, ...productData });
         showNotification(getTranslation("productAddedSuccess"), "success");
       }
 
@@ -2589,18 +2428,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     try {
-      // Initialize API service
-      const apiService = new ApiService();
-
-      // Delete from MongoDB
-      const response = await apiService.deleteProduct(productId);
-
-      if (!response.success) {
-        throw new Error(
-          response.message || "Failed to delete product from server"
-        );
-      }
-
       // Remove from local array
       products = products.filter((product) => product.id !== productId);
 
@@ -2636,6 +2463,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function saveProducts() {
     try {
+      localStorage.setItem("products", JSON.stringify(products));
       console.log("Products saved successfully");
 
       // Update UI
@@ -2752,8 +2580,7 @@ document.addEventListener("DOMContentLoaded", function () {
       serviceRateElement.textContent = `${taxSettings.serviceRate}%`;
     }
 
-    // Save to database via API
-    saveTaxSettingsToDatabase(taxSettings);
+    // LocalStorage only persistence
 
     // Show notification
     showNotification(getTranslation("taxSettingsSaved"), "success");
@@ -2764,28 +2591,7 @@ document.addEventListener("DOMContentLoaded", function () {
    * @param {Object} settings - The tax settings to save
    */
   async function saveTaxSettingsToDatabase(settings) {
-    try {
-      const apiService = new ApiService();
-      const url = `${apiService.apiUrl}/tax-settings`;
-
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: apiService.getHeaders(),
-        body: JSON.stringify(settings),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Failed to save tax settings:", errorData);
-        showNotification(getTranslation("taxSettingsSaveFailed"), "error");
-        return;
-      }
-
-      console.log("Tax settings saved to database successfully");
-    } catch (error) {
-      console.error("Error saving tax settings to database:", error);
-      showNotification(getTranslation("taxSettingsSaveError"), "error");
-    }
+    return;
   }
 
   // Functions - Orders Management
@@ -3057,67 +2863,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Functions - Voucher Management
   function saveVouchers() {
-    // Save to localStorage
     localStorage.setItem("vouchers", JSON.stringify(vouchers));
-
-    // Save to MongoDB via ApiService
-    try {
-      const apiService = new ApiService();
-
-      // First, get existing vouchers from the database to compare
-      apiService
-        .request("vouchers")
-        .then((response) => {
-          if (response.success) {
-            const dbVouchers = response.data;
-
-            // Process each voucher to determine if it needs to be created, updated, or deleted
-            vouchers.forEach((voucher) => {
-              const existingVoucher = dbVouchers.find(
-                (v) => v.code === voucher.code
-              );
-
-              // Transform the data to match the backend model requirements
-              const transformedData = {
-                code: voucher.code,
-                type: "percentage",
-                value: parseFloat(voucher.discount),
-                minOrderValue: parseFloat(voucher.minOrderAmount || 0),
-                endDate: voucher.expiryDate,
-                applicableCategories:
-                  voucher.category !== "all" ? [voucher.category] : [],
-                isActive: true,
-              };
-
-              if (existingVoucher) {
-                // Update existing voucher
-                apiService.request(
-                  `vouchers/${existingVoucher._id}`,
-                  "PUT",
-                  transformedData
-                );
-              } else {
-                // Create new voucher
-                apiService.request("vouchers", "POST", transformedData);
-              }
-            });
-
-            // Find vouchers that were deleted locally but still exist in DB
-            dbVouchers.forEach((dbVoucher) => {
-              if (!vouchers.find((v) => v.code === dbVoucher.code)) {
-                // Delete voucher from database
-                apiService.request(`vouchers/${dbVoucher._id}`, "DELETE");
-              }
-            });
-          }
-        })
-        .catch((error) => {
-          console.error("Error syncing vouchers with database:", error);
-        });
-    } catch (error) {
-      console.error("Error initializing API service:", error);
-    }
-
     renderVouchers();
   }
 
@@ -3134,7 +2880,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const noVouchersText =
         currentLang === "ar"
           ? "لا توجد قسائم حالياً. قم بإضافة قسائم جديدة."
-          : "No vouchers available. Add new vouchers.";
+          : "No vouchers currently. Please add new vouchers.";
 
       emptyMessage.innerHTML = `
                 <i class="fas fa-ticket-alt"></i>
@@ -3549,88 +3295,11 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    try {
-      // Find the voucher to get its MongoDB ID if available
-      const voucher = vouchers.find((v) => v.id === voucherId);
-      const mongoId = voucher && voucher._id;
-
-      // Check if voucher exists in MongoDB (has a valid _id)
-      if (mongoId) {
-        // Initialize API service
-        const apiService = new ApiService();
-
-        // Try to delete from MongoDB
-        apiService
-          .deleteVoucher(mongoId)
-          .then((response) => {
-            if (response.success) {
-              // Remove from local array
-              vouchers = vouchers.filter((v) => v.id !== voucherId);
-
-              // Save to localStorage
-              saveVouchers();
-
-              // Re-render vouchers list
-              renderVouchers();
-
-              // Update stats
-              updateStats();
-
-              // Show notification
-              showNotification(
-                getTranslation("voucherDeletedSuccess"),
-                "success"
-              );
-            } else {
-              showNotification(getTranslation("errorDeletingVoucher"), "error");
-            }
-          })
-          .catch((error) => {
-            console.error("Error deleting voucher from server:", error);
-            showNotification(getTranslation("errorConnectingServer"), "error");
-
-            // Fallback to local deletion
-            // Remove from local array
-            vouchers = vouchers.filter((v) => v.id !== voucherId);
-
-            // Save to localStorage
-            saveVouchers();
-
-            // Re-render vouchers list
-            renderVouchers();
-
-            // Update stats
-            updateStats();
-
-            // Show notification
-            showNotification(
-              getTranslation("voucherDeletedLocally"),
-              "warning"
-            );
-          });
-      } else {
-        // Voucher only exists locally (no MongoDB _id), delete it locally only
-        console.log("Voucher only exists locally, deleting from localStorage");
-
-        // Remove from local array
-        vouchers = vouchers.filter((v) => v.id !== voucherId);
-
-        // Save to localStorage
-        saveVouchers();
-
-        // Re-render vouchers list
-        renderVouchers();
-
-        // Update stats
-        updateStats();
-
-        // Show notification
-        showNotification(getTranslation("voucherDeletedLocally"), "success");
-      }
-    } catch (error) {
-      console.error("Error in delete voucher flow:", error);
-      showNotification(getTranslation("unexpectedError"), "error");
-    }
+    vouchers = vouchers.filter((v) => v.id !== voucherId);
+    saveVouchers();
+    renderVouchers();
+    updateStats();
+    showNotification(getTranslation("voucherDeletedSuccess"), "success");
   }
 
   // New modal display function
@@ -3670,7 +3339,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("voucher-code").value = randomCode;
     document.getElementById("voucher-discount").value = "10";
     document.getElementById("voucher-min-order").value = "0";
-    (function() {
+    (function () {
       const sel = document.getElementById("voucher-category");
       try {
         if (sel && sel.options.length <= 1) {
@@ -3682,7 +3351,9 @@ document.addEventListener("DOMContentLoaded", function () {
               const option = document.createElement("option");
               option.value = category.value;
               const categoryName =
-                lang === "en" && category.nameEn ? category.nameEn : category.name;
+                lang === "en" && category.nameEn
+                  ? category.nameEn
+                  : category.name;
               option.textContent = categoryName;
               option.dataset.nameAr = category.name;
               option.dataset.nameEn = category.nameEn || category.name;
@@ -3722,7 +3393,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // QR Code Generator Functions
   function initQRCodeGenerator() {
-    const existingInit = document.querySelector(".qr-list-container.qr-generator-initialized");
+    const existingInit = document.querySelector(
+      ".qr-list-container.qr-generator-initialized"
+    );
     const createQRBtn = document.getElementById("create-qr-btn");
     const qrPreview = document.getElementById("qr-preview");
     const qrListContainer = document.querySelector(".qr-list-container");
@@ -3748,8 +3421,14 @@ document.addEventListener("DOMContentLoaded", function () {
           (qr) => String(qr.tableNumber) === String(tableNumber)
         );
         if (exists) {
-          const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-          const msg = lang === "ar" ? "كود QR موجود بالفعل لهذه الطاولة" : "QR code already exists for this table";
+          const lang =
+            typeof getCurrentLanguage === "function"
+              ? getCurrentLanguage()
+              : "ar";
+          const msg =
+            lang === "ar"
+              ? "كود QR موجود بالفعل لهذه الطاولة"
+              : "QR code already exists for this table";
           showNotification(`${msg} ${tableNumber}`, "error");
           return;
         }
@@ -3876,8 +3555,12 @@ document.addEventListener("DOMContentLoaded", function () {
     );
 
     if (existingIndex !== -1) {
-      const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
-      const msg = lang === "ar" ? "كود QR موجود بالفعل لهذه الطاولة" : "QR code already exists for this table";
+      const lang =
+        typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "ar";
+      const msg =
+        lang === "ar"
+          ? "كود QR موجود بالفعل لهذه الطاولة"
+          : "QR code already exists for this table";
       showNotification(`${msg} ${tableNumber}`, "error");
       return;
     } else {
@@ -4057,7 +3740,10 @@ document.addEventListener("DOMContentLoaded", function () {
             </html>
         `;
     if (!printWindow || !printWindow.document) {
-      const msg = getCurrentLanguage() === "ar" ? "يرجى السماح بفتح النوافذ المنبثقة للطباعة" : "Please allow pop-ups to open the print tab";
+      const msg =
+        getCurrentLanguage() === "ar"
+          ? "يرجى السماح بفتح النوافذ المنبثقة للطباعة"
+          : "Please allow pop-ups to open the print tab";
       showNotification(msg, "warning");
       return;
     }
@@ -4924,126 +4610,69 @@ document.addEventListener("DOMContentLoaded", function () {
   // Show order details in a modal
   async function showOrderDetails(order) {
     try {
-      // If we only have the order ID, fetch the full order details
       if (
         !order.items &&
         (order.id || order.orderId || order.orderNumber || order._id)
       ) {
         const orderId =
           order.id || order.orderId || order.orderNumber || order._id;
+        const localOrder = orders.find(
+          (o) =>
+            o.id === orderId ||
+            o.orderId === orderId ||
+            o.orderNumber === orderId ||
+            o._id === orderId
+        );
+        if (localOrder) {
+          order = localOrder;
+        }
+      }
 
-        // Show loading notification
-        const loadingToast = showToast("جاري التحميل...", "loading");
-
+      if (order.orderNumber || order.orderId || order._id) {
+        const oid = order.orderNumber || order.orderId || order._id;
         try {
-          // Fetch order details from API
-          const response = await apiService.request(`orders/${orderId}`, "GET");
-
-          if (response && response.success && response.data) {
-            order = response.data;
-          } else {
-            // If API fails, try to find the order in the local array
-            const localOrder = orders.find(
-              (o) =>
-                o.id === orderId ||
-                o.orderId === orderId ||
-                o.orderNumber === orderId ||
-                o._id === orderId
-            );
-
-            if (localOrder) {
-              order = localOrder;
+          const savedRatings = localStorage.getItem("ratings");
+          if (savedRatings) {
+            const ratingsArr = JSON.parse(savedRatings);
+            const orderRatings = ratingsArr
+              .filter((r) => String(r.orderId) === String(oid))
+              .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            if (orderRatings.length > 0) {
+              order.comment = orderRatings[0].comment || order.comment;
+              order.ratingValue = orderRatings[0].rating || order.ratingValue;
             }
           }
-
-          hideToast(loadingToast);
-        } catch (error) {
-          console.error("Error fetching order details:", error);
-          hideToast(loadingToast);
-          showToast("حدث خطأ أثناء تحميل تفاصيل الطلب", "error");
-          return;
-        }
+        } catch (_) {}
       }
 
-      // If order is rated, fetch the rating comment
-      if (order.isRated) {
-        try {
-          const orderId = order.orderNumber || order.orderId || order._id;
-          // Fetch ratings for this order
-          const ratingsResponse = await apiService.request(
-            `ratings/order/${orderId}`,
-            "GET"
-          );
-
-          if (
-            ratingsResponse &&
-            ratingsResponse.success &&
-            ratingsResponse.data &&
-            ratingsResponse.data.length > 0
-          ) {
-            // Get the most recent rating
-            const latestRating = ratingsResponse.data[0];
-            // Add comment to order object
-            order.comment = latestRating.comment;
-            // Add rating value to order object
-            order.ratingValue = latestRating.rating;
-            console.log(
-              "Found rating for order:",
-              order.ratingValue,
-              order.comment
-            );
-          }
-        } catch (error) {
-          console.error("Error fetching rating for order:", error);
-          // Continue without the comment if there's an error
-        }
-      }
-
-      // Ensure we have product images for each item
       if (Array.isArray(order.items) && order.items.length > 0) {
-        // Check if we need to fetch product details for images
         const needsImages = order.items.some((item) => !item.image);
-
         if (needsImages) {
           try {
-            // Get all products to match with order items
-            const productsResponse = await apiService.getProducts();
-
-            if (
-              productsResponse &&
-              productsResponse.success &&
-              Array.isArray(productsResponse.data)
-            ) {
+            const savedProducts = localStorage.getItem("products");
+            if (savedProducts) {
+              const productsArr = JSON.parse(savedProducts) || [];
               const productsMap = {};
-
-              // Create a map of products by ID and name for quick lookup
-              productsResponse.data.forEach((product) => {
+              productsArr.forEach((product) => {
                 if (product.id) productsMap[product.id] = product;
                 if (product._id) productsMap[product._id] = product;
                 if (product.name)
-                  productsMap[product.name.toLowerCase()] = product;
+                  productsMap[String(product.name).toLowerCase()] = product;
               });
-
-              // Update order items with images
               order.items = order.items.map((item) => {
                 if (!item.image) {
-                  // Try to find matching product by id or name
-                  const matchedProduct =
+                  const p =
                     (item.id && productsMap[item.id]) ||
                     (item.productId && productsMap[item.productId]) ||
-                    (item.name && productsMap[item.name.toLowerCase()]);
-
-                  if (matchedProduct && matchedProduct.image) {
-                    return { ...item, image: matchedProduct.image };
+                    (item.name && productsMap[String(item.name).toLowerCase()]);
+                  if (p && p.image) {
+                    return { ...item, image: p.image };
                   }
                 }
                 return item;
               });
             }
-          } catch (error) {
-            console.error("Error fetching product images:", error);
-            // Continue without images if there's an error
-          }
+          } catch (_) {}
         }
       }
 
@@ -6181,10 +5810,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     updateSalesChart();
   }
-
-  // Add a flag to track if the toast for missing sales data has been shown
-  let noSalesDataToastShown = false;
-
   // Generate sample sales data for demonstration
   function generateSampleSalesData() {
     const daysOfWeek = [
@@ -7542,221 +7167,65 @@ document.addEventListener("DOMContentLoaded", function () {
       productsList.style.display = "none";
       emptyMessage.style.display = "none";
 
-      // Get most ordered products from API
-      const apiService = new ApiService();
       let products = [];
       let apiError = false;
-
       try {
-        console.log("[DEBUG] Attempting to load best products from API");
-
-        // First try to get orders to ensure we have real data
-        const ordersResponse = await apiService.request(
-          "orders?limit=100",
-          "GET"
-        );
-        if (
-          !ordersResponse.success ||
-          !ordersResponse.data ||
-          ordersResponse.data.length === 0
-        ) {
-          console.warn(
-            "[DEBUG] No orders found in database, cannot calculate most ordered products"
-          );
-          throw new Error("No orders found in database");
-        }
-
-        // Get the most ordered products data
-        const mostOrderedProducts = await apiService.getMostOrderedProducts(10); // Request more to account for possible duplicates
-        console.log(
-          "[DEBUG] API response for most ordered products:",
-          mostOrderedProducts
-        );
-
-        if (!mostOrderedProducts || mostOrderedProducts.length === 0) {
-          console.warn("[DEBUG] No most ordered products returned from API");
-          throw new Error("No most ordered products returned from API");
-        }
-
-        // Get all products to match IDs correctly and get complete product info
-        const allProductsResponse = await apiService.getProducts();
-        const allProducts = allProductsResponse.success
-          ? allProductsResponse.data
-          : [];
-        console.log("[DEBUG] All products fetched:", allProducts.length);
-
-        if (!allProducts || allProducts.length === 0) {
-          console.warn("[DEBUG] No products found in database");
-          throw new Error("No products found in database");
-        }
-
-        // Process each most ordered product
-        let processedProducts = mostOrderedProducts.map((orderedProduct) => {
-          // Try to find the matching product in the complete products list
-          // This is needed because the ID formats might be different
-          const matchingProduct = allProducts.find(
-            (p) =>
-              // Try to match by ID first
-              p.id === orderedProduct.id ||
-              // Then by name as fallback
-              p.name === orderedProduct.name
-          );
-
-          if (matchingProduct) {
-            console.log(
-              `[DEBUG] Found matching product for ${orderedProduct.name}`
-            );
-            const catalogArabicName =
-              matchingProduct.name || orderedProduct.name;
-            const catalogEnglishName =
-              matchingProduct.nameEn && matchingProduct.nameEn.trim() !== ""
-                ? matchingProduct.nameEn
-                : orderedProduct.nameEn || orderedProduct.name;
-            // Merge the order data with complete product details
-            return {
-              ...orderedProduct,
-              name: catalogArabicName,
-              nameEn: catalogEnglishName,
-              image: matchingProduct.image, // Use the image from product details
-              description: matchingProduct.description,
-              descriptionEn: matchingProduct.descriptionEn, // Include English description
-              category: matchingProduct.category,
-              // Add a normalized name for deduplication
-              normalizedName: orderedProduct.name.toLowerCase().trim(),
-            };
-          }
-
-          // If no match found, just use the ordered product data as is
-          console.log(
-            `[DEBUG] No matching product found for ${orderedProduct.name}`
-          );
-          return {
-            ...orderedProduct,
-            normalizedName: orderedProduct.name.toLowerCase().trim(),
-          };
-        });
-
-        // Deduplicate products with the same name
-        // Keep only the first occurrence (highest ordered)
-        const seenNames = new Set();
-        processedProducts = processedProducts.filter((product) => {
-          if (seenNames.has(product.normalizedName)) {
-            console.log(`[DEBUG] Removing duplicate product: ${product.name}`);
-            return false;
-          }
-          seenNames.add(product.normalizedName);
-          return true;
-        });
-
-        // Limit to 5 products after deduplication
-        products = processedProducts.slice(0, 5);
-
-        console.log("[DEBUG] Final deduplicated products:", products);
-      } catch (error) {
-        console.error("[DEBUG] API error when loading best products:", error);
-
-        // Try an alternative approach - calculate most ordered products from orders directly
-        try {
-          console.log(
-            "[DEBUG] Trying alternative approach to get most ordered products"
-          );
-          const ordersResponse = await apiService.request(
-            "orders?limit=100",
-            "GET"
-          );
-
-          if (
-            ordersResponse.success &&
-            ordersResponse.data &&
-            ordersResponse.data.length > 0
-          ) {
-            const orders = ordersResponse.data;
-            console.log(
-              `[DEBUG] Successfully fetched ${orders.length} orders for alternative calculation`
-            );
-
-            // Create a map to count product orders
-            const productCounts = new Map();
-            const productInfo = new Map();
-
-            // Process each order
-            orders.forEach((order) => {
-              if (order.items && Array.isArray(order.items)) {
-                order.items.forEach((item) => {
-                  if (!item.id || !item.name) return;
-
-                  const normalizedName = item.name.toLowerCase().trim();
-                  const currentCount = productCounts.get(normalizedName) || 0;
-                  productCounts.set(
-                    normalizedName,
-                    currentCount + (item.quantity || 1)
-                  );
-
-                  // Store product info if not already stored
-                  if (!productInfo.has(normalizedName)) {
-                    productInfo.set(normalizedName, {
-                      id: item.id,
-                      name: item.name,
-                      nameEn: item.nameEn || "", // Include English name if available
-                      image: item.image || "",
-                      category: item.category || "",
-                      prices: [item.price || 0],
-                    });
-                  } else {
-                    // Add price to prices array for averaging later
-                    productInfo
-                      .get(normalizedName)
-                      .prices.push(item.price || 0);
-                  }
+        const savedOrders = localStorage.getItem("orders");
+        const ordersArr = savedOrders ? JSON.parse(savedOrders) : [];
+        const productCounts = new Map();
+        const productInfo = new Map();
+        ordersArr.forEach((order) => {
+          if (order.items && Array.isArray(order.items)) {
+            order.items.forEach((item) => {
+              if (!item.name) return;
+              const normalizedName = String(item.name).toLowerCase().trim();
+              const currentCount = productCounts.get(normalizedName) || 0;
+              productCounts.set(
+                normalizedName,
+                currentCount + (parseInt(item.quantity) || 1)
+              );
+              if (!productInfo.has(normalizedName)) {
+                productInfo.set(normalizedName, {
+                  id: item.id,
+                  name: item.name,
+                  nameEn: item.nameEn || "",
+                  image: item.image || "",
+                  category: item.category || "",
+                  prices: [parseFloat(item.price) || 0],
                 });
+              } else {
+                productInfo
+                  .get(normalizedName)
+                  .prices.push(parseFloat(item.price) || 0);
               }
             });
-
-            // Convert to array and sort by count
-            const sortedProducts = Array.from(productCounts.entries())
-              .map(([normalizedName, count]) => {
-                const info = productInfo.get(normalizedName);
-                const prices = info.prices;
-                const averagePrice =
-                  prices.reduce((sum, price) => sum + price, 0) / prices.length;
-
-                return {
-                  id: info.id,
-                  name: info.name,
-                  nameEn: info.nameEn, // Include English name
-                  image: info.image,
-                  category: info.category,
-                  totalOrdered: count,
-                  averagePrice: averagePrice,
-                  normalizedName,
-                };
-              })
-              .sort((a, b) => b.totalOrdered - a.totalOrdered)
-              .slice(0, 5);
-
-            if (sortedProducts.length > 0) {
-              console.log(
-                "[DEBUG] Successfully calculated most ordered products from orders:",
-                sortedProducts
-              );
-              products = sortedProducts;
-              apiError = false;
-            } else {
-              throw new Error("No products found in orders");
-            }
-          } else {
-            throw new Error(
-              "Failed to fetch orders for alternative calculation"
-            );
           }
-        } catch (altError) {
-          console.error("[DEBUG] Alternative approach also failed:", altError);
-
-          // Instead of using mock data, show a message that no data is available
-          console.log("[DEBUG] No product data available, showing empty state");
-          products = [];
-          apiError = true;
-        }
+        });
+        const sortedProducts = Array.from(productCounts.entries())
+          .map(([normalizedName, count]) => {
+            const info = productInfo.get(normalizedName);
+            const prices = info.prices;
+            const averagePrice =
+              prices.length > 0
+                ? prices.reduce((sum, p) => sum + p, 0) / prices.length
+                : 0;
+            return {
+              id: info.id,
+              name: info.name,
+              nameEn: info.nameEn,
+              image: info.image,
+              category: info.category,
+              totalOrdered: count,
+              averagePrice,
+              normalizedName,
+            };
+          })
+          .sort((a, b) => b.totalOrdered - a.totalOrdered)
+          .slice(0, 5);
+        products = sortedProducts;
+      } catch (_) {
+        products = [];
+        apiError = true;
       }
 
       // Hide spinner
@@ -9092,30 +8561,51 @@ document.addEventListener("languageChanged", function (event) {
   // Load categories from localStorage or API
   async function loadCategories() {
     try {
-      // First load from localStorage as fallback
       const savedCategories = localStorage.getItem("categories");
       if (savedCategories) {
         categories = JSON.parse(savedCategories);
-        renderCategories();
-      }
-
-      // Then try to load from API (if available)
-      const apiService = new ApiService();
-      const response = await apiService.request("categories", "GET");
-
-      if (response && response.success && response.data) {
-        categories = response.data;
+      } else {
+        categories = getDefaultCategories();
         localStorage.setItem("categories", JSON.stringify(categories));
-        renderCategories();
       }
+      renderCategories();
+
+      try {
+        const apiService = new ApiService();
+        const res = await apiService.request("categories", "GET");
+        if (res && res.success && Array.isArray(res.data)) {
+          const mapped = res.data.map((c) => {
+            const nameAr = c.name || c.nameAr || c.title || "";
+            const nameEn = c.nameEn || c.name_en || c.titleEn || nameAr;
+            const value =
+              c.value ||
+              c.slug ||
+              (nameEn || nameAr)
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^a-z0-9-]/g, "");
+            return {
+              id: c.id || c._id || value || generateUniqueId(),
+              name: nameAr,
+              nameEn: nameEn,
+              value: value,
+              icon: c.icon || "fas fa-th-large",
+              sortOrder: c.sortOrder || c.sort_order || 0,
+            };
+          });
+          categories = mapped;
+          localStorage.setItem("categories", JSON.stringify(categories));
+          renderCategories();
+          updateProductCategoryDropdowns();
+        }
+      } catch (_) {}
     } catch (error) {
       console.error("Error loading categories:", error);
-      // If no saved categories, initialize with default ones
       if (categories.length === 0) {
         categories = getDefaultCategories();
         localStorage.setItem("categories", JSON.stringify(categories));
-        renderCategories();
       }
+      renderCategories();
     }
   }
 
@@ -9361,55 +8851,6 @@ document.addEventListener("languageChanged", function (event) {
     }
 
     try {
-      const apiService = new ApiService();
-
-      if (editingCategoryId) {
-        // Update existing category
-        const response = await apiService.request(
-          `categories/${editingCategoryId}`,
-          "PUT",
-          categoryData
-        );
-
-        if (response && response.success) {
-          const index = categories.findIndex((c) => c.id === editingCategoryId);
-          if (index !== -1) {
-            categories[index] = categoryData;
-          }
-          showCategoryNotification(
-            getTranslation("categoryUpdated"),
-            "success"
-          );
-        } else {
-          throw new Error("Failed to update category");
-        }
-      } else {
-        // Add new category
-        const response = await apiService.request(
-          "categories",
-          "POST",
-          categoryData
-        );
-
-        if (response && response.success) {
-          categories.push(categoryData);
-          showCategoryNotification(getTranslation("categoryAdded"), "success");
-        } else {
-          throw new Error("Failed to add category");
-        }
-      }
-
-      // Save to localStorage
-      localStorage.setItem("categories", JSON.stringify(categories));
-
-      // Update UI
-      renderCategories();
-      updateProductCategoryDropdowns();
-      closeCategoryModalHandler();
-    } catch (error) {
-      console.error("Error saving category:", error);
-
-      // Fallback to localStorage only
       if (editingCategoryId) {
         const index = categories.findIndex((c) => c.id === editingCategoryId);
         if (index !== -1) {
@@ -9425,6 +8866,12 @@ document.addEventListener("languageChanged", function (event) {
       renderCategories();
       updateProductCategoryDropdowns();
       closeCategoryModalHandler();
+    } catch (error) {
+      console.error("Error saving category:", error);
+      localStorage.setItem("categories", JSON.stringify(categories));
+      renderCategories();
+      updateProductCategoryDropdowns();
+      closeCategoryModalHandler();
     }
   }
 
@@ -9435,24 +8882,10 @@ document.addEventListener("languageChanged", function (event) {
     }
 
     try {
-      const apiService = new ApiService();
-      const response = await apiService.request(
-        `categories/${categoryId}`,
-        "DELETE"
-      );
-
-      if (response && response.success) {
-        categories = categories.filter((c) => c.id !== categoryId);
-        showCategoryNotification(getTranslation("categoryDeleted"), "success");
-      } else {
-        throw new Error("Failed to delete category");
-      }
-    } catch (error) {
-      console.error("Error deleting category:", error);
-
-      // Fallback to localStorage only
       categories = categories.filter((c) => c.id !== categoryId);
       showCategoryNotification(getTranslation("categoryDeleted"), "success");
+    } catch (error) {
+      console.error("Error deleting category:", error);
     }
 
     localStorage.setItem("categories", JSON.stringify(categories));
@@ -9649,22 +9082,22 @@ document.addEventListener("languageChanged", function (event) {
 if (typeof updateDashboardOfferStats !== "undefined") {
   window.updateDashboardOfferStats = updateDashboardOfferStats;
 }
-    try {
-      if (voucherCategory && voucherCategory.options.length <= 1) {
-        const saved = localStorage.getItem("categories");
-        const lang = localStorage.getItem("admin-language") || "ar";
-        if (saved) {
-          const cats = JSON.parse(saved);
-          cats.forEach((category) => {
-            const option = document.createElement("option");
-            option.value = category.value;
-            const categoryName =
-              lang === "en" && category.nameEn ? category.nameEn : category.name;
-            option.textContent = categoryName;
-            option.dataset.nameAr = category.name;
-            option.dataset.nameEn = category.nameEn || category.name;
-            voucherCategory.appendChild(option);
-          });
-        }
-      }
-    } catch (_) {}
+try {
+  if (voucherCategory && voucherCategory.options.length <= 1) {
+    const saved = localStorage.getItem("categories");
+    const lang = localStorage.getItem("admin-language") || "ar";
+    if (saved) {
+      const cats = JSON.parse(saved);
+      cats.forEach((category) => {
+        const option = document.createElement("option");
+        option.value = category.value;
+        const categoryName =
+          lang === "en" && category.nameEn ? category.nameEn : category.name;
+        option.textContent = categoryName;
+        option.dataset.nameAr = category.name;
+        option.dataset.nameEn = category.nameEn || category.name;
+        voucherCategory.appendChild(option);
+      });
+    }
+  }
+} catch (_) {}

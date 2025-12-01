@@ -36,9 +36,6 @@ let editingRoleId = null;
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize the role management system
   initRoleManagement();
-
-  // Check MongoDB connection status
-  checkMongoDbConnection();
   
   // Run migration for existing roles (add color/icon if missing)
   setTimeout(() => {
@@ -824,10 +821,6 @@ async function handleAssignRole() {
     saveAssignRoleBtn.innerHTML =
       '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-    // Check if MongoDB API is available
-    const isMongoDbAvailable = await apiService.isMongoDbApiAvailable("roles");
-    let storageType = isMongoDbAvailable ? "قاعدة البيانات" : "التخزين المحلي";
-
     // Get role info for notification
     const role = roles.find((r) => r._id === roleId || r.id === roleId);
 
@@ -840,9 +833,9 @@ async function handleAssignRole() {
     const response = await apiService.assignRoleToUser(userId, roleId);
 
     if (response.success) {
-      // Show success notification with storage type
+      // Show success notification (local storage only)
       showAdminNotification(
-        `تم تعيين دور "${role.name}" للمستخدم بنجاح (${storageType})`,
+        `تم تعيين دور "${role.name}" للمستخدم بنجاح (التخزين المحلي)`,
         "success"
       );
 
@@ -1028,23 +1021,84 @@ async function migrateRolesWithColorAndIcon() {
     
   } catch (error) {
     console.error("Error during role migration:", error);
-    showAdminNotification(getTranslation("errorUpdatingRoles"), "error");
+    showAdminNotification(getTranslation("errorUpdatingRoles").replace("{storage}", "local storage"), "error");
   }
 }
 
 /**
- * Check MongoDB connection status and display a notification
+ * Show notification to the admin
+ * Using existing function from admin.js if available, or creating a simple one
+ * @param {string} message - Notification message
+ * @param {string} type - Notification type (success, error, info, warning)
+ * @param {number} duration - Duration in milliseconds to show the notification
  */
-async function checkMongoDbConnection() {
-  try {
-    const isAvailable = await apiService.isMongoDbApiAvailable("roles");
-
-    if (!isAvailable) {
-      console.log("MongoDB API is not available, using localStorage");
-      // Only show notification if user tries to perform an action
-      // This avoids showing warnings on every page load when backend is intentionally offline
+function showAdminNotification(message, type = "info", duration) {
+  // Try to use existing function from admin.js
+  if (
+    typeof window.showAdminNotification === "function" &&
+    window.showAdminNotification !== showAdminNotification
+  ) {
+    // Check if the original function supports duration
+    if (duration) {
+      try {
+        return window.showAdminNotification(message, type, duration);
+      } catch (e) {
+        // If error, try without duration
+        return window.showAdminNotification(message, type);
+      }
+    } else {
+      return window.showAdminNotification(message, type);
     }
-  } catch (error) {
-    console.log("Error checking MongoDB connection:", error.message);
+  } else if (typeof window.showNotification === "function") {
+    // Try to use showNotification with duration if available
+    if (duration) {
+      try {
+        return window.showNotification(message, type, duration);
+      } catch (e) {
+        // If error, try without duration
+        return window.showNotification(message, type);
+      }
+    } else {
+      return window.showNotification(message, type);
+    }
+  } else {
+    // Create a simple notification function
+    console.log(`[${type}] ${message}`);
+
+    // Create a custom notification if needed
+    const notificationContainer =
+      document.getElementById("notification-container") ||
+      document.querySelector(".notification-container");
+
+    if (notificationContainer) {
+      const notification = document.createElement("div");
+      notification.className = `notification ${type}`;
+      notification.innerHTML = `
+        <div class="notification-content">
+          <span class="notification-message">${message}</span>
+        </div>
+        <button class="notification-close">&times;</button>
+      `;
+
+      notificationContainer.appendChild(notification);
+
+      // Add close button functionality
+      const closeBtn = notification.querySelector(".notification-close");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          notification.remove();
+        });
+      }
+
+      // Auto-remove after duration or default 5 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, duration || 5000);
+
+      return;
+    }
+
+    // Fallback to alert if no notification container
+    alert(message);
   }
 }

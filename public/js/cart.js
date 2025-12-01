@@ -94,6 +94,7 @@ if (!AbortSignal.timeout) {
 let voucherDiscountAmount = 0; // Global variable to track voucher discount amount
 
 // Cart calculation variables
+const DEFAULT_POINTS_PER_CURRENCY = 10; // Earn 1 point for every 10 currency units by default
 let subtotal = 0;
 let taxRate = 15; // Default tax rate (15%)
 let taxAmount = 0;
@@ -112,30 +113,22 @@ let loyaltyDiscountSettings = {
   minPointsForDiscount: 10, // Default: Minimum 10 points needed
   maxDiscountValue: 50, // Default: Maximum 50% discount
   isEnabled: true, // Default: Loyalty discount is enabled
+  pointsPerCurrency: DEFAULT_POINTS_PER_CURRENCY, // Earn rate: 1 point per 10 currency units
+  maxPointsPerOrder: 0, // 0 means unlimited
 };
 
-// Function to load free items data from API
+// Function to load free items data from localStorage
 async function loadFreeItemsData() {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/customer/loyalty/free-items`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success && Array.isArray(result.data)) {
-        freeItemsData = result.data;
-        console.log("Loaded free items data in cart:", freeItemsData);
-      }
+    const saved = localStorage.getItem("freeItems");
+    const items = saved ? JSON.parse(saved) : [];
+    if (Array.isArray(items)) {
+      freeItemsData = items;
+      console.log("Loaded free items data in cart (localStorage):", freeItemsData);
     }
   } catch (error) {
-    console.error("Error fetching free items in cart:", error);
+    console.error("Error loading free items from localStorage:", error);
+    freeItemsData = [];
   }
 }
 
@@ -933,33 +926,36 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.log("Checking for active voucher:", activeVoucher);
     if (activeVoucher) {
       try {
-        const apiBaseUrl = window.API_BASE_URL || API_BASE_URL || "http://localhost:5000";
-        const response = await fetch(`${apiBaseUrl}/api/vouchers/validate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: activeVoucher.code,
-            orderValue: subtotal,
-            items: (cartItems || []).map((it) => ({
-              id: it.id || it.productId || it._id,
-              quantity: parseInt(it.quantity || 1),
-              price: parseFloat(it.price || 0),
-            })),
-          }),
-          signal: AbortSignal.timeout(5000),
-        });
-        const data = await response.json();
-        if (data && data.success && data.data) {
-          discountValue = parseFloat(data.data.discountAmount || 0);
-          voucherDiscountAmount = discountValue;
-          activeVoucher.discountAmount = discountValue;
-          activeVoucher.applicableCategories = data.data.applicableCategories || [];
-          activeVoucher.applicableProducts = data.data.applicableProducts || [];
+        // Compute discount locally based on voucher type and eligibility
+        const eligibleSubtotal = (() => {
+          if (Array.isArray(activeVoucher.applicableProducts) && activeVoucher.applicableProducts.length) {
+            return (cartItems || []).reduce((sum, it) => {
+              const id = it.id || it.productId || it._id;
+              return activeVoucher.applicableProducts.includes(id)
+                ? sum + (parseFloat(it.price) || 0) * (parseInt(it.quantity) || 1)
+                : sum;
+            }, 0);
+          }
+          if (Array.isArray(activeVoucher.applicableCategories) && activeVoucher.applicableCategories.length) {
+            return (cartItems || []).reduce((sum, it) => {
+              const cat = it.category || it.categoryId;
+              return activeVoucher.applicableCategories.includes(cat)
+                ? sum + (parseFloat(it.price) || 0) * (parseInt(it.quantity) || 1)
+                : sum;
+            }, 0);
+          }
+          return subtotal;
+        })();
+
+        if (String(activeVoucher.type).toLowerCase() === "percentage") {
+          discountValue = (eligibleSubtotal * (parseFloat(activeVoucher.value) || 0)) / 100;
         } else {
-          await clearVoucher();
+          discountValue = Math.min(parseFloat(activeVoucher.value) || 0, eligibleSubtotal);
         }
+        voucherDiscountAmount = discountValue;
+        activeVoucher.discountAmount = discountValue;
       } catch (e) {
-        console.warn("Voucher revalidation failed, using cached amount", e);
+        console.warn("Voucher discount compute failed, using cached amount", e);
         discountValue = parseFloat(activeVoucher.discountAmount || 0);
         voucherDiscountAmount = discountValue;
       }
@@ -1206,7 +1202,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       let discountInfo = null;
 
       if (activeVoucher) {
-        discountValue = (subtotal * activeVoucher.discount) / 100;
+        discountValue = parseFloat(activeVoucher.discountAmount || 0);
         discountInfo = {
           code: activeVoucher.code,
           value: discountValue,
@@ -1302,191 +1298,33 @@ document.addEventListener("DOMContentLoaded", async function () {
         status: "pending",
       };
 
-      let savedToServer = false;
+      // Ensure order has identifier and timestamps for cashier display
+      const generatedOrderId = orderData.id || orderData.orderNumber || generateOrderId();
+      const timestamp = orderData.date || orderData.createdAt || new Date().toISOString();
+      orderData.id = generatedOrderId;
+      if (!orderData.orderNumber) {
+        orderData.orderNumber = generatedOrderId;
+      }
+      orderData.date = timestamp;
+      orderData.createdAt = timestamp;
 
-      // Check if user is logged in with a fresh check
-      if (verifyAuthBeforeCheckout()) {
+      let savedToServer = false; // always local-only
+
+      // Local-only checkout: deduct loyalty points if applied
+      if (pointsUsed > 0) {
         try {
-          console.log(
-            "User is logged in, attempting authenticated order submission"
-          );
-
-          // Try to refresh the token before submitting the order
-          let token;
-          try {
-            // Attempt to refresh the token first
-            token = await refreshToken();
-            console.log("Token refreshed successfully");
-          } catch (refreshError) {
-            console.log("Token refresh failed, using existing token");
-            token = getToken();
+          const currentBalance = parseInt(userLoyaltyPoints || 0, 10) || 0;
+          const pointsToDeduct = Math.min(parseInt(pointsUsed, 10) || 0, currentBalance);
+          if (pointsToDeduct > 0) {
+            adjustUserLoyaltyPoints(-pointsToDeduct);
+            userLoyaltyPoints = Math.max(0, currentBalance - pointsToDeduct);
+          } else {
+            clearAppliedLoyaltyPoints();
+            pointsUsed = 0;
           }
-
-          if (!token) {
-            throw new Error("No authentication token available");
-          }
-
-          // Save order to MongoDB using authenticated endpoint
-          const response = await fetch(`${API_BASE_URL}/api/orders`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-              "X-Order-Session": sessionToken,
-            },
-            body: JSON.stringify({
-              items: orderData.items,
-              subtotal: orderData.subtotal,
-              tax: orderData.tax,
-              serviceTax: orderData.serviceTax,
-              discount: orderData.discount,
-              loyaltyDiscount: orderData.loyaltyDiscount, // Include loyalty discount in API request
-              total: orderData.total,
-              status: orderData.status,
-              tableNumber: orderData.tableNumber,
-            }),
-          });
-
-          let data;
-          try {
-            const responseText = await response.text();
-            data = responseText ? JSON.parse(responseText) : {};
-          } catch (parseError) {
-            console.error("Error parsing response:", parseError);
-            data = { message: "Invalid server response" };
-          }
-
-          if (!response.ok) {
-            console.error("Authentication order failed:", data);
-            throw new Error(data.message || "Failed to save order to server");
-          }
-
-          console.log("Order saved to database successfully:", data);
-          savedToServer = true;
-
-          if (data && data.data) {
-            orderData.id = data.data._id || orderData.id;
-            orderData.orderNumber =
-              data.data.orderNumber || orderData.orderNumber;
-          }
-
-          // Deduct loyalty points if they were used
-          if (pointsUsed > 0) {
-            try {
-              console.log(`Deducting ${pointsUsed} loyalty points`);
-
-              // Re-verify available points with backend before proceeding
-              const verifyResponse = await fetch(
-                `${API_BASE_URL}/api/customer/loyalty-points`,
-                {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                }
-              );
-
-              if (verifyResponse.ok) {
-                const verifyData = await verifyResponse.json();
-                const availablePoints = verifyData.data?.loyaltyPoints || 0;
-
-                // Adjust points to deduct if needed - use the lesser of what was applied vs what's actually available
-                const pointsToDeduct = Math.min(
-                  parseInt(pointsUsed),
-                  availablePoints
-                );
-
-                // Check if there are any points to deduct - skip deduction if none available
-                if (pointsToDeduct <= 0) {
-                  console.log(
-                    "No points available for deduction, skipping points deduction"
-                  );
-                  // Clear applied loyalty points from UI and local storage since they can't be used
-                  clearAppliedLoyaltyPoints();
-                  pointsUsed = 0;
-                  // Don't show toast during normal checkout flow to avoid confusion - only log to console
-                  // Only continue with checkout
-                } else {
-                  // Recalculate discount if points changed
-                  if (pointsToDeduct !== pointsUsed) {
-                    console.log(
-                      `Adjusting points from ${pointsUsed} to ${pointsToDeduct} based on available balance`
-                    );
-                    pointsUsed = pointsToDeduct;
-                  }
-
-                  const deductResponse = await fetch(
-                    `${API_BASE_URL}/api/customer/loyalty-points/deduct`,
-                    {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        points: pointsToDeduct,
-                        reason:
-                          "استخدام في طلب #" + (data.orderId || data._id || ""),
-                      }),
-                    }
-                  );
-
-                  const deductData = await deductResponse.json();
-
-                  if (!deductResponse.ok) {
-                    console.error(
-                      "Failed to deduct loyalty points:",
-                      deductData
-                    );
-                    // Show a toast notification but continue with checkout
-                    showCustomToast(
-                      "لم نتمكن من خصم نقاط الولاء، سيتم إكمال الطلب بدون خصم النقاط",
-                      "warning"
-                    );
-                  } else {
-                    console.log(
-                      "Loyalty points deducted successfully:",
-                      deductData
-                    );
-
-                    // Update user data in localStorage with new points balance
-                    const userData = getUserData();
-                    if (userData) {
-                      userData.loyaltyPoints = deductData.data.currentPoints;
-                      localStorage.setItem(
-                        "userData",
-                        JSON.stringify(userData)
-                      );
-                    }
-                  }
-                }
-              } else {
-                console.log(
-                  "Could not verify current points balance, continuing checkout"
-                );
-              }
-            } catch (pointsError) {
-              console.error("Error deducting loyalty points:", pointsError);
-              // Continue with checkout even if points deduction fails
-              showCustomToast(
-                "حدث خطأ أثناء خصم نقاط الولاء، سيتم التواصل معك قريباً",
-                "info"
-              );
-            }
-          }
-        } catch (apiError) {
-          console.error(
-            "Error saving order to database with authentication:",
-            apiError
-          );
-          // Try the guest route as fallback
-          console.log("Trying guest order as fallback");
-          savedToServer = await saveAsGuestOrder(orderData);
+        } catch (e) {
+          console.error("Error updating local loyalty points:", e);
         }
-      } else {
-        console.log("User not logged in, saving as guest order");
-        savedToServer = await saveAsGuestOrder(orderData);
       }
 
       // Get existing orders from local storage (always a good backup)
@@ -1513,6 +1351,14 @@ document.addEventListener("DOMContentLoaded", async function () {
           pointsUsed: pointsUsed,
           value: loyaltyDiscountValue,
         };
+      }
+
+      orderData.pointsEarned = 0;
+      orderData.pointsCredited = false;
+      if (isLoggedIn()) {
+        orderData.pendingPoints = calculatePointsEarned(orderData.total);
+      } else {
+        orderData.pendingPoints = 0;
       }
 
       // Add new order to local storage
@@ -1613,8 +1459,33 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (scanBtn) {
       const currentTable = getTableNumber();
       scanBtn.onclick = () => {
+        const lang = localStorage.getItem("public-language") || "ar";
+        const targetTable = currentTable || sessionStorage.getItem("tableNumber") || "";
+
+        const token = `local-${targetTable || "any"}-${Date.now()}`;
+        const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+        sessionStorage.setItem("orderSessionToken", token);
+        sessionStorage.setItem("orderSessionExpiresAt", expiresAt);
+        sessionStorage.setItem("orderSessionTable", String(targetTable));
+
+        if (targetTable) {
+          sessionStorage.setItem("tableNumber", String(targetTable));
+          localStorage.setItem("tableNumber", String(targetTable));
+        }
+
         modal.style.display = "none";
-        openCartQrScanModal(currentTable);
+
+        const okMsg =
+          lang === "en"
+            ? "Checkout enabled for 20 minutes"
+            : "تم تمكين إتمام الطلب لمدة 20 دقيقة";
+        showCustomToast(okMsg, "success");
+
+        setTimeout(() => {
+          try {
+            checkoutOrder();
+          } catch (_) {}
+        }, 200);
       };
     }
   }
@@ -1709,57 +1580,20 @@ document.addEventListener("DOMContentLoaded", async function () {
               scannedTable &&
               (!currentTable || String(scannedTable) === String(currentTable))
             ) {
-              try {
-                const baseUrl =
-                  window.API_BASE_URL ||
-                  (function () {
-                    const { hostname, origin } = window.location;
-                    const isLocal =
-                      hostname === "localhost" || hostname === "127.0.0.1";
-                    return isLocal ? "http://localhost:5000" : origin;
-                  })();
-                const targetTable = currentTable || scannedTable;
-                const sessionUrl = scannedQid
-                  ? `${baseUrl}/api/table/session?table=${targetTable}&qid=${encodeURIComponent(
-                      scannedQid
-                    )}`
-                  : `${baseUrl}/api/table/session?table=${targetTable}`;
-                const r = await fetch(sessionUrl);
-                const d = await r.json();
-                if (d && d.success && d.token) {
-                  sessionStorage.setItem("orderSessionToken", d.token);
-                  sessionStorage.setItem("orderSessionExpiresAt", d.expiresAt);
-                  sessionStorage.setItem("orderSessionTable", targetTable);
-                  sessionStorage.setItem("tableNumber", targetTable);
-                  localStorage.setItem("tableNumber", targetTable);
-                  const okMsg =
-                    lang === "en"
-                      ? "Ordering enabled for 20 minutes"
-                      : "تم تفعيل الطلب لمدة 20 دقيقة";
-                  showCustomToast(okMsg, "success");
-                  closeBtn.click();
-                } else {
-                  const errMsg =
-                    lang === "en"
-                      ? scannedQid
-                        ? "Invalid or expired QR. Ask staff for a new QR"
-                        : "QR validation required. Use the official table QR"
-                      : scannedQid
-                      ? "رمز QR غير صالح أو منتهي. اطلب رمزًا جديدًا من الموظف"
-                      : "يتطلب التحقق عبر رمز QR الرسمي للطاولة";
-                  if (hint) hint.textContent = errMsg;
-                  showCustomToast(errMsg, "error");
-                  running = true;
-                }
-              } catch (err) {
-                const errMsg =
-                  lang === "en"
-                    ? "Network error. Please try scanning again"
-                    : "خطأ في الشبكة. يرجى المحاولة مرة أخرى";
-                if (hint) hint.textContent = errMsg;
-                showCustomToast(errMsg, "error");
-                running = true;
-              }
+              const targetTable = currentTable || scannedTable;
+              const token = `local-${targetTable}-${Date.now()}`;
+              const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+              sessionStorage.setItem("orderSessionToken", token);
+              sessionStorage.setItem("orderSessionExpiresAt", expiresAt);
+              sessionStorage.setItem("orderSessionTable", String(targetTable));
+              sessionStorage.setItem("tableNumber", String(targetTable));
+              localStorage.setItem("tableNumber", String(targetTable));
+              const okMsg =
+                lang === "en"
+                  ? "Ordering enabled for 20 minutes"
+                  : "تم تفعيل الطلب لمدة 20 دقيقة";
+              showCustomToast(okMsg, "success");
+              closeBtn.click();
             } else {
               const err =
                 lang === "en"
@@ -1788,81 +1622,13 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Function to save order as guest
   async function saveAsGuestOrder(orderData) {
     try {
-      console.log("Attempting to save as guest order");
-
-      // Get some basic customer info if available
-      const customerInfo = {
-        name: localStorage.getItem("userName") || "Guest",
-        email: localStorage.getItem("userEmail") || "guest@example.com",
-      };
-
-      // Make sure items array is properly formatted
-      const formattedItems = orderData.items.map((item) => ({
-        id: item.id || "",
-        name: item.name || "",
-        price: parseFloat(item.price) || 0,
-        quantity: parseInt(item.quantity) || 1,
-        notes: item.notes || "",
-        addons: Array.isArray(item.addons) ? item.addons : [],
-        addonsList: Array.isArray(item.addonsList) ? item.addonsList : [],
-      }));
-
-      // Create a clean request payload without any undefined values
-      const requestPayload = {
-        items: formattedItems,
-        subtotal: parseFloat(orderData.subtotal) || 0,
-        tax: orderData.tax || { rate: 0, value: 0 },
-        serviceTax: orderData.serviceTax || { rate: 0, value: 0 },
-        discount: orderData.discount || null,
-        loyaltyDiscount: orderData.loyaltyDiscount || null,
-        total: parseFloat(orderData.total) || 0,
-        status: orderData.status || "pending",
-        tableNumber: orderData.tableNumber || "0",
-        customerInfo: customerInfo,
-        // Let server generate orderId and orderNumber
-      };
-
-      console.log("Guest order payload:", JSON.stringify(requestPayload));
-
-      // Save order to MongoDB using guest endpoint
-      const response = await fetch(`${API_BASE_URL}/api/orders/guest`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Order-Session": sessionStorage.getItem("orderSessionToken") || "",
-        },
-        body: JSON.stringify(requestPayload),
-        // Add a timeout to prevent long waits
-        signal: AbortSignal.timeout(5000),
-      });
-
-      // Try to parse the response
-      let data;
-      try {
-        const responseText = await response.text();
-        data = responseText ? JSON.parse(responseText) : {};
-      } catch (parseError) {
-        console.error("Error parsing response:", parseError);
-        data = { message: "Invalid server response" };
-      }
-
-      if (!response.ok) {
-        console.error("Server error response:", data);
-        throw new Error(data.message || `Server error: ${response.status}`);
-      }
-
-      console.log("Guest order saved to database successfully:", data);
-
-      // Update the local order object with server-generated data if available
-      if (data && data.data) {
-        orderData.id = data.data._id || orderData.id;
-        orderData.orderNumber = data.data.orderNumber || orderData.orderNumber;
-      }
-
+      console.log("Saving guest order locally");
+      // Ensure IDs
+      orderData.id = orderData.id || generateOrderId();
+      orderData.orderNumber = orderData.orderNumber || orderData.id;
       return true;
     } catch (guestError) {
-      console.error("Error saving guest order:", guestError);
-      // Don't rethrow - just return false to use local storage fallback
+      console.error("Error in local guest order save:", guestError);
       return false;
     }
   }
@@ -1870,45 +1636,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Apply voucher to order in the backend
   async function applyVoucherToOrder(voucherId, orderValue) {
     if (!voucherId || !orderValue) return null;
-
     try {
-      // Use API to apply voucher
-      const API_BASE_URL = "http://localhost:5000";
-      const token = localStorage.getItem("token") || getCookie("token") || null;
-
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      // Add token if available
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+      const savedVouchers = localStorage.getItem("vouchers");
+      const vouchers = savedVouchers ? JSON.parse(savedVouchers) : [];
+      const voucher = vouchers.find((v) => String(v.id) === String(voucherId) || String(v._id) === String(voucherId));
+      if (!voucher) return null;
+      const type = String(voucher.type).toLowerCase();
+      const value = parseFloat(voucher.value) || 0;
+      let discountAmount = type === "percentage" ? (parseFloat(orderValue) || 0) * value / 100 : Math.min(value, parseFloat(orderValue) || 0);
+      if (voucher.maxDiscount) {
+        discountAmount = Math.min(discountAmount, parseFloat(voucher.maxDiscount));
       }
-
-      const response = await fetch(`${API_BASE_URL}/api/vouchers/apply`, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({
-          voucherId: voucherId,
-          orderValue: orderValue,
-          items: (cartItems || []).map((it) => ({
-            id: it.id || it.productId || it._id,
-            quantity: parseInt(it.quantity || 1),
-            price: parseFloat(it.price || 0),
-          })),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        console.error("Failed to apply voucher to order:", result.message);
-        return null;
-      }
-
-      return result.data;
+      return { discountAmount };
     } catch (error) {
-      console.error("Error applying voucher to order:", error);
+      console.error("Error applying voucher locally:", error);
       return null;
     }
   }
@@ -1955,6 +1696,23 @@ document.addEventListener("DOMContentLoaded", async function () {
         checkoutSubMessage.textContent = `سيتم تحضير طلبك للطاولة رقم ${displayTableNum} في أقرب وقت`;
       }
 
+      const loyaltySummary = checkoutComplete.querySelector(
+        ".loyalty-summary"
+      );
+      if (loyaltySummary) {
+        const pendingPoints = Number(orderData.pendingPoints || 0);
+        if (pendingPoints > 0) {
+          const message = getTranslation
+            ? getTranslation("loyaltyPointsPending") ||
+              "سيتم إضافة نقاط الولاء عند اكتمال الطلب"
+            : "سيتم إضافة نقاط الولاء عند اكتمال الطلب";
+          loyaltySummary.innerHTML = `<i class="fas fa-hourglass-half"></i> ${message}: <strong>${pendingPoints}</strong>`;
+          loyaltySummary.style.display = "flex";
+        } else {
+          loyaltySummary.style.display = "none";
+        }
+      }
+
       checkoutComplete.classList.add("show");
 
       // Clear applied loyalty points
@@ -1964,14 +1722,14 @@ document.addEventListener("DOMContentLoaded", async function () {
       pointsUsed = 0;
       pointsDiscountAmount = 0;
 
-      // If user is logged in, refresh their loyalty points
+      // If user is logged in, refresh their loyalty points after completion
       if (isLoggedIn()) {
         fetchUserLoyaltyPoints()
           .then(() => {
-            // Update any points displays on the page
             if (availablePointsElement) {
               availablePointsElement.textContent = userLoyaltyPoints;
             }
+            updateLoyaltyPointsDisplay();
           })
           .catch((error) => {
             console.error("Error refreshing loyalty points:", error);
@@ -2056,167 +1814,87 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     try {
-      // Calculate current cart total
+      // Calculate current cart subtotal
       let subtotal = 0;
-      cartItems.forEach((item) => {
-        subtotal += item.price * item.quantity;
+      (cartItems || []).forEach((item) => {
+        subtotal += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 1);
       });
 
-      console.log(`Validating voucher code ${code} with subtotal ${subtotal}`);
+      console.log(`Validating voucher code ${code} locally with subtotal ${subtotal}`);
 
-      // Get the correct API URL
-      // Check if we need to use a different API base URL (in case of deployment)
-      const apiBaseUrl =
-        window.API_BASE_URL || API_BASE_URL || "http://localhost:5000";
-      console.log("Using API base URL:", apiBaseUrl);
+      // Lookup voucher from localStorage
+      const savedVouchers = localStorage.getItem("vouchers");
+      const vouchers = savedVouchers ? JSON.parse(savedVouchers) : [];
+      const voucher = (vouchers || []).find(
+        (v) => String(v.code).toUpperCase() === String(code).toUpperCase()
+      );
 
-      let response = null;
-      let result = null;
-      let retryCount = 0;
-      const maxRetries = 2;
-
-      while (retryCount <= maxRetries) {
-        try {
-          // Try validating the voucher
-          console.log(`Attempt ${retryCount + 1} to validate voucher...`);
-          const requestBody = {
-            code: code,
-            orderValue: subtotal,
-            items: (cartItems || []).map((it) => ({
-              id: it.id || it.productId || it._id,
-              quantity: parseInt(it.quantity || 1),
-              price: parseFloat(it.price || 0),
-            })),
-          };
-          console.log("Request body:", requestBody);
-
-          response = await fetch(`${apiBaseUrl}/api/vouchers/validate`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestBody),
-            // Add a timeout to prevent long waits
-            signal: AbortSignal.timeout(5000),
-          });
-
-          console.log(`Attempt ${retryCount + 1} status:`, response.status);
-
-          // If response is OK, break the retry loop
-          if (response.ok) {
-            break;
-          }
-
-          // If we got a non-server error (not 5xx), don't retry
-          if (response.status < 500) {
-            break;
-          }
-
-          // Otherwise, increment retry count and try again
-          retryCount++;
-          if (retryCount <= maxRetries) {
-            console.log(`Retrying validation (${retryCount}/${maxRetries})...`);
-            await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
-          }
-        } catch (fetchError) {
-          console.error(
-            `Fetch error on attempt ${retryCount + 1}:`,
-            fetchError
-          );
-          retryCount++;
-
-          if (retryCount > maxRetries) {
-            const connectionErrorMsg =
-              currentLang === "en"
-                ? "Failed to connect to server. Please check your internet connection and try again"
-                : "فشل الاتصال بالخادم، يرجى التحقق من اتصال الانترنت والمحاولة مرة أخرى";
-            throw new Error(connectionErrorMsg);
-          }
-
-          // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-
-      // Check for HTTP errors
-      if (!response || !response.ok) {
-        // Try to get error text if possible
-        let errorMessage =
+      if (!voucher) {
+        throw new Error(
           currentLang === "en"
-            ? "Error validating voucher"
-            : "حدث خطأ أثناء التحقق من القسيمة";
-        try {
-          const errorText = await response.text();
-          console.error("API error response:", errorText);
-
-          // Try to parse as JSON
-          try {
-            const errorJson = JSON.parse(errorText);
-            if (errorJson && errorJson.message) {
-              errorMessage = errorJson.message;
-            }
-          } catch (parseError) {
-            // If not JSON, use the raw text
-            if (errorText) errorMessage = errorText;
-          }
-        } catch (e) {
-          console.error("Could not read error response");
-        }
-
-        throw new Error(errorMessage);
+            ? "Voucher code is invalid or does not exist"
+            : "كود القسيمة غير صالح أو غير موجود"
+        );
       }
 
-      // Parse the successful response
-      try {
-        result = await response.json();
-        console.log("Voucher validation result:", result);
-      } catch (jsonError) {
-        console.error("Error parsing JSON response:", jsonError);
-        const parseErrorMsg =
+      // Basic local validation
+      const validity = validateVoucher(voucher);
+      if (!validity.valid) {
+        throw new Error(validity.message || (currentLang === "en" ? "Voucher invalid" : "القسيمة غير صالحة"));
+      }
+
+      // Optional minimum order value
+      if (voucher.minOrderValue && subtotal < parseFloat(voucher.minOrderValue)) {
+        const minTxt = `${parseFloat(voucher.minOrderValue).toFixed(2)}`;
+        const msg =
           currentLang === "en"
-            ? "Error processing server response"
-            : "حدث خطأ أثناء معالجة استجابة الخادم";
-        throw new Error(parseErrorMsg);
+            ? `Voucher cannot be applied: minimum order not reached (${minTxt})`
+            : `لا يمكن تطبيق القسيمة: لم يتم الوصول للحد الأدنى للطلب (${minTxt})`;
+        throw new Error(msg);
       }
 
-      if (!result || !result.success) {
-        // Show useful tip about the test voucher
-        let errorMsg =
-          result?.message ||
-          (currentLang === "en"
-            ? "Please check the code and try again"
-            : "الرجاء التحقق من الكود والمحاولة مرة أخرى");
+      // Compute eligible subtotal
+      const eligibleSubtotal = (() => {
+        if (Array.isArray(voucher.applicableProducts) && voucher.applicableProducts.length) {
+          return (cartItems || []).reduce((sum, it) => {
+            const id = it.id || it.productId || it._id;
+            return voucher.applicableProducts.includes(id)
+              ? sum + (parseFloat(it.price) || 0) * (parseInt(it.quantity) || 1)
+              : sum;
+          }, 0);
+        }
+        if (Array.isArray(voucher.applicableCategories) && voucher.applicableCategories.length) {
+          return (cartItems || []).reduce((sum, it) => {
+            const cat = it.category || it.categoryId;
+            return voucher.applicableCategories.includes(cat)
+              ? sum + (parseFloat(it.price) || 0) * (parseInt(it.quantity) || 1)
+              : sum;
+          }, 0);
+        }
+        return subtotal;
+      })();
 
-        errorMsg = translateCartMessage(errorMsg, currentLang);
-
-        // Prepare to show a tip about the test voucher after a delay
-        setTimeout(() => {
-          if (!document.querySelector(".toast-container")) {
-            const tipMessage =
-              currentLang === "en"
-                ? "Tip: You can try the test voucher TEST123"
-                : "تلميح: يمكنك تجربة القسيمة التجريبية TEST123";
-            showCustomToast(tipMessage, "info", 6000);
-          }
-        }, 3000);
-
-        throw new Error(errorMsg);
+      // Compute discount amount locally
+      let discountAmountLocal = 0;
+      if (String(voucher.type).toLowerCase() === "percentage") {
+        discountAmountLocal = (eligibleSubtotal * (parseFloat(voucher.value) || 0)) / 100;
+      } else {
+        discountAmountLocal = Math.min(parseFloat(voucher.value) || 0, eligibleSubtotal);
+      }
+      if (voucher.maxDiscount && discountAmountLocal > parseFloat(voucher.maxDiscount)) {
+        discountAmountLocal = parseFloat(voucher.maxDiscount);
       }
 
-      // Create voucher object from API response
+      // Create & persist active voucher locally
       activeVoucher = {
-        id: result.data.voucherId,
-        code: code.toUpperCase(),
-        type: result.data.type,
-        value: result.data.value,
-        discountAmount: parseFloat(result.data.discountAmount || 0),
-        applicableCategories: Array.isArray(result.data.applicableCategories)
-          ? result.data.applicableCategories
-          : [],
-        applicableProducts: Array.isArray(result.data.applicableProducts)
-          ? result.data.applicableProducts
-          : [],
-        _id: result.data.voucherId,
+        id: voucher.id || voucher._id || code.toUpperCase(),
+        code: String(code).toUpperCase(),
+        type: voucher.type || "amount",
+        value: voucher.value || 0,
+        discountAmount: parseFloat(discountAmountLocal || 0),
+        applicableCategories: Array.isArray(voucher.applicableCategories) ? voucher.applicableCategories : [],
+        applicableProducts: Array.isArray(voucher.applicableProducts) ? voucher.applicableProducts : [],
+        _id: voucher._id || voucher.id || null,
       };
 
       console.log("Voucher applied successfully:", activeVoucher);
@@ -2597,121 +2275,67 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   async function loadLoyaltyDiscountSettings() {
     try {
-      // Try to get settings from localStorage first
-      const settingsJson = localStorage.getItem("loyaltyDiscountSettings");
-
-      if (settingsJson) {
-        const settings = JSON.parse(settingsJson);
+      // Read settings from localStorage or use defaults
+      const discountJson = localStorage.getItem("loyaltyDiscountSettings");
+      if (discountJson) {
+        const settings = JSON.parse(discountJson);
         loyaltyDiscountSettings = {
-          discountPerPoint: settings.discountPerPoint || 0.5,
-          minPointsForDiscount: settings.minPointsForDiscount || 10,
-          maxDiscountValue: settings.maxDiscountValue || 50,
-          isEnabled: settings.isEnabled !== false, // default to true if not specified
+          discountPerPoint: settings.discountPerPoint ?? 0.5,
+          minPointsForDiscount: settings.minPointsForDiscount ?? 10,
+          maxDiscountValue: settings.maxDiscountValue ?? 50,
+          isEnabled: settings.isEnabled !== false,
+          pointsPerCurrency: settings.pointsPerCurrency ?? DEFAULT_POINTS_PER_CURRENCY,
+          maxPointsPerOrder: settings.maxPointsPerOrder ?? 0,
         };
-        return;
+      } else if (window.globalSettings && window.globalSettings.loyalty) {
+        const s = window.globalSettings.loyalty;
+        loyaltyDiscountSettings = {
+          discountPerPoint: s.discountPerPoint ?? 0.5,
+          minPointsForDiscount: s.minPointsForDiscount ?? 10,
+          maxDiscountValue: s.maxDiscountValue ?? 50,
+          isEnabled: s.isEnabled !== false,
+          pointsPerCurrency: s.pointsPerCurrency ?? DEFAULT_POINTS_PER_CURRENCY,
+          maxPointsPerOrder: s.maxPointsPerOrder ?? 0,
+        };
+      } else {
+        loyaltyDiscountSettings = {
+          discountPerPoint: 0.5,
+          minPointsForDiscount: 10,
+          maxDiscountValue: 50,
+          isEnabled: true,
+          pointsPerCurrency: DEFAULT_POINTS_PER_CURRENCY,
+          maxPointsPerOrder: 0,
+        };
       }
 
-      // If no local settings, try to fetch from API
-      const token = getToken();
-      if (!token) return;
+      // Pull the earn rate from admin loyalty points settings if available
+      try {
+        const pointsSettingsJson = localStorage.getItem("loyaltyPointsSettings");
+        if (pointsSettingsJson) {
+          const pointsSettings = JSON.parse(pointsSettingsJson);
+          const exchangeRate = Number(pointsSettings.exchangeRate);
+          if (Number.isFinite(exchangeRate) && exchangeRate > 0) {
+            loyaltyDiscountSettings.pointsPerCurrency = exchangeRate;
+          }
 
-      // For admin tokens, just use default settings (they can't access customer endpoints)
-      if (token.startsWith("admin_")) {
-        console.log("Admin token detected, using default loyalty settings");
-        return;
-      }
-
-      // Add a timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/customer/loyalty/discount-settings`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      // If unauthorized, try to refresh the token
-      if (response.status === 200 || response.status === 403) {
-        console.log(
-          "Unauthorized access to loyalty settings API, attempting token refresh"
-        );
-
-        // Check if refreshToken function exists
-        if (typeof refreshToken === "function") {
-          try {
-            // Try to refresh the token
-            const newToken = await refreshToken();
-
-            // If we got a new token, retry the request
-            if (newToken) {
-              console.log("Token refreshed, retrying loyalty settings request");
-              const retryResponse = await fetch(
-                `${API_BASE_URL}/api/customer/loyalty/discount-settings`,
-                {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${newToken}`,
-                    "Content-Type": "application/json",
-                  },
-                  signal: AbortSignal.timeout(5000),
-                }
-              );
-
-              if (retryResponse.ok) {
-                const data = await retryResponse.json();
-                if (data.success && data.data) {
-                  loyaltyDiscountSettings = {
-                    discountPerPoint: data.data.discountPerPoint || 0.5,
-                    minPointsForDiscount: data.data.minPointsForDiscount || 10,
-                    maxDiscountValue: data.data.maxDiscountValue || 50,
-                    isEnabled: data.data.isEnabled !== false,
-                  };
-
-                  // Save to localStorage for future use
-                  localStorage.setItem(
-                    "loyaltyDiscountSettings",
-                    JSON.stringify(loyaltyDiscountSettings)
-                  );
-                  return;
-                }
-              }
-            }
-          } catch (refreshError) {
-            console.error("Error refreshing token:", refreshError);
+          const maxPointsSetting = Number(pointsSettings.maxPointsPerOrder);
+          if (Number.isFinite(maxPointsSetting) && maxPointsSetting >= 0) {
+            loyaltyDiscountSettings.maxPointsPerOrder = maxPointsSetting;
           }
         }
-        // If refresh failed or refreshToken doesn't exist, continue with default settings
-        return;
+      } catch (settingsError) {
+        console.warn("Unable to apply loyalty points exchange rate:", settingsError);
       }
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          loyaltyDiscountSettings = {
-            discountPerPoint: data.data.discountPerPoint || 0.5,
-            minPointsForDiscount: data.data.minPointsForDiscount || 10,
-            maxDiscountValue: data.data.maxDiscountValue || 50,
-            isEnabled: data.data.isEnabled !== false,
-          };
-
-          // Save to localStorage for future use
-          localStorage.setItem(
-            "loyaltyDiscountSettings",
-            JSON.stringify(loyaltyDiscountSettings)
-          );
-        }
-      } else {
-        console.log(`API error: ${response.status}`);
+      if (!loyaltyDiscountSettings.pointsPerCurrency ||
+          loyaltyDiscountSettings.pointsPerCurrency <= 0) {
+        loyaltyDiscountSettings.pointsPerCurrency = DEFAULT_POINTS_PER_CURRENCY;
       }
+
+      localStorage.setItem(
+        "loyaltyDiscountSettings",
+        JSON.stringify(loyaltyDiscountSettings)
+      );
     } catch (error) {
       console.error("Error loading loyalty discount settings:", error);
       // Use default settings
@@ -2720,125 +2344,46 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   async function fetchUserLoyaltyPoints() {
     try {
-      // Try to get from localStorage first
       const userData = getUserData();
-      if (userData && userData.loyaltyPoints !== undefined) {
-        userLoyaltyPoints = userData.loyaltyPoints;
-      }
-
-      // Check if we're properly logged in
-      if (!isLoggedIn()) {
-        console.log("Not logged in, using cached loyalty points");
-        return;
-      }
-
-      // Try to fetch latest points from API
-      const token = getToken();
-      if (!token) {
-        console.log("No token available, using cached loyalty points");
-        return;
-      }
-
-      // For admin tokens, just use cached data (they can't access customer endpoints)
-      if (token.startsWith("admin_")) {
-        console.log("Admin token detected, using cached loyalty points");
-        return;
-      }
-
-      try {
-        // Add a timeout to prevent hanging requests
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/customer/loyalty-points`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            signal: controller.signal,
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        // If unauthorized, try to refresh the token
-        if (response.status === 401 || response.status === 403) {
-          console.log(
-            "Unauthorized access to loyalty points API, attempting token refresh"
-          );
-
-          // Check if refreshToken function exists
-          if (typeof refreshToken === "function") {
-            try {
-              // Try to refresh the token
-              const newToken = await refreshToken();
-
-              // If we got a new token, retry the request
-              if (newToken) {
-                console.log("Token refreshed, retrying loyalty points request");
-                const retryResponse = await fetch(
-                  `${API_BASE_URL}/api/customer/loyalty-points`,
-                  {
-                    method: "GET",
-                    headers: {
-                      Authorization: `Bearer ${newToken}`,
-                      "Content-Type": "application/json",
-                    },
-                    signal: AbortSignal.timeout(5000),
-                  }
-                );
-
-                if (retryResponse.ok) {
-                  const data = await retryResponse.json();
-                  if (data.success && data.data) {
-                    userLoyaltyPoints = data.data.loyaltyPoints || 0;
-
-                    // Update userData in localStorage
-                    if (userData) {
-                      userData.loyaltyPoints = userLoyaltyPoints;
-                      localStorage.setItem(
-                        "userData",
-                        JSON.stringify(userData)
-                      );
-                    }
-                    return;
-                  }
-                }
-              }
-            } catch (refreshError) {
-              console.error("Error refreshing token:", refreshError);
-            }
-          } else {
-            console.log("No refreshToken function available");
-          }
-
-          // If refresh failed or refreshToken function doesn't exist, continue using cached data
-          return;
-        }
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            userLoyaltyPoints = data.data.loyaltyPoints || 0;
-
-            // Update userData in localStorage
-            if (userData) {
-              userData.loyaltyPoints = userLoyaltyPoints;
-              localStorage.setItem("userData", JSON.stringify(userData));
-            }
-          }
-        } else {
-          console.log(`API error: ${response.status}`);
-        }
-      } catch (fetchError) {
-        console.error("Error fetching loyalty points data:", fetchError);
-      }
+      userLoyaltyPoints = userData && userData.loyaltyPoints !== undefined ? userData.loyaltyPoints : 0;
     } catch (error) {
       console.error("Error in fetchUserLoyaltyPoints:", error);
-      // Use points from localStorage if available
+    }
+  }
+
+  function calculatePointsEarned(orderTotal) {
+    const earnRate = Number(loyaltyDiscountSettings.pointsPerCurrency) || DEFAULT_POINTS_PER_CURRENCY;
+    if (!earnRate || earnRate <= 0) {
+      return 0;
+    }
+
+    const normalizedTotal = Math.max(0, Number(orderTotal) || 0);
+    const earned = Math.floor(normalizedTotal / earnRate);
+    const maxPerOrder = Number(loyaltyDiscountSettings.maxPointsPerOrder) || 0;
+    return maxPerOrder > 0 ? Math.min(earned, maxPerOrder) : earned;
+  }
+
+  function adjustUserLoyaltyPoints(delta) {
+    try {
+      const deltaInt = Math.trunc(Number(delta) || 0);
+      if (!deltaInt) {
+        return userLoyaltyPoints;
+      }
+
+      const userData = getUserData();
+      if (!userData || typeof userData !== "object") {
+        return userLoyaltyPoints;
+      }
+
+      const current = parseInt(userData.loyaltyPoints || 0, 10) || 0;
+      const newTotal = Math.max(0, current + deltaInt);
+      userData.loyaltyPoints = newTotal;
+      localStorage.setItem("userData", JSON.stringify(userData));
+      userLoyaltyPoints = newTotal;
+      return newTotal;
+    } catch (error) {
+      console.error("Error adjusting loyalty points:", error);
+      return userLoyaltyPoints;
     }
   }
 
@@ -3345,32 +2890,30 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function getTaxRate() {
-    return new Promise((resolve, reject) => {
-      fetch(`${API_BASE_URL}/api/tax-settings`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Failed to load tax settings");
-          }
-          return response.json();
-        })
-        .then((data) => {
-          if (data.success && data.data) {
-            console.log("Loaded tax settings from API:", data.data);
-            resolve(data.data);
-          } else {
-            throw new Error("Invalid tax settings data");
-          }
-        })
-        .catch((error) => {
-          console.error("Error getting tax settings:", error);
-          // Default tax settings if API fails
-          resolve({
-            rate: 15,
-            enabled: true,
-            serviceRate: 10,
-            serviceEnabled: false,
+    return new Promise((resolve) => {
+      try {
+        const saved = localStorage.getItem("taxSettings");
+        if (saved) {
+          const data = JSON.parse(saved);
+          return resolve({
+            rate: data.rate ?? 15,
+            enabled: data.enabled ?? true,
+            serviceRate: data.serviceRate ?? 10,
+            serviceEnabled: data.serviceEnabled ?? false,
           });
-        });
+        }
+        // Fallback to globalSettings if present
+        if (window.globalSettings && window.globalSettings.tax) {
+          const t = window.globalSettings.tax;
+          return resolve({
+            rate: t.rate ?? 15,
+            enabled: t.enabled ?? true,
+            serviceRate: t.serviceRate ?? 10,
+            serviceEnabled: t.serviceEnabled ?? false,
+          });
+        }
+      } catch (_) {}
+      resolve({ rate: 15, enabled: true, serviceRate: 10, serviceEnabled: false });
     });
   }
   function generateOrderId() {

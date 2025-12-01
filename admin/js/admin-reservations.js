@@ -70,11 +70,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Current ID being viewed
   let currentIdData = null;
 
-  const API_URL = (function () {
-    const { hostname, origin } = window.location;
-    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-    return `${isLocal ? "http://localhost:5000" : origin}/api/reservations`;
-  })();
+  const API_URL = "";
 
   // Load reservations on page load
   loadReservations();
@@ -172,50 +168,23 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to load reservations from API
   async function loadReservations() {
     try {
-      // Show loading state
-      if (reservationsList) {
-        const currentLang = localStorage.getItem("admin-language") || "ar";
-        const loadingText =
-          currentLang === "en"
-            ? "Loading reservations..."
-            : "جاري تحميل الحجوزات...";
-
-        reservationsList.innerHTML = `<tr><td colspan="9" style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</td></tr>`;
-      }
-
-      // Set default filter values
       if (statusFilter && !statusFilter.value) {
         statusFilter.value = "all";
       }
-
-      // Get current filters
-      const filters = {};
-      if (statusFilter && statusFilter.value !== "all") {
-        filters.status = statusFilter.value;
+      const saved = localStorage.getItem("reservations");
+      let list = [];
+      if (saved) {
+        try {
+          list = JSON.parse(saved);
+        } catch (_) {
+          list = [];
+        }
       }
-      if (dateFilter && dateFilter.value) {
-        filters.date = dateFilter.value;
-      }
-
-      // Build query parameters
-      const queryParams = new URLSearchParams(filters).toString();
-
-      // Fetch reservations from API
-      const response = await fetch(`${API_URL}?${queryParams}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-        },
-      });
-
-      const result = await response.json();
-
-      // Store all reservations for filtering
-      window.allReservations = result.data || [];
-
-      // Display reservations
-      displayReservations(window.allReservations);
-    } catch (error) {
-      console.error("Error loading reservations:", error);
+      window.allReservations = Array.isArray(list) ? list : [];
+      applyFilters();
+    } catch (_) {
+      window.allReservations = [];
+      displayReservations([]);
     }
   }
 
@@ -482,118 +451,34 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!reservationId || !action) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
-        showError("يرجى تسجيل الدخول أولاً");
-        return;
-      }
-
-      let method = "PUT";
-      let body = {};
-      let auditAction = "update";
-
-      // Find the reservation in our data to use for audit logging
-      const reservation = window.allReservations.find(
-        (r) => r._id === reservationId
-      );
-      if (!reservation) {
-        throw new Error("الحجز غير موجود");
-      }
-
-      // Store previous state for audit logging
-      const previousState = { ...reservation };
-
-      switch (action) {
-        case "confirm":
-          body = { status: "confirmed" };
-          break;
-        case "complete":
-          body = { status: "completed" };
-          break;
-        case "cancel":
-          body = { status: "cancelled" };
-          break;
-        case "delete":
-          method = "DELETE";
-          auditAction = "delete";
-          if (!confirm(getTranslation("confirmDeleteReservation"))) {
-            return;
-          }
-          break;
-        default:
-          return;
-      }
-
-      // Show loading state on button
+      const reservation = window.allReservations.find((r) => String(r._id) === String(reservationId));
+      if (!reservation) return;
       const originalContent = button.innerHTML;
       button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       button.disabled = true;
-
-      // Send request to API
-      const response = await fetch(`${API_URL}/${reservationId}`, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: method === "DELETE" ? undefined : JSON.stringify(body),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "حدث خطأ أثناء تنفيذ الإجراء");
-      }
-
-      // Add audit log
-      try {
-        const auditResponse = await fetch(
-          "http://localhost:5000/api/audit-logs",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              action: auditAction,
-              targetModel: "Reservation",
-              targetId: reservationId,
-              details: {
-                action,
-                previousState,
-                newState: method === "DELETE" ? null : result.data,
-              },
-            }),
-          }
-        );
-
-        if (!auditResponse.ok) {
-          console.error("Failed to create audit log");
+      if (action === "delete") {
+        if (!confirm(getTranslation("confirmDeleteReservation"))) {
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          return;
         }
-      } catch (auditError) {
-        console.error("Error creating audit log:", auditError);
+        window.allReservations = window.allReservations.filter((r) => String(r._id) !== String(reservationId));
+      } else if (action === "confirm") {
+        reservation.status = "confirmed";
+      } else if (action === "complete") {
+        reservation.status = "completed";
+      } else if (action === "cancel") {
+        reservation.status = "cancelled";
       }
-
-      // Show success message
-      const reservationRow = button.closest("tr");
-      reservationRow.classList.add("highlight");
-
-      // Display success message
+      localStorage.setItem("reservations", JSON.stringify(window.allReservations));
       const message = getActionMessage(action);
       showError(message, "success");
-
-      // Refresh reservations after a short delay
-      setTimeout(() => {
-        loadReservations();
-      }, 1000);
+      displayReservations(window.allReservations);
     } catch (error) {
-      console.error("Error performing action:", error);
       showError(error.message || "حدث خطأ أثناء تنفيذ الإجراء");
-
-      // Restore button state
-      button.innerHTML = originalContent;
+    } finally {
       button.disabled = false;
+      button.innerHTML = '<i class="fas fa-check"></i>';
     }
   }
 
@@ -897,83 +782,39 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     try {
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
-        const currentLang = localStorage.getItem("admin-language") || "ar";
-        const loginMsg =
-          currentLang === "en"
-            ? "Please login first"
-            : "يرجى تسجيل الدخول أولاً";
-        showError(loginMsg);
-        return;
-      }
-
-      // Show loading state on buttons
       const isApproving = status === "verified";
       const actionBtn = isApproving ? approveIdBtn : rejectIdBtn;
-      const originalContent = actionBtn.innerHTML;
-
-      actionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      actionBtn.disabled = true;
-
-      // Call API to update verification status
-      const response = await fetch(
-        `${API_URL}/${currentIdData.reservationId}/verify-id`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            status,
-            idCardUrl: currentIdData.url,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        const currentLang = localStorage.getItem("admin-language") || "ar";
-        const errorMsg =
-          currentLang === "en"
-            ? "Error updating verification status"
-            : "حدث خطأ أثناء تحديث حالة التحقق";
-        throw new Error(result.error || errorMsg);
-      }
-
-      // Update local data
-      currentIdData.status = status;
-
-      // Update UI
-      updateVerificationUI();
-
-      // Show success message
       const currentLang = localStorage.getItem("admin-language") || "ar";
-      const actionText = isApproving
-        ? currentLang === "en"
-          ? "approved"
-          : "تأكيد"
-        : currentLang === "en"
-        ? "rejected"
-        : "رفض";
-      const successMsg =
-        currentLang === "en"
-          ? `ID successfully ${actionText}`
-          : `تم ${actionText} الهوية بنجاح`;
-
-      showError(successMsg, "success");
-
-      // Refresh reservations list
-      setTimeout(() => {
-        loadReservations();
-      }, 1000);
+      if (!currentIdData || !currentIdData.reservationId) {
+        showError(
+          currentLang === "en" ? "Cannot verify ID at this time" : "لا يمكن التحقق من الهوية في الوقت الحالي"
+        );
+        return;
+      }
+      if (actionBtn) {
+        actionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        actionBtn.disabled = true;
+      }
+      const list = window.allReservations || [];
+      const idx = list.findIndex((r) => String(r._id) === String(currentIdData.reservationId));
+      if (idx !== -1) {
+        list[idx].idVerification = list[idx].idVerification || {};
+        list[idx].idVerification.status = status;
+        localStorage.setItem("reservations", JSON.stringify(list));
+        window.allReservations = list;
+      }
+      currentIdData.status = status;
+      updateVerificationUI();
+      showError(
+        isApproving
+          ? currentLang === "en" ? "ID successfully approved" : "تم تأكيد الهوية بنجاح"
+          : currentLang === "en" ? "ID successfully rejected" : "تم رفض الهوية بنجاح",
+        "success"
+      );
+      displayReservations(window.allReservations);
     } catch (error) {
-      console.error("Error verifying ID card:", error);
       showError(error.message || "حدث خطأ أثناء تحديث حالة التحقق");
     } finally {
-      // Restore button state
       const currentLang = localStorage.getItem("admin-language") || "ar";
       if (approveIdBtn)
         approveIdBtn.innerHTML = `<i class="fas fa-check"></i> ${

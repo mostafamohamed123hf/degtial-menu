@@ -185,6 +185,10 @@
     populateFooter();
   });
 
+  document.addEventListener("language_changed", function () {
+    populateFooter();
+  });
+
   // Export function for manual updates
   window.updateFooter = populateFooter;
 })();

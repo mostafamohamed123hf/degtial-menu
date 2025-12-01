@@ -18,6 +18,95 @@ const ordersIgnored = new Set();
 const orderStatusCheckInFlight = new Map();
 let ratingModalActive = false;
 
+function normalizeProductId(productId) {
+  if (typeof productId === "undefined" || productId === null) {
+    return "";
+  }
+  const stringId = String(productId).trim();
+  if (stringId.includes("-")) {
+    return stringId.split("-")[0];
+  }
+  return stringId;
+}
+
+function persistProductRatingToStorage(productId, ratingsArr) {
+  try {
+    const baseProductId = normalizeProductId(productId);
+    if (!baseProductId) {
+      return null;
+    }
+
+    const relevantRatings = (ratingsArr || []).filter((ratingEntry) => {
+      const entryId = ratingEntry && ratingEntry.productId ? String(ratingEntry.productId) : "";
+      if (!entryId) return false;
+      const entryBase = normalizeProductId(entryId);
+      return entryId === productId || entryBase === baseProductId;
+    });
+
+    if (relevantRatings.length === 0) {
+      return {
+        baseProductId,
+        average: 0,
+        displayAverage: 0,
+        count: 0,
+      };
+    }
+
+    const total = relevantRatings.reduce((sum, entry) => {
+      const value = parseFloat(entry.rating);
+      return sum + (Number.isNaN(value) ? 0 : value);
+    }, 0);
+
+    const average = total / relevantRatings.length;
+    const roundedAverage = Math.round(average * 100) / 100;
+    const displayAverage = Math.round(average * 10) / 10;
+
+    let productsUpdated = false;
+    try {
+      const productsStr = localStorage.getItem("products");
+      if (productsStr) {
+        const productsData = JSON.parse(productsStr);
+        if (Array.isArray(productsData)) {
+          productsData.forEach((product) => {
+            if (!product || typeof product !== "object") return;
+            const candidateIds = [product.id, product.productId, product._id]
+              .filter((candidate) => typeof candidate !== "undefined" && candidate !== null)
+              .map((candidate) => normalizeProductId(candidate));
+
+            if (candidateIds.includes(baseProductId)) {
+              product.rating = roundedAverage;
+              product.ratingCount = relevantRatings.length;
+              product.lastRatedAt = new Date().toISOString();
+              productsUpdated = true;
+            }
+          });
+
+          if (productsUpdated) {
+            localStorage.setItem("products", JSON.stringify(productsData));
+          }
+        }
+      }
+    } catch (storageError) {
+      console.error("Error updating stored product rating:", storageError);
+    }
+
+    return {
+      baseProductId,
+      average: roundedAverage,
+      displayAverage,
+      count: relevantRatings.length,
+    };
+  } catch (error) {
+    console.error("Error persisting product rating:", error);
+    return null;
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.normalizeProductId = window.normalizeProductId || normalizeProductId;
+  window.persistProductRatingToStorage = persistProductRatingToStorage;
+}
+
 // Initialize rating system
 document.addEventListener("DOMContentLoaded", function () {
   initRatingSystem();
@@ -504,236 +593,75 @@ function promptRatingForCompletedOrder(orderId) {
   // Reset items to rate array and current index
   orderItemsToRate = [];
   currentItemIndex = 0;
-
-  // First, check which products in this order have already been rated
-  fetch(`/api/ratings/order/${orderId}/products`, {
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => response.json())
-    .then((ratingData) => {
-      const alreadyRatedProducts = ratingData.success
-        ? ratingData.ratedProducts
-        : {};
-      console.log("Already rated products:", alreadyRatedProducts);
-
-      // Now fetch order details
-      return fetch(`/api/orders/${orderId}`, {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }).then((response) => ({ response, alreadyRatedProducts }));
-    })
-    .then(({ response, alreadyRatedProducts }) => {
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      return response.json().then((data) => ({ data, alreadyRatedProducts }));
-    })
-    .then(async ({ data, alreadyRatedProducts }) => {
-      if (data.success && data.data) {
-        const order = data.data;
-
-        // Check if order is already rated
-        if (order.isRated) {
-          console.log("Order already rated");
-          return;
-        }
-
-        // Check if rating was skipped for this order
-        if (order.ratingSkipped) {
-          console.log("Order rating was skipped by user");
-          ordersIgnored.add(currentOrderId);
-          cleanupRatingModal();
-          return;
-        }
-
-        // Process items for rating
-        if (order.items && order.items.length > 0) {
-          // Create a copy of items to modify
-          const enhancedItems = [...order.items];
-
-          // Fetch full product details for each item that needs an image
-          for (let i = 0; i < enhancedItems.length; i++) {
-            const item = enhancedItems[i];
-            let itemId = item.id || item.productId || item._id;
-
-            // Extract the base product ID by removing any suffix after a dash
-            // This is needed because the API expects the base ID (e.g., "burger1" instead of "burger1-25827f4d")
-            if (itemId && itemId.includes("-")) {
-              itemId = itemId.split("-")[0];
-              console.log(`Using base product ID for API request: ${itemId}`);
-            }
-
-            // If item doesn't have an image or image URL is incomplete
-            if (
-              !item.image ||
-              item.image === "" ||
-              item.image.includes("placeholder")
-            ) {
-              try {
-                console.log(`Fetching product details for item ${itemId}`);
-                const productResponse = await fetch(`/api/products/${itemId}`);
-
-                if (productResponse.ok) {
-                  const productData = await productResponse.json();
-
-                  if (productData.success && productData.data) {
-                    // Update item with complete product data
-                    item.image = productData.data.image || item.image;
-
-                    // Also update other properties if needed
-                    if (!item.name) item.name = productData.data.name;
-                    if (!item.price) item.price = productData.data.price;
-
-                    console.log(
-                      `Updated item ${itemId} with image from product data`
-                    );
-
-                    // Cache the image in sessionStorage
-                    if (item.image) {
-                      try {
-                        const productImages = JSON.parse(
-                          sessionStorage.getItem("productImages") || "{}"
-                        );
-                        productImages[itemId] = item.image;
-                        sessionStorage.setItem(
-                          "productImages",
-                          JSON.stringify(productImages)
-                        );
-                        console.log(
-                          `Cached image for product ${itemId} in sessionStorage`
-                        );
-                      } catch (err) {
-                        console.error("Error caching product image:", err);
-                      }
-                    }
-                  }
-                }
-              } catch (fetchError) {
-                console.error(
-                  `Error fetching details for product ${itemId}:`,
-                  fetchError
-                );
-              }
-            }
-          }
-
-          // Filter out already rated products
-          const unratedItems = enhancedItems.filter((item) => {
-            const itemId = item.id || item.productId || item._id;
-            const baseItemId =
-              itemId && itemId.includes("-") ? itemId.split("-")[0] : itemId;
-            const isAlreadyRated =
-              alreadyRatedProducts[baseItemId] || alreadyRatedProducts[itemId];
-
-            if (isAlreadyRated) {
-              console.log(`Product ${baseItemId} already rated, skipping`);
-              return false;
-            }
-            return true;
-          });
-
-          // Check if there are any items left to rate
-          if (unratedItems.length === 0) {
-            console.log("All products in this order have already been rated");
-            storeRatingInteractionStatus(currentOrderId, "rated");
-            cleanupRatingModal();
-            return;
-          }
-
-          // Save the filtered items for rating
-          orderItemsToRate = unratedItems;
-
-          // Store all product images
-          storeProductImagesForOrder({ items: enhancedItems });
-
-          // Start rating the first item
-          showNextItemRating();
-        } else {
-          throw new Error("No items found in this order");
-        }
-      } else {
-        throw new Error("Invalid order data received");
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching order details:", error);
-
-      // Even if there's an error, let's try to show a rating modal with basic info
-      const lastCompletedOrder = sessionStorage.getItem("lastCompletedOrder");
-
+  try {
+    const ratingsArr = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const ratedSet = new Set(
+      ratingsArr
+        .filter((r) => String(r.orderId) === String(orderId))
+        .map((r) => (String(r.productId).includes('-') ? String(r.productId).split('-')[0] : String(r.productId)))
+    );
+    let orderObj = null;
+    try {
+      const ordersArr = JSON.parse(localStorage.getItem('orders') || '[]');
+      orderObj = ordersArr.find((o) => {
+        const oid = o.orderNumber || o.orderId || o.id || o._id;
+        return String(oid) === String(orderId);
+      }) || null;
+    } catch (_) {}
+    if (!orderObj) {
+      const lastCompletedOrder = sessionStorage.getItem('lastCompletedOrder');
       if (lastCompletedOrder) {
         try {
-          const orderInfo = JSON.parse(lastCompletedOrder);
-          if (orderInfo.items && orderInfo.items.length > 0) {
-            // Try to check for already rated products even in fallback mode
-            fetch(`/api/ratings/order/${orderId}/products`)
-              .then((response) => response.json())
-              .then((ratingData) => {
-                const alreadyRatedProducts = ratingData.success
-                  ? ratingData.ratedProducts
-                  : {};
-
-                // Filter out already rated products
-                const unratedItems = orderInfo.items.filter((item) => {
-                  const itemId = item.id || item.productId || item._id;
-                  const baseItemId =
-                    itemId && itemId.includes("-")
-                      ? itemId.split("-")[0]
-                      : itemId;
-                  const isAlreadyRated =
-                    alreadyRatedProducts[baseItemId] ||
-                    alreadyRatedProducts[itemId];
-
-                  if (isAlreadyRated) {
-                    console.log(
-                      `Product ${baseItemId} already rated (fallback), skipping`
-                    );
-                    return false;
-                  }
-                  return true;
-                });
-
-                if (unratedItems.length === 0) {
-                  console.log("All products already rated (fallback mode)");
-                  storeRatingInteractionStatus(currentOrderId, "rated");
-                  cleanupRatingModal();
-                  return;
-                }
-
-                // Save filtered items to rate
-                orderItemsToRate = unratedItems;
-                showNextItemRating();
-              })
-              .catch(() => {
-                // If rating check fails, proceed with all items (fallback of fallback)
-                console.log("Rating check failed, proceeding with all items");
-                orderItemsToRate = [...orderInfo.items];
-                showNextItemRating();
-              });
-          } else {
-            // Create a minimal item object if no items found
-            const fallbackItem = {
-              name: "طلبك",
-              price: "0",
-              image: "/images/placeholder-small.svg",
-            };
-            currentProductId = orderId; // Use order ID as product ID
-            currentProductData = fallbackItem;
-            showRatingModal(fallbackItem);
-          }
-        } catch (e) {
-          console.error("Error parsing last completed order:", e);
-          showRatingError(`تعذر العثور على بيانات الطلب: ${error.message}`);
-        }
-      } else {
-        showRatingError(`تعذر العثور على بيانات الطلب: ${error.message}`);
+          const tmp = JSON.parse(lastCompletedOrder);
+          orderObj = tmp;
+        } catch (_) {}
       }
+    }
+    if (!orderObj || !Array.isArray(orderObj.items) || orderObj.items.length === 0) {
+      const fallbackItem = { name: "طلبك", price: "0", image: "/images/placeholder-small.svg" };
+      currentProductId = orderId;
+      currentProductData = fallbackItem;
+      showRatingModal(fallbackItem);
+      return;
+    }
+    const savedProducts = localStorage.getItem('products');
+    const productsMap = {};
+    if (savedProducts) {
+      try {
+        const arr = JSON.parse(savedProducts) || [];
+        arr.forEach((p) => {
+          if (p.id) productsMap[p.id] = p;
+          if (p._id) productsMap[p._id] = p;
+          if (p.name) productsMap[String(p.name).toLowerCase()] = p;
+        });
+      } catch (_) {}
+    }
+    const enhancedItems = orderObj.items.map((item) => {
+      if (!item.image || item.image === '' || String(item.image).includes('placeholder')) {
+        const match =
+          (item.id && productsMap[item.id]) ||
+          (item.productId && productsMap[item.productId]) ||
+          (item.name && productsMap[String(item.name).toLowerCase()]);
+        if (match && match.image) {
+          return { ...item, image: match.image };
+        }
+      }
+      return item;
     });
+    const unratedItems = enhancedItems.filter((item) => {
+      const pid = item.id || item.productId || item._id;
+      const basePid = pid && String(pid).includes('-') ? String(pid).split('-')[0] : pid;
+      return !ratedSet.has(String(basePid)) && !ratedSet.has(String(pid));
+    });
+    if (unratedItems.length === 0) {
+      storeRatingInteractionStatus(currentOrderId, 'rated');
+      cleanupRatingModal();
+      return;
+    }
+    orderItemsToRate = unratedItems;
+    storeProductImagesForOrder({ items: enhancedItems });
+    showNextItemRating();
+  } catch (_) {}
 }
 
 // New function to show the next item for rating
@@ -849,76 +777,37 @@ function checkOrderRatingStatus(orderId) {
   }
 
   orderStatusCheckInFlight.set(orderId, true);
-
-  fetch(`/api/orders/${orderId}`)
-    .then((response) => {
-      if (!response.ok) {
-        if (response.status === 429) {
-          // Too many requests: back off and stop spamming
-          console.warn(
-            "Too many requests when checking order status, backing off"
-          );
-          return { success: false, rateLimited: true };
-        }
-        if (response.status === 404) {
-          throw new Error("Order not found");
-        }
-        throw new Error(`Server responded with status: ${response.status}`);
+  try {
+    let order = null;
+    try {
+      const ordersArr = JSON.parse(localStorage.getItem('orders') || '[]');
+      order = ordersArr.find((o) => {
+        const oid = o.orderNumber || o.orderId || o.id || o._id;
+        return String(oid) === String(orderId);
+      }) || null;
+    } catch (_) {}
+    if (!order) {
+      const lastCompletedOrder = sessionStorage.getItem('lastCompletedOrder');
+      if (lastCompletedOrder) {
+        try {
+          const tmp = JSON.parse(lastCompletedOrder);
+          if (String(tmp.orderId) === String(orderId)) order = tmp;
+        } catch (_) {}
       }
-      return response.json();
-    })
-    .then((orderData) => {
-      if (orderData && orderData.rateLimited) {
-        return false; // stop flow due to rate limit
+    }
+    const skipped = JSON.parse(localStorage.getItem('ratingsSkipped') || '[]');
+    if (skipped.includes(orderId)) {
+      ordersIgnored.add(orderId);
+      if (typeof showToast === "function") {
+        showToast("تم تخطي تقييم هذا الطلب مسبقاً", "info");
       }
-      if (!orderData.success || !orderData.data) {
-        throw new Error("Invalid order data received");
-      }
-
-      const order = orderData.data;
-
-      // Check if rating was skipped for this order
-      if (order.ratingSkipped) {
-        console.log("Order rating was skipped by user");
-        ordersIgnored.add(orderId);
-        
-        // Show toast if available
-        if (typeof showToast === "function") {
-          showToast("تم تخطي تقييم هذا الطلب مسبقاً", "info");
-        }
-        
-        return true;
-      }
-
-      // We now want to allow rating multiple products in the same order
-      // So we only check if the order status is completed
-      if (order.status !== "completed") {
-        console.log("This order is not completed yet");
-
-        // Show toast or notification that order is not completed
-        if (typeof showToast === "function") {
-          showToast("لا يمكن تقييم طلب غير مكتمل", "info");
-        } else {
-          showRatingError("لا يمكن تقييم طلب غير مكتمل");
-        }
-
-        return true;
-      }
-
-      // The order is not yet fully rated, so proceed with rating
-      console.log("Order is completed, proceeding with rating");
-
-      // Proceed to fetch order details and show rating modal
-      promptRatingForCompletedOrder(orderId);
-      return false;
-    })
-    .catch((error) => {
-      console.error("Error checking order rating status:", error);
-      return false;
-    })
-    .finally(() => {
       orderStatusCheckInFlight.delete(orderId);
-    });
+      return;
+    }
+    promptRatingForCompletedOrder(orderId);
+  } catch (_) {
+    orderStatusCheckInFlight.delete(orderId);
+  }
 }
 
 // Function to show rating modal
@@ -1481,188 +1370,53 @@ function submitRating() {
     customerId: getCustomerId(),
     timestamp: new Date().toISOString(),
   };
+  try {
+    const saved = localStorage.getItem("ratings");
+    const ratingsArr = saved ? JSON.parse(saved) : [];
+    ratingsArr.push(ratingData);
+    localStorage.setItem("ratings", JSON.stringify(ratingsArr));
 
-  // Rating will be calculated and stored in the database only
-  console.log("Rating will be processed and stored in the database");
+    const persistenceResult = persistProductRatingToStorage(
+      currentProductId,
+      ratingsArr
+    );
+    if (persistenceResult) {
+      updateProductRatingInUI(
+        persistenceResult.baseProductId,
+        persistenceResult.displayAverage
+      );
+    }
 
-  // Try to submit to server if API is available
-  fetch(`/api/ratings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      productId: baseProductId,
-      orderId: ratingData.orderId,
-      rating: ratingData.rating,
-      comment: ratingData.comment,
-      customerId: ratingData.customerId,
-    }),
-  })
-    .then((response) => {
-      if (response.status === 429) {
-        console.warn(
-          "Rating submission rate-limited (429). Storing for retry and stopping."
-        );
-        // Rate limited - user will need to try again later
-        console.log(
-          "Rating submission rate-limited. User can try again later."
-        );
-        return { success: false, rateLimited: true };
-      }
-      if (!response.ok) {
-        return response.json().then((errorData) => {
-          // If product not found, try to update the product ID and retry
-          if (
-            errorData.message &&
-            errorData.message.includes("Product not found")
-          ) {
-            console.log("Product not found with ID:", currentProductId);
-
-            // Try to get a valid product ID from the order data
-            return fetch(`/api/orders/${currentOrderId}`)
-              .then((orderResponse) => {
-                if (!orderResponse.ok)
-                  throw new Error("Could not fetch order details");
-                return orderResponse.json();
-              })
-              .then((orderData) => {
-                if (
-                  orderData.success &&
-                  orderData.data &&
-                  orderData.data.items &&
-                  orderData.data.items.length > 0
-                ) {
-                  // Use the first item's ID as fallback
-                  const newProductId =
-                    orderData.data.items[0].id ||
-                    orderData.data.items[0].productId ||
-                    orderData.data.items[0]._id;
-
-                  console.log("Using alternative product ID:", newProductId);
-
-                  // Extract base product ID for the API request
-                  const baseNewProductId = newProductId.includes("-")
-                    ? newProductId.split("-")[0]
-                    : newProductId;
-
-                  // Update the rating data with the new product ID
-                  ratingData.productId = newProductId;
-                  currentProductId = newProductId;
-
-                  // Retry the submission with the new product ID
-                  return fetch(`/api/ratings`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      productId: baseNewProductId,
-                      orderId: ratingData.orderId,
-                      rating: ratingData.rating,
-                      comment: ratingData.comment,
-                      customerId: ratingData.customerId,
-                    }),
-                  });
-                } else {
-                  throw new Error("Could not find valid product ID in order");
-                }
-              });
-          } else if (
-            errorData.message &&
-            errorData.message.includes("This order has already been rated")
-          ) {
-            console.log(
-              "This order has already been rated, showing existing ratings"
-            );
-            // Show existing ratings modal instead of continuing
-            if (typeof showExistingRatingsModal === "function") {
-              showExistingRatingsModal(currentOrderId);
-            }
-            return {
-              success: true,
-              message: "Order already rated, showing existing ratings",
-            };
-          } else if (
-            errorData.message &&
-            errorData.message.includes(
-              "This product in this order has already been rated"
-            )
-          ) {
-            console.log(
-              "This product has already been rated, showing existing ratings"
-            );
-            // Show existing ratings modal instead of continuing
-            if (typeof showExistingRatingsModal === "function") {
-              showExistingRatingsModal(currentOrderId);
-            }
-            return {
-              success: true,
-              message: "Product already rated, showing existing ratings",
-            };
-          }
-
-          throw new Error(
-            errorData.message ||
-              `Error: ${response.status} ${response.statusText}`
-          );
-        });
-      }
-      return response.json();
-  })
-    .then((data) => {
-      if (data && (data.success === false || data.rateLimited)) {
-        throw new Error(data.message || "Error submitting rating");
-      }
-
-      console.log("Rating submitted successfully:", data);
-
-      // Move to the next item or show final success
-      currentItemIndex++;
-
-      if (currentItemIndex < orderItemsToRate.length) {
-        // Reset for next item
-        resetRatingState();
-
-        // Show brief success message for this item
-        showItemRatingSuccess();
-
-        // Show next item after a brief delay
-        setTimeout(() => {
-          showNextItemRating();
-        }, 1500);
-      } else {
-        // All items have been rated
-        storeRatingInteractionStatus(currentOrderId, "rated");
-        if (typeof window.swapOrderRatingButtonToChip === "function") {
-          try {
-            window.swapOrderRatingButtonToChip(currentOrderId);
-          } catch (_) {}
-        }
-
-        // Show final success message
-        showFinalRatingSuccess();
-      }
-    })
-    .catch((error) => {
-      console.error("Error submitting rating:", error);
-
-      // Rating submission failed - user can try again later
-      console.log("Rating submission failed. User can try again later.");
-
-      // Continue to next item anyway
-      currentItemIndex++;
-
-      if (currentItemIndex < orderItemsToRate.length) {
-        // Reset for next item
-        resetRatingState();
+    const submitBtn2 = document.getElementById("submit-rating-btn");
+    if (submitBtn2) {
+      submitBtn2.disabled = false;
+    }
+    currentItemIndex++;
+    if (currentItemIndex < orderItemsToRate.length) {
+      resetRatingState();
+      showItemRatingSuccess();
+      setTimeout(() => {
         showNextItemRating();
-      } else {
-        // All items have been rated
-        storeRatingInteractionStatus(currentOrderId, "rated");
-        showFinalRatingSuccess();
+      }, 1500);
+    } else {
+      storeRatingInteractionStatus(currentOrderId, "rated");
+      if (typeof window.swapOrderRatingButtonToChip === "function") {
+        try {
+          window.swapOrderRatingButtonToChip(currentOrderId);
+        } catch (_) {}
       }
-    });
+      showFinalRatingSuccess();
+    }
+  } catch (e) {
+    currentItemIndex++;
+    if (currentItemIndex < orderItemsToRate.length) {
+      resetRatingState();
+      showNextItemRating();
+    } else {
+      storeRatingInteractionStatus(currentOrderId, "rated");
+      showFinalRatingSuccess();
+    }
+  }
 }
 
 // Add a new function to show brief success message between items
@@ -1766,31 +1520,16 @@ function resetRatingState() {
 // Skip rating for current order
 function skipRating() {
   if (currentOrderId) {
-    console.log(`Skipping rating for order: ${currentOrderId}`);
-    fetch(`/api/orders/${currentOrderId}`)
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("status")))
-      .then((orderData) => {
-        const isCompleted = !!(orderData && orderData.success && orderData.data && orderData.data.status === 'completed');
-        if (isCompleted) {
-          return fetch(`/api/ratings/order/${currentOrderId}/skip`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }).then(res => res.json()).then((data) => {
-            if (data.success) {
-              ordersIgnored.add(currentOrderId);
-            }
-          });
-        }
-        ordersIgnored.add(currentOrderId);
-      })
-      .catch(() => {
-        ordersIgnored.add(currentOrderId);
-      })
-      .finally(() => {
-        closeRatingModal();
-      });
+    try {
+      const saved = localStorage.getItem("ratingsSkipped");
+      const skipped = saved ? JSON.parse(saved) : [];
+      if (!skipped.includes(currentOrderId)) skipped.push(currentOrderId);
+      localStorage.setItem("ratingsSkipped", JSON.stringify(skipped));
+      ordersIgnored.add(currentOrderId);
+    } catch (_) {
+      ordersIgnored.add(currentOrderId);
+    }
+    closeRatingModal();
   } else {
     // No order ID, just close the modal
     closeRatingModal();
@@ -1825,15 +1564,16 @@ function closeRatingModal() {
 // Store that an order has been rated or skipped
 function storeRatingInteractionStatus(orderId, status) {
   try {
-    console.log(`Rating interaction for order ${orderId}: ${status}`);
-    // Rating interactions are now tracked via database API calls only
-    // Mark order as ignored in this session to prevent duplicate prompts
+    const key = status === 'skipped' ? 'ratingsSkipped' : 'ratingsCompleted';
+    const saved = localStorage.getItem(key);
+    const arr = saved ? JSON.parse(saved) : [];
+    if (!arr.includes(orderId)) arr.push(orderId);
+    localStorage.setItem(key, JSON.stringify(arr));
     if (status === 'skipped' || status === 'rated') {
       ordersIgnored.add(orderId);
     }
     return true;
-  } catch (error) {
-    console.error("Error storing rating interaction status:", error);
+  } catch (_) {
     return false;
   }
 }
@@ -1841,11 +1581,15 @@ function storeRatingInteractionStatus(orderId, status) {
 // Check if an order has already been rated or skipped
 function hasRatingInteraction(orderId) {
   if (!orderId) return false;
-
-  // Rating interactions are now checked via database API calls only
-  // This function is kept for compatibility but always returns false
-  // The actual check is done via the API in promptRatingForCompletedOrder
-  return false;
+  try {
+    const skipped = JSON.parse(localStorage.getItem('ratingsSkipped') || '[]');
+    if (skipped.includes(orderId)) return true;
+    const ratingsArr = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const exists = ratingsArr.some((r) => String(r.orderId) === String(orderId));
+    return exists;
+  } catch (_) {
+    return ordersIgnored.has(orderId);
+  }
 }
 
 // Get current customer ID from auth
@@ -1869,13 +1613,32 @@ function getCustomerId() {
 // Update product rating in UI if we're on a page with product listings
 function updateProductRatingInUI(productId, newRating) {
   try {
-    // Find product cards with this product ID
-    const productCards = document.querySelectorAll(
-      `.product-card[data-product-id="${productId}"]`
-    );
+    const baseProductId = normalizeProductId(productId);
+    if (!baseProductId) {
+      return;
+    }
+
+    const ratingValue =
+      typeof newRating === "number"
+        ? newRating
+        : parseFloat(newRating);
+
+    if (Number.isNaN(ratingValue)) {
+      return;
+    }
+
+    const formattedRating = ratingValue
+      .toFixed(1)
+      .replace(/\.0+$/, (match) => (match === ".0" ? "" : match));
+
+    const productCards = Array.from(
+      document.querySelectorAll(".product-card")
+    ).filter((card) => {
+      const cardId = normalizeProductId(card.getAttribute("data-product-id"));
+      return cardId === baseProductId;
+    });
 
     if (productCards.length === 0) {
-      // No product cards found in this page
       return;
     }
 
@@ -1884,15 +1647,13 @@ function updateProductRatingInUI(productId, newRating) {
       const ratingContainer = card.querySelector(".rating");
 
       if (ratingSpan && ratingContainer) {
-        // Update rating text
-        ratingSpan.textContent = newRating;
+        ratingSpan.textContent = formattedRating;
 
-        // Update color based on rating
-        if (newRating >= 4.5) {
+        if (ratingValue >= 4.5) {
           ratingSpan.style.color = "#42d158"; // Green for high ratings
-        } else if (newRating >= 4.0) {
+        } else if (ratingValue >= 4.0) {
           ratingSpan.style.color = "#ffd700"; // Gold for good ratings
-        } else if (newRating >= 3.5) {
+        } else if (ratingValue >= 3.5) {
           ratingSpan.style.color = "#ffa500"; // Orange for average ratings
         } else {
           ratingSpan.style.color = "#ff4444"; // Red for low ratings
@@ -1973,26 +1734,22 @@ function showExistingRatingsModal(orderId) {
 // Function to load existing ratings from the server
 async function loadExistingRatings(orderId) {
   try {
-    console.log(`Loading existing ratings for order: ${orderId}`);
-
-    const response = await fetch(
-      `/api/ratings/order/${orderId}/existing-ratings`
-    );
-
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.success && data.data) {
-      displayExistingRatings(data.data);
-    } else {
-      console.error("Failed to load existing ratings:", data.message);
-      showExistingRatingsEmpty();
-    }
-  } catch (error) {
-    console.error("Error loading existing ratings:", error);
+    const ratingsArr = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const filtered = ratingsArr.filter((r) => String(r.orderId) === String(orderId));
+    const productsArr = JSON.parse(localStorage.getItem('products') || '[]');
+    const pmap = {};
+    productsArr.forEach((p) => {
+      if (p.id) pmap[p.id] = p;
+      if (p._id) pmap[p._id] = p;
+    });
+    const enriched = filtered.map((r) => {
+      const pid = r.productId;
+      const basePid = String(pid).includes('-') ? String(pid).split('-')[0] : pid;
+      const product = pmap[pid] || pmap[basePid] || null;
+      return product ? { ...r, product } : r;
+    });
+    displayExistingRatings(enriched);
+  } catch (_) {
     showExistingRatingsEmpty();
   }
 }
@@ -2148,102 +1905,34 @@ function openRatingFromPreviousOrders(
 ) {
   console.log(`Opening rating from previous orders for order: ${orderId}`);
 
-  // First check if the order is already rated by querying the server
-  fetch(`/api/orders/${orderId}`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success && data.data) {
-        const order = data.data;
-
-        // Check if order is already rated
-        if (order.isRated) {
-          console.log(
-            `Order ${orderId} is already rated, showing existing ratings`
-          );
-
-          // Show existing ratings modal instead of regular rating modal
-          showExistingRatingsModal(orderId);
-          return; // Exit early
-        }
-
-        // Set current data
-        currentOrderId = orderId;
-        currentProductId = productId;
-
-        // Handle image path
-        let imagePath = productImage;
-
-        // If image path is relative (not a data URL and doesn't start with http), prepend server URL
-        if (
-          imagePath &&
-          !imagePath.startsWith("data:") &&
-          !imagePath.startsWith("http") &&
-          !imagePath.startsWith("/images/placeholder")
-        ) {
-          // Make sure it has a leading slash if needed
-          if (!imagePath.startsWith("/")) {
-            imagePath = "/" + imagePath;
-          }
-          imagePath = imagePath; // Remove the hardcoded localhost prefix
-        }
-
-        // Create product data object
-        currentProductData = {
-          id: productId,
-          name: productName,
-          price: productPrice,
-          image: imagePath,
-        };
-
-        // Show the rating modal
-        showRatingModal(currentProductData);
-      } else {
-        throw new Error("Invalid order data received");
-      }
-    })
-    .catch((error) => {
-      console.error("Error checking order rating status:", error);
-
-      // Check via database API only
-      // No local storage fallback needed
-
-      // Proceed with showing the rating modal as a fallback
-      currentOrderId = orderId;
-      currentProductId = productId;
-
-      // Handle image path
-      let imagePath = productImage;
-
-      // If image path is relative, prepend server URL
-      if (
-        imagePath &&
-        !imagePath.startsWith("data:") &&
-        !imagePath.startsWith("http") &&
-        !imagePath.startsWith("/images/placeholder")
-      ) {
-        // Make sure it has a leading slash if needed
-        if (!imagePath.startsWith("/")) {
-          imagePath = "/" + imagePath;
-        }
-        imagePath = imagePath; // Remove the hardcoded localhost prefix
-      }
-
-      // Create product data object
-      currentProductData = {
-        id: productId,
-        name: productName,
-        price: productPrice,
-        image: imagePath,
-      };
-
-      // Show the rating modal
-      showRatingModal(currentProductData);
-    });
+  try {
+    const ratingsArr = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const alreadyRated = ratingsArr.some((r) => String(r.orderId) === String(orderId));
+    if (alreadyRated) {
+      showExistingRatingsModal(orderId);
+      return;
+    }
+  } catch (_) {}
+  currentOrderId = orderId;
+  currentProductId = productId;
+  let imagePath = productImage;
+  if (
+    imagePath &&
+    !imagePath.startsWith("data:") &&
+    !imagePath.startsWith("http") &&
+    !imagePath.startsWith("/images/placeholder")
+  ) {
+    if (!imagePath.startsWith("/")) {
+      imagePath = "/" + imagePath;
+    }
+  }
+  currentProductData = {
+    id: productId,
+    name: productName,
+    price: productPrice,
+    image: imagePath,
+  };
+  showRatingModal(currentProductData);
 }
 
 // Expose this function globally so it can be called from other scripts

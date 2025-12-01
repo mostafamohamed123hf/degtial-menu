@@ -1611,6 +1611,71 @@ body.light-mode .progress-text span {
   }
 }
 
+@media (max-width: 576px) {
+  .profile-tabs {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 12px;
+    background: transparent;
+    border: none;
+  }
+
+  .profile-tabs .tab-btn {
+    flex: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: start;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: rgba(10, 16, 32, 0.65);
+    padding: 14px 18px;
+    box-shadow: 0 10px 25px rgba(3, 7, 18, 0.35);
+  }
+
+  .profile-tabs .tab-btn i {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+
+  .profile-tabs .tab-btn span {
+    flex: 1;
+    font-size: 0.95rem;
+  }
+
+  .profile-tabs .tab-btn.active {
+    background: linear-gradient(
+      135deg,
+      rgba(66, 209, 88, 0.35),
+      rgba(101, 229, 128, 0.25)
+    );
+    border-color: rgba(66, 209, 88, 0.5);
+    color: #ffffff;
+    box-shadow: 0 15px 30px rgba(66, 209, 88, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .profile-tabs .tab-btn.active::after {
+    display: none;
+  }
+
+  body.light-mode .profile-tabs .tab-btn {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 18px rgba(15, 19, 34, 0.08);
+  }
+
+  body.light-mode .profile-tabs .tab-btn.active {
+    color: #0b2614;
+    background: linear-gradient(135deg, #d8f8e2, #c2f1d1);
+    border-color: rgba(66, 209, 88, 0.55);
+  }
+}
+
 @media (max-width: 480px) {
   .profile-header {
     padding: 20px;

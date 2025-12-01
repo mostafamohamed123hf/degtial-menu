@@ -3,15 +3,55 @@
  * Handles language switching between Arabic and English
  */
 
-// Default language is Arabic; prefer site default if available and not set
-let currentLanguage = (function(){
-  const stored = localStorage.getItem("public-language");
-  if (stored) return stored;
-  if (window.globalSettings && window.globalSettings.defaultLanguage) {
-    return window.globalSettings.defaultLanguage;
+// Local language helpers
+function setLanguageInStorage(language, source = "user") {
+  try {
+    localStorage.setItem("public-language", language);
+    localStorage.setItem("public-language-source", source);
+  } catch (error) {
+    console.warn("Unable to persist language selection:", error);
   }
-  return "ar";
-})();
+}
+
+function resolveInitialLanguage() {
+  try {
+    const stored = localStorage.getItem("public-language");
+    if (stored) {
+      return stored;
+    }
+  } catch (_) {}
+
+  const fallback =
+    (window.globalSettings && window.globalSettings.defaultLanguage) || "ar";
+
+  setLanguageInStorage(fallback, "default");
+  return fallback;
+}
+
+// Default language is Arabic; prefer site default if available and not set
+let currentLanguage = resolveInitialLanguage();
+
+function getLanguageSwitcherButtons() {
+  return Array.from(
+    document.querySelectorAll(
+      "#language-switcher, #sidebar-language-switcher, #cashier-language-switcher"
+    )
+  );
+}
+
+function syncLanguageSwitchers() {
+  const buttons = getLanguageSwitcherButtons();
+  const label = getTranslation("switchLanguage");
+
+  buttons.forEach((button) => {
+    if (!button) return;
+    button.textContent = label;
+    if (!button.dataset.langSwitcherBound) {
+      button.addEventListener("click", switchLanguage);
+      button.dataset.langSwitcherBound = "true";
+    }
+  });
+}
 
 // Translations object
 const translations = {
@@ -180,7 +220,6 @@ const translations = {
 
     // Profile page
     profilePageTitle: "الملف الشخصي | ديجيتال منيو",
-    profileTitle: "الملف الشخصي",
     personalInfo: "المعلومات الشخصية",
     security: "الأمان",
     preferences: "الإعدادات",
@@ -275,8 +314,7 @@ const translations = {
     sidebarLogout: "تسجيل الخروج",
     sidebarFooter: "جميع الحقوق محفوظة © ديجيتال منيو 2025",
 
-    // Theme toggle
-    themeToggle: "الوضع",
+
 
     // Access Denied Modal
     accessDenied: "تم رفض الوصول",
@@ -510,8 +548,6 @@ const translations = {
     sandwichCategory: "سندوتش",
     drinkCategory: "مشروبات",
 
-    // Theme toggle
-    themeToggle: "الوضع",
   },
   en: {
     // Document attributes
@@ -727,7 +763,6 @@ const translations = {
 
     // Profile page
     profilePageTitle: "Profile | Digital Menu",
-    profileTitle: "Profile",
     personalInfo: "Personal Information",
     security: "Security",
     preferences: "Preferences",
@@ -821,9 +856,6 @@ const translations = {
     sidebarProfile: "Profile",
     sidebarLogout: "Logout",
     sidebarFooter: "All Rights Reserved © Digital Menu 2025",
-
-    // Theme toggle
-    themeToggle: "Mode",
 
     // Access Denied Modal
     accessDenied: "Access Denied",
@@ -1039,8 +1071,7 @@ const translations = {
     sandwichCategory: "Sandwich",
     drinkCategory: "Drinks",
 
-    // Theme toggle
-    themeToggle: "Mode",
+
   },
 };
 
@@ -1111,6 +1142,8 @@ function applyTranslations() {
     }
   });
 
+  syncLanguageSwitchers();
+
   // Update directional styles based on current language
   updateDirectionalStyles();
 
@@ -1148,16 +1181,17 @@ function applyTranslations() {
  */
 function switchLanguage() {
   currentLanguage = currentLanguage === "ar" ? "en" : "ar";
-  localStorage.setItem("public-language", currentLanguage);
+  setLanguageInStorage(currentLanguage, "user");
+  window.dispatchEvent(
+    new CustomEvent("public-language-updated", {
+      detail: { language: currentLanguage, source: "user" },
+    })
+  );
 
   // Apply translations to all elements
   applyTranslations();
 
-  // Update language switcher text
-  const languageSwitcher = document.getElementById("language-switcher");
-  if (languageSwitcher) {
-    languageSwitcher.textContent = getTranslation("switchLanguage");
-  }
+  syncLanguageSwitchers();
 
   // Update document title based on current page
   const currentPath = document.location.pathname;
@@ -1234,22 +1268,12 @@ function switchLanguage() {
  */
 function initI18n() {
   // Get the language from localStorage or use default
-  currentLanguage = localStorage.getItem("public-language") || "ar";
-
-  // Create language switcher button if it doesn't exist
-  if (!document.getElementById("language-switcher")) {
-    const languageSwitcher = document.createElement("button");
-    languageSwitcher.id = "language-switcher";
-    languageSwitcher.className = "language-switcher";
-    languageSwitcher.textContent = getTranslation("switchLanguage");
-    languageSwitcher.addEventListener("click", switchLanguage);
-
-    // Add the button to the document
-    document.body.appendChild(languageSwitcher);
-  }
+  currentLanguage = resolveInitialLanguage();
 
   // Apply initial translations
   applyTranslations();
+
+  syncLanguageSwitchers();
 
   // Mark body as ready to show content
   document.body.classList.add("i18n-ready");
@@ -1288,6 +1312,19 @@ function initI18n() {
   // Listen for language change events
   document.addEventListener("language_changed", function (event) {
     console.log("Language changed to: " + event.detail.language);
+  });
+
+  window.addEventListener("public-language-updated", function (event) {
+    if (!event.detail || event.detail.language === currentLanguage) {
+      return;
+    }
+
+    currentLanguage = event.detail.language;
+    if (event.detail.source && event.detail.source !== "user") {
+      setLanguageInStorage(currentLanguage, event.detail.source);
+    }
+
+    applyTranslations();
   });
 }
 

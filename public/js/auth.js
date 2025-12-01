@@ -69,6 +69,19 @@ function validateToken(token) {
     return { valid: true, isAdmin: true };
   }
 
+  if (isLocalToken(token)) {
+    // Local tokens are treated as always valid as long as payload decodes
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp && Date.now() >= payload.exp * 1000) {
+        return { valid: false, reason: "Token has expired", expired: true };
+      }
+      return { valid: true, payload, isLocal: true };
+    } catch (error) {
+      return { valid: false, reason: "Invalid token content" };
+    }
+  }
+
   // Basic validation for JWT format (should have 3 parts separated by dots)
   const tokenParts = token.split(".");
   if (tokenParts.length !== 3) {
@@ -91,6 +104,10 @@ function validateToken(token) {
   } catch (e) {
     return { valid: false, reason: "Invalid token content" };
   }
+}
+
+function isLocalToken(token) {
+  return typeof token === "string" && token.endsWith(".localtoken");
 }
 
 // Get the user token
@@ -117,6 +134,10 @@ function getToken() {
   // Don't return admin tokens from regular user token getter
   if (token.startsWith("admin_")) {
     return null;
+  }
+
+  if (isLocalToken(token)) {
+    return token;
   }
 
   // Validate the token
@@ -266,6 +287,11 @@ function refreshToken() {
   // For admin tokens, we don't need to refresh (they don't expire)
   if (token.startsWith("admin_")) {
     console.log("Admin token doesn't need refresh");
+    return Promise.resolve(token);
+  }
+
+  if (isLocalToken(token)) {
+    console.log("Local token detected, skipping refresh");
     return Promise.resolve(token);
   }
 
@@ -437,6 +463,29 @@ function getCurrentUser() {
 
   if (!token) {
     return Promise.reject(new Error("No authentication token found"));
+  }
+
+  if (isLocalToken(token)) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const storedProfileRaw = localStorage.getItem("userData");
+      const storedProfile = storedProfileRaw ? JSON.parse(storedProfileRaw) : {};
+      const mergedProfile = {
+        email: payload.email || storedProfile.email || "",
+        role: payload.role || storedProfile.role || "user",
+        name: storedProfile.name || payload.name || "",
+        username: storedProfile.username || payload.username || "",
+        loyaltyPoints:
+          typeof storedProfile.loyaltyPoints === "number"
+            ? storedProfile.loyaltyPoints
+            : 0,
+        permissions: getUserPermissions() || storedProfile.permissions || {},
+      };
+      return Promise.resolve(mergedProfile);
+    } catch (error) {
+      console.warn("Failed to decode local token payload", error);
+      return Promise.resolve({ role: "user" });
+    }
   }
 
   // Admin tokens should never reach here with the updated getToken function

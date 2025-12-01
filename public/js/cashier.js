@@ -59,6 +59,8 @@ let soundEnabled = false;
 window.notificationsEnabled = true;
 let notificationsEnabled = window.notificationsEnabled;
 
+const DEFAULT_POINTS_PER_CURRENCY = 10;
+
 window.API_BASE_URL = window.API_BASE_URL || (function () {
   const { hostname, origin } = window.location;
   const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
@@ -172,8 +174,12 @@ function showFixedNotification(
   type = "info",
   forceShow = false
 ) {
-  // Don't show notifications if disabled, unless forceShow is true
-  if (!notificationsEnabled && !forceShow) {
+  const notificationBtn = document.getElementById("notification-toggle-btn");
+  const notificationsBlocked =
+    !notificationsEnabled ||
+    (notificationBtn && notificationBtn.classList.contains("disabled"));
+
+  if (notificationsBlocked) {
     return;
   }
 
@@ -728,131 +734,40 @@ function loadActiveOrders() {
   ordersGrid.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> ${getTranslation(
     "loadingOrders"
   )}...</div>`;
-
-  // Fetch orders from the API
-  fetch(`${API_BASE_URL}/api/orders`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Clear existing content
-      ordersGrid.innerHTML = "";
-
-      // Check if we have data and orders
-      if (
-        !data ||
-        !data.data ||
-        !Array.isArray(data.data) ||
-        data.data.length === 0
-      ) {
-        const noOrdersMessage = createNoOrdersMessage();
-        ordersGrid.appendChild(noOrdersMessage);
-        return;
-      }
-
-      // Filter only active (not completed) orders
-      let activeOrders = data.data.filter(
-        (order) => order.status !== "completed" && order.status !== "cancelled"
-      );
-
-      if (activeOrders.length === 0) {
-        const noOrdersMessage = createNoOrdersMessage();
-        ordersGrid.appendChild(noOrdersMessage);
-        return;
-      }
-
-      // Sort by most recent first
-      activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      // Create order cards
-      activeOrders.forEach((order) => {
-        // Convert the database order format to the format expected by createOrderCard
-        const formattedOrder = {
-          id: order._id || order.orderId || order.orderNumber,
-          orderNumber: order.orderNumber,
-          date: order.date || order.createdAt,
-          tableNumber: order.tableNumber || "0",
-          items: order.items || [],
-          subtotal: order.subtotal,
-          tax: order.tax,
-          serviceTax: order.serviceTax,
-          discount: order.discount,
-          total: order.total || order.totalAmount,
-          status: order.status,
-        };
-
-        const orderCard = createOrderCard(formattedOrder);
-        ordersGrid.appendChild(orderCard);
-      });
-    })
-    .catch((error) => {
-      console.error("Error fetching orders:", error);
-      ordersGrid.innerHTML = `
-        <div class="error-message">
-          <i class="fas fa-exclamation-circle"></i>
-          <p>${getTranslation("errorLoadingOrders")}</p>
-          <button id="retry-load-orders" class="retry-button">${getTranslation(
-            "retry"
-          )}</button>
-        </div>
-      `;
-
-      // Add event listener for retry button
-      const retryButton = document.getElementById("retry-load-orders");
-      if (retryButton) {
-        retryButton.addEventListener("click", loadActiveOrders);
-      }
-
-      // Fallback to localStorage if API fails
-      try {
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const activeOrders = orders.filter(
-            (order) =>
-              order.status !== "completed" && order.status !== "cancelled"
-          );
-
-          if (activeOrders.length > 0) {
-            showFixedNotification(
-              getTranslation("usingLocalData"),
-              getTranslation("serverConnectionError"),
-              "warning",
-              true
-            );
-
-            // Clear error message
-            ordersGrid.innerHTML = "";
-
-            // Sort and display orders
-            activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-            activeOrders.forEach((order) => {
-              const orderCard = createOrderCard(order);
-              ordersGrid.appendChild(orderCard);
-            });
-          }
-        }
-      } catch (localStorageError) {
-        console.error(
-          "Error loading orders from localStorage:",
-          localStorageError
-        );
-      }
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const activeOrders = orders.filter(
+      (o) => o.status !== "completed" && o.status !== "cancelled"
+    );
+    ordersGrid.innerHTML = "";
+    if (activeOrders.length === 0) {
+      const noOrdersMessage = createNoOrdersMessage();
+      ordersGrid.appendChild(noOrdersMessage);
+      return;
+    }
+    activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    activeOrders.forEach((order) => {
+      const orderCard = createOrderCard(order);
+      ordersGrid.appendChild(orderCard);
     });
+  } catch (_) {
+    ordersGrid.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i><p>${getTranslation("errorLoadingOrders")}</p></div>`;
+  }
 }
 
 // Create an order card element
 function createOrderCard(order) {
   const orderCard = document.createElement("div");
+  const orderId = order.orderNumber || order.id || "N/A";
+  const orderTable = order.tableNumber || "0";
   orderCard.className = "order-card";
-  orderCard.dataset.orderId = order.id;
-  orderCard.dataset.tableNumber = order.tableNumber || "0";
+  orderCard.dataset.orderId = orderId;
+  orderCard.dataset.tableNumber = orderTable;
 
-  // Format date and time
-  const orderDate = new Date(order.date);
+  // Format date and time (fallback to createdAt or now)
+  const orderDateValue = order.date || order.createdAt || new Date().toISOString();
+  const orderDate = new Date(orderDateValue);
   const currentLang = getCurrentLanguage();
   const timeOrdered = orderDate.toLocaleTimeString(
     currentLang === "ar" ? "ar-EG" : "en-US",
@@ -866,11 +781,11 @@ function createOrderCard(order) {
   const tableIcon = "fa-table";
   const tableLabel =
     currentLang === "ar"
-      ? `طاولة ${order.tableNumber || "0"}`
-      : `Table ${order.tableNumber || "0"}`;
+      ? `طاولة ${orderTable}`
+      : `Table ${orderTable}`;
 
   // Use orderNumber if available, otherwise fall back to id
-  const displayOrderId = order.orderNumber || order.id;
+  const displayOrderId = orderId;
 
   orderCard.innerHTML = `
         <div class="order-header">
@@ -893,7 +808,7 @@ function createOrderCard(order) {
         </div>
         <div class="order-footer">
             <button class="view-order-button" data-order-id="${
-              order.id
+              orderId
             }">${getTranslation("viewDetails")}</button>
         </div>
     `;
@@ -902,7 +817,7 @@ function createOrderCard(order) {
   const viewButton = orderCard.querySelector(".view-order-button");
   if (viewButton) {
     viewButton.addEventListener("click", function () {
-      viewOrderDetails(order.id);
+      viewOrderDetails(orderId);
     });
   }
 
@@ -977,49 +892,24 @@ function loadRecentActivity() {
       }
     </div>`;
 
-  // Fetch completed and cancelled orders from the API
-  fetch(`${API_BASE_URL}/api/orders?status=completed,cancelled`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Clear existing content
-      activityList.innerHTML = "";
-
-      // Check if we have data and orders
-      if (
-        !data ||
-        !data.data ||
-        !Array.isArray(data.data) ||
-        data.data.length === 0
-      ) {
-        activityList.innerHTML = `
-          <div class="empty-message">
-            <i class="fas fa-history"></i>
-            <p>${isEnglish ? "No recent activity" : "لا يوجد نشاط حديث"}</p>
-          </div>
-        `;
-        return;
-      }
-
-      // Get completed or cancelled orders
-      const completedOrders = data.data;
-
-      // Sort by most recent first and limit to recent 10
-      completedOrders.sort((a, b) => {
-        const dateA = new Date(
-          a.completedDate || a.date || a.createdAt || a.updatedAt
-        );
-        const dateB = new Date(
-          b.completedDate || b.date || b.createdAt || b.updatedAt
-        );
-        return dateB - dateA;
-      });
-
-      const recentActivity = completedOrders.slice(0, 10);
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const completedOrders = orders.filter(
+      (o) => o.status === "completed" || o.status === "cancelled"
+    );
+    activityList.innerHTML = "";
+    if (completedOrders.length === 0) {
+      activityList.innerHTML = `
+        <div class="empty-message">
+          <i class="fas fa-history"></i>
+          <p>${isEnglish ? "No recent activity" : "لا يوجد نشاط حديث"}</p>
+        </div>
+      `;
+      return;
+    }
+    completedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const recentActivity = completedOrders.slice(0, 10);
 
       // Create activity items
       recentActivity.forEach((order) => {
@@ -1040,7 +930,7 @@ function loadRecentActivity() {
             : "تم إلغاء";
 
         // Get the order ID and table number
-        const orderId = order._id || order.orderId || order.orderNumber;
+        const orderId = order.id || order.orderNumber;
         const tableNumber = order.tableNumber || "0";
 
         // Order label based on language
@@ -1049,12 +939,7 @@ function loadRecentActivity() {
           : `طلب الطاولة ${tableNumber}`;
 
         // Format date and time based on language
-        const orderDate = new Date(
-          order.completedDate ||
-            order.date ||
-            order.createdAt ||
-            order.updatedAt
-        );
+        const orderDate = new Date(order.completedDate || order.date);
         const timeCompleted = orderDate.toLocaleTimeString(
           isEnglish ? "en-US" : "ar-EG",
           {
@@ -1071,7 +956,7 @@ function loadRecentActivity() {
         );
 
         // Get the total amount
-        const total = order.total || order.totalAmount || 0;
+        const total = order.total || 0;
         // Currency symbol based on language
         const currencySymbol =
           typeof getCurrencyText === "function"
@@ -1101,156 +986,25 @@ function loadRecentActivity() {
         activityList.appendChild(activityItem);
       });
 
-      // Add "View All Orders" button if there are more orders than shown
-      if (completedOrders.length > 10) {
-        const viewAllButton = document.createElement("button");
-        viewAllButton.className = "view-all-button";
-        viewAllButton.innerHTML = `<i class="fas fa-list"></i> ${
-          isEnglish ? "View All Orders" : "عرض كل الطلبات"
-        }`;
-        viewAllButton.addEventListener("click", viewAllOrders);
-        activityList.appendChild(viewAllButton);
-      }
-    })
-    .catch((error) => {
-      console.error("Error loading recent activity:", error);
-
-      // Show error message
-      activityList.innerHTML = `
-        <div class="error-message">
-          <i class="fas fa-exclamation-circle"></i>
-          <p>${
-            isEnglish
-              ? "Error loading activity history"
-              : "حدث خطأ أثناء تحميل سجل النشاط"
-          }</p>
-          <button id="retry-load-activity" class="retry-button">${
-            isEnglish ? "Retry" : "إعادة المحاولة"
-          }</button>
-        </div>
-      `;
-
-      // Add event listener for retry button
-      const retryButton = document.getElementById("retry-load-activity");
-      if (retryButton) {
-        retryButton.addEventListener("click", loadRecentActivity);
-      }
-
-      // Fallback to localStorage if API fails
-      try {
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const completedOrders = orders.filter(
-            (order) =>
-              order.status === "completed" || order.status === "cancelled"
-          );
-
-          if (completedOrders.length > 0) {
-            showFixedNotification(
-              getTranslation("usingLocalData"),
-              getTranslation("serverConnectionError"),
-              "warning",
-              true
-            );
-
-            // Clear error message
-            activityList.innerHTML = "";
-
-            // Sort and limit to recent 10
-            completedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-            const recentActivity = completedOrders.slice(0, 10);
-
-            // Display the orders
-            recentActivity.forEach((order) => {
-              const activityItem = document.createElement("div");
-              activityItem.className = `activity-item ${order.status}`;
-
-              const iconClass =
-                order.status === "completed"
-                  ? "fa-check-circle"
-                  : "fa-times-circle";
-
-              // Action text based on language and status
-              const actionText =
-                order.status === "completed"
-                  ? isEnglish
-                    ? "Completed"
-                    : "تم إنهاء"
-                  : isEnglish
-                  ? "Cancelled"
-                  : "تم إلغاء";
-
-              // Order label based on language
-              const orderLabel = isEnglish
-                ? `Table ${order.tableNumber || "0"} Order`
-                : `طلب الطاولة ${order.tableNumber || "0"}`;
-
-              // Format date and time based on language
-              const orderDate = new Date(order.date);
-              const timeCompleted = orderDate.toLocaleTimeString(
-                isEnglish ? "en-US" : "ar-EG",
-                {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }
-              );
-              const dateFormatted = orderDate.toLocaleDateString(
-                isEnglish ? "en-US" : "ar-EG",
-                {
-                  day: "numeric",
-                  month: "long",
-                }
-              );
-
-              // Currency symbol based on language
-              const currencySymbol =
-                typeof getCurrencyText === "function"
-                  ? getCurrencyText()
-                  : isEnglish
-                  ? "EGP"
-                  : "جنية";
-
-              activityItem.innerHTML = `
-                <div class="activity-icon">
-                  <i class="fas ${iconClass}"></i>
-                </div>
-                <div class="activity-details">
-                  <div class="activity-title">${actionText} ${orderLabel}</div>
-                  <div class="activity-meta">
-                    <span>${timeCompleted} - ${dateFormatted}</span>
-                    <span>${order.total.toFixed(2)} ${currencySymbol}</span>
-                  </div>
-                </div>
-              `;
-
-              // Add event listener to view order details when clicked
-              activityItem.addEventListener("click", () => {
-                viewOrderDetails(order.id);
-              });
-
-              activityList.appendChild(activityItem);
-            });
-
-            // Add "View All Orders" button if there are more orders than shown
-            if (completedOrders.length > 10) {
-              const viewAllButton = document.createElement("button");
-              viewAllButton.className = "view-all-button";
-              viewAllButton.innerHTML = `<i class="fas fa-list"></i> ${
-                isEnglish ? "View All Orders" : "عرض كل الطلبات"
-              }`;
-              viewAllButton.addEventListener("click", viewAllOrders);
-              activityList.appendChild(viewAllButton);
-            }
-          }
-        }
-      } catch (localStorageError) {
-        console.error(
-          "Error loading orders from localStorage:",
-          localStorageError
-        );
-      }
-    });
+    if (completedOrders.length > 10) {
+      const viewAllButton = document.createElement("button");
+      viewAllButton.className = "view-all-button";
+      viewAllButton.innerHTML = `<i class="fas fa-list"></i> ${
+        isEnglish ? "View All Orders" : "عرض كل الطلبات"
+      }`;
+      viewAllButton.addEventListener("click", viewAllOrders);
+      activityList.appendChild(viewAllButton);
+    }
+  } catch (error) {
+    activityList.innerHTML = `
+      <div class="error-message">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>${
+          isEnglish ? "Error loading activity history" : "حدث خطأ أثناء تحميل سجل النشاط"
+        }</p>
+      </div>
+    `;
+  }
 }
 
 // Reset recent activity (visual only since we're using the database)
@@ -1426,13 +1180,11 @@ async function loadAllOrdersIntoSection() {
         getCurrentLanguage() === "en" ? "Loading orders..." : "جاري تحميل الطلبات..."
       }
     </div>`;
-
   try {
-    const res = await fetch(`${API_BASE_URL}/api/orders?status=completed,cancelled&limit=100`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const orders = Array.isArray(data?.data) ? data.data : [];
-    if (orders.length === 0) {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const history = orders.filter((o) => o.status === "completed" || o.status === "cancelled");
+    if (history.length === 0) {
       grid.innerHTML = `
         <div class="empty-message">
           <i class="fas fa-history"></i>
@@ -1442,18 +1194,9 @@ async function loadAllOrdersIntoSection() {
         </div>`;
       return;
     }
-
-    orders.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+    history.sort((a, b) => new Date(b.date) - new Date(a.date));
     grid.innerHTML = "";
-    orders.forEach((o) => {
-      const order = {
-        id: o._id || o.orderId || o.orderNumber,
-        tableNumber: o.tableNumber || "0",
-        items: o.items || [],
-        total: o.total || o.totalAmount || 0,
-        status: o.status || "completed",
-        date: o.date || o.createdAt,
-      };
+    history.forEach((order) => {
       const card = createOrderCard(order);
       grid.appendChild(card);
     });
@@ -1481,70 +1224,20 @@ function viewOrderDetails(orderId) {
   orderItems.innerHTML =
     '<tr><td colspan="4" class="loading-spinner-container"><i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات الطلب...</td></tr>';
 
-  // Fetch order from the API
-  fetch(`${API_BASE_URL}/api/orders/${orderId}`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((result) => {
-      if (!result || !result.data) {
-        throw new Error("Invalid order data received");
-      }
-
-      const order = result.data;
-
-      // Convert API order format to the expected format
-      const formattedOrder = {
-        id: order._id || order.orderId || order.orderNumber,
-        orderNumber: order.orderNumber,
-        date: order.date || order.createdAt,
-        tableNumber: order.tableNumber || "0",
-        items: order.items || [],
-        subtotal: order.subtotal,
-        tax: order.tax,
-        serviceTax: order.serviceTax,
-        discount: order.discount,
-        total: order.total || order.totalAmount,
-        status: order.status,
-      };
-
-      displayOrderDetails(formattedOrder);
-    })
-    .catch((error) => {
-      console.error("Error fetching order details:", error);
-
-      // Try fallback to localStorage if API fails
-      try {
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const order = orders.find((o) => o.id === orderId);
-
-          if (order) {
-            showFixedNotification(
-              "تم استخدام النسخة المحلية",
-              "تعذر الاتصال بالخادم، تم استخدام البيانات المخزنة محلياً",
-              "warning",
-              true
-            );
-            displayOrderDetails(order);
-            return;
-          }
-        }
-      } catch (localStorageError) {
-        console.error(
-          "Error loading orders from localStorage:",
-          localStorageError
-        );
-      }
-
-      // If we get here, we couldn't load the order
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const order = orders.find((o) => String(o.id) === String(orderId));
+    if (!order) {
       showFixedNotification("خطأ", "لم يتم العثور على الطلب", "error");
       closeOrderModal();
-    });
+      return;
+    }
+    displayOrderDetails(order);
+  } catch (_) {
+    showFixedNotification("خطأ", "تعذر تحميل بيانات الطلب", "error");
+    closeOrderModal();
+  }
 }
 
 // Helper function to display order details in the modal
@@ -1915,120 +1608,232 @@ function checkTableOrder() {
     manualTableEntry.nextSibling
   );
 
-  // Fetch active orders for this table from the API
-  fetch(
-    `${API_BASE_URL}/api/orders?tableNumber=${tableNumber}&status=pending,processing`
-  )
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Remove loading indicator
-      document.querySelector(".table-loading-indicator").remove();
-
-      // Check if we have data and orders
-      if (
-        !data ||
-        !data.data ||
-        !Array.isArray(data.data) ||
-        data.data.length === 0
-      ) {
-        showFixedNotification(
-          "تنبيه",
-          `لا توجد طلبات نشطة للطاولة رقم ${tableNumber}`,
-          "warning"
-        );
-        return;
-      }
-
-      // Get active orders for this table
-      const tableOrders = data.data;
-
-      // If there's more than one order, show the most recent one
-      tableOrders.sort((a, b) => {
-        const dateA = new Date(a.date || a.createdAt);
-        const dateB = new Date(b.date || b.createdAt);
-        return dateB - dateA;
-      });
-
-      const latestOrder = tableOrders[0];
-      const orderId =
-        latestOrder._id || latestOrder.orderId || latestOrder.orderNumber;
-
-      // View the order details
-      viewOrderDetails(orderId);
-    })
-    .catch((error) => {
-      console.error("Error checking table order:", error);
-
-      // Remove loading indicator
-      const loadingElement = document.querySelector(".table-loading-indicator");
-      if (loadingElement) {
-        loadingElement.remove();
-      }
-
-      // Show error notification
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const tableOrders = orders.filter(
+      (o) =>
+        String(o.tableNumber) === String(tableNumber) &&
+        o.status !== "completed" &&
+        o.status !== "cancelled"
+    );
+    const loadingElement = document.querySelector(".table-loading-indicator");
+    if (loadingElement) loadingElement.remove();
+    if (tableOrders.length === 0) {
       showFixedNotification(
-        "خطأ",
-        "حدث خطأ أثناء البحث عن طلبات الطاولة",
-        "error"
+        "تنبيه",
+        `لا توجد طلبات نشطة للطاولة رقم ${tableNumber}`,
+        "warning"
       );
+      return;
+    }
+    tableOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latestOrder = tableOrders[0];
+    viewOrderDetails(latestOrder.id);
+  } catch (_) {
+    const loadingElement = document.querySelector(".table-loading-indicator");
+    if (loadingElement) loadingElement.remove();
+    showFixedNotification("خطأ", "تعذر التحقق من طلبات الطاولة", "error");
+  }
+}
 
-      // Try localStorage fallback if API fails
-      try {
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const tableOrders = orders.filter(
-            (order) =>
-              order.tableNumber === tableNumber &&
-              order.status !== "completed" &&
-              order.status !== "cancelled"
-          );
+function getLocalUserData() {
+  try {
+    const raw = localStorage.getItem("userData");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    return null;
+  }
+}
 
-          if (tableOrders.length > 0) {
-            showFixedNotification(
-              getTranslation("usingLocalData"),
-              getTranslation("serverConnectionError"),
-              "warning",
-              true
-            );
+function persistLocalUserData(userData) {
+  if (!userData || typeof userData !== "object") {
+    return;
+  }
+  try {
+    localStorage.setItem("userData", JSON.stringify(userData));
+  } catch (error) {
+    console.error("Error saving user data:", error);
+  }
+}
 
-            // If there's more than one order, show the most recent one
-            tableOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-            const latestOrder = tableOrders[0];
+function loadLoyaltySettings() {
+  const defaults = {
+    pointsPerCurrency: DEFAULT_POINTS_PER_CURRENCY,
+    maxPointsPerOrder: 0,
+  };
+  try {
+    let settings = { ...defaults };
+    const storedDiscount = localStorage.getItem("loyaltyDiscountSettings");
+    if (storedDiscount) {
+      const parsed = JSON.parse(storedDiscount);
+      settings.pointsPerCurrency =
+        parsed.pointsPerCurrency ?? DEFAULT_POINTS_PER_CURRENCY;
+      settings.maxPointsPerOrder = parsed.maxPointsPerOrder ?? 0;
+    } else if (window.globalSettings && window.globalSettings.loyalty) {
+      const s = window.globalSettings.loyalty;
+      settings.pointsPerCurrency =
+        s.pointsPerCurrency ?? DEFAULT_POINTS_PER_CURRENCY;
+      settings.maxPointsPerOrder = s.maxPointsPerOrder ?? 0;
+    }
 
-            // View the order details
-            viewOrderDetails(latestOrder.id);
-          } else {
-            showFixedNotification(
-              "تنبيه",
-              `لا توجد طلبات نشطة للطاولة رقم ${tableNumber}`,
-              "warning"
-            );
-          }
-        } else {
-          showFixedNotification(
-            "تنبيه",
-            `لا توجد طلبات نشطة للطاولة رقم ${tableNumber}`,
-            "warning"
-          );
-        }
-      } catch (localStorageError) {
-        console.error(
-          "Error loading orders from localStorage:",
-          localStorageError
-        );
-        showFixedNotification(
-          "تنبيه",
-          `لا توجد طلبات نشطة للطاولة رقم ${tableNumber}`,
-          "warning"
-        );
+    const pointsSettingsJson = localStorage.getItem("loyaltyPointsSettings");
+    if (pointsSettingsJson) {
+      const pointsSettings = JSON.parse(pointsSettingsJson);
+      const exchangeRate = Number(pointsSettings.exchangeRate);
+      if (Number.isFinite(exchangeRate) && exchangeRate > 0) {
+        settings.pointsPerCurrency = exchangeRate;
       }
-    });
+
+      const maxPointsSetting = Number(pointsSettings.maxPointsPerOrder);
+      if (Number.isFinite(maxPointsSetting) && maxPointsSetting >= 0) {
+        settings.maxPointsPerOrder = maxPointsSetting;
+      }
+    }
+
+    if (!settings.pointsPerCurrency || settings.pointsPerCurrency <= 0) {
+      settings.pointsPerCurrency = DEFAULT_POINTS_PER_CURRENCY;
+    }
+
+    return settings;
+  } catch (error) {
+    console.warn("Falling back to default loyalty settings:", error);
+  }
+  return defaults;
+}
+
+function calculateEarnedPoints(orderTotal, settings) {
+  const earnRate = Number(settings.pointsPerCurrency) || DEFAULT_POINTS_PER_CURRENCY;
+  if (!earnRate || earnRate <= 0) {
+    return 0;
+  }
+  const normalized = Math.max(0, Number(orderTotal) || 0);
+  const rawEarned = Math.floor(normalized / earnRate);
+  const maxPerOrder = Number(settings.maxPointsPerOrder) || 0;
+  return maxPerOrder > 0 ? Math.min(rawEarned, maxPerOrder) : rawEarned;
+}
+
+function adjustCustomerPoints(delta) {
+  const deltaInt = Math.trunc(Number(delta) || 0);
+
+  let userData = getLocalUserData();
+  if (!userData || typeof userData !== "object") {
+    userData = {
+      loyaltyPoints: 0,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  if (typeof userData.loyaltyPoints !== "number") {
+    userData.loyaltyPoints = parseInt(userData.loyaltyPoints || 0, 10) || 0;
+  }
+
+  if (!deltaInt) {
+    return userData.loyaltyPoints;
+  }
+
+  const current = parseInt(userData.loyaltyPoints || 0, 10) || 0;
+  const updated = Math.max(0, current + deltaInt);
+  userData.loyaltyPoints = updated;
+  userData.updatedAt = new Date().toISOString();
+  persistLocalUserData(userData);
+
+  try {
+    localStorage.setItem(
+      "loyalty_points_updated",
+      JSON.stringify({
+        timestamp: Date.now(),
+        delta: deltaInt,
+        balance: updated,
+      })
+    );
+  } catch (error) {
+    console.warn("Unable to broadcast loyalty points update:", error);
+  }
+
+  return updated;
+}
+
+function addPointsReservationRecord(record) {
+  try {
+    const existing = JSON.parse(
+      localStorage.getItem("loyalty_points_reservations") || "[]"
+    );
+    existing.push(record);
+    localStorage.setItem(
+      "loyalty_points_reservations",
+      JSON.stringify(existing)
+    );
+  } catch (error) {
+    console.warn("Unable to track points reservation:", error);
+  }
+}
+
+function reservePointsForCancelledOrder(order) {
+  if (!order || typeof order !== "object") {
+    return;
+  }
+
+  const reservation = {
+    orderId: order.orderNumber || order.id || order._id || "unknown",
+    reservedAt: new Date().toISOString(),
+    pointsReclaimed: 0,
+    pointsRefunded: 0,
+    pendingCleared: 0,
+  };
+
+  const earned = Number(order.pointsEarned) || 0;
+  if (order.pointsCredited && earned > 0) {
+    const newBalance = adjustCustomerPoints(-earned);
+    reservation.pointsReclaimed = earned;
+    order.pointsCredited = false;
+    order.pointsReserved = (order.pointsReserved || 0) + earned;
+    order.pointsEarned = 0;
+    if (typeof showFixedNotification === "function") {
+      const balanceText =
+        typeof newBalance === "number"
+          ? ` (الرصيد الحالي: ${newBalance})`
+          : "";
+      showFixedNotification(
+        "نقاط الولاء",
+        `تم حجز ${earned} نقطة بسبب إلغاء الطلب${balanceText}`,
+        "warning"
+      );
+    }
+  }
+
+  const pointsUsed =
+    (order.loyaltyDiscount &&
+      Number(order.loyaltyDiscount.pointsUsed || order.loyaltyDiscount.pointsRefunded)) ||
+    0;
+  if (pointsUsed > 0) {
+    const newBalance = adjustCustomerPoints(pointsUsed);
+    reservation.pointsRefunded = pointsUsed;
+    order.loyaltyDiscount.pointsRefunded = pointsUsed;
+    if (typeof showFixedNotification === "function") {
+      const balanceText =
+        typeof newBalance === "number"
+          ? ` (الرصيد الحالي: ${newBalance})`
+          : "";
+      showFixedNotification(
+        "نقاط الولاء",
+        `تم إعادة ${pointsUsed} نقطة إلى العميل${balanceText}`,
+        "info"
+      );
+    }
+  }
+
+  const pending = Number(order.pendingPoints || 0);
+  if (pending > 0) {
+    order.pendingPoints = 0;
+    reservation.pendingCleared = pending;
+  }
+
+  if (reservation.pointsReclaimed > 0 || reservation.pointsRefunded > 0) {
+    addPointsReservationRecord(reservation);
+  }
 }
 
 // Complete an order
@@ -2052,138 +1857,70 @@ function completeOrder() {
     '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
   cancelButton.disabled = true;
 
-  // Update order status using the API
-  fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      status: "completed",
-      completedDate: new Date().toISOString(),
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Close the order modal
-      closeOrderModal();
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const idx = orders.findIndex((o) => String(o.id) === String(orderId));
+    if (idx === -1) throw new Error("Order not found");
+    orders[idx].status = "completed";
+    orders[idx].completedDate = new Date().toISOString();
 
-      // Display success notification
-      showFixedNotification(
-        "تم إنهاء الطلب",
-        `تم إنهاء الطلب #${orderId} بنجاح وإضافته إلى سجل اليوم`,
-        "success"
+    if (!orders[idx].pointsCredited) {
+      const loyaltySettings = loadLoyaltySettings();
+      const pendingPoints = Number(orders[idx].pendingPoints || 0);
+      const computedPoints = calculateEarnedPoints(
+        orders[idx].total || orders[idx].grandTotal || 0,
+        loyaltySettings
       );
+      const pointsToCredit = pendingPoints > 0 ? pendingPoints : computedPoints;
 
-      // If this was a registered customer (not a guest), show loyalty points notification
-      if (
-        data.data.customerId &&
-        !data.data.customerId.toString().startsWith("new")
-      ) {
-        const total = data.data.total || data.data.totalAmount || 0;
-        const pointsEarned = Math.floor(total / 10);
-
-        if (pointsEarned > 0) {
-          setTimeout(() => {
-            showFixedNotification(
-              "نقاط الولاء",
-              `تم إضافة ${pointsEarned} نقطة ولاء لحساب العميل`,
-              "info"
-            );
-          }, 2000); // Show after a short delay so notifications don't overlap
+      if (pointsToCredit > 0) {
+        const newBalance = adjustCustomerPoints(pointsToCredit);
+        orders[idx].pointsEarned = pointsToCredit;
+        orders[idx].pointsCredited = true;
+        orders[idx].pendingPoints = 0;
+        if (typeof showFixedNotification === "function") {
+          const balanceText = typeof newBalance === "number" ? ` (الرصيد الحالي: ${newBalance})` : "";
+          showFixedNotification(
+            "نقاط الولاء",
+            `تم إضافة ${pointsToCredit} نقطة إلى حساب العميل${balanceText}`,
+            "success"
+          );
         }
+      } else {
+        orders[idx].pointsEarned = orders[idx].pointsEarned || 0;
+        orders[idx].pointsCredited = true;
+        orders[idx].pendingPoints = 0;
       }
+    }
 
-      // Optional: Generate receipt
-      printReceipt(orderId);
-
-      // Update the orders list
-      loadActiveOrders();
-
-      // Update the recent activity list
-      loadRecentActivity();
-
-      // Get table number and total from the returned data
-      const tableNumber = data.data.tableNumber || "0";
-      const total = data.data.total || data.data.totalAmount || 0;
-
-      // Notify the customer if applicable
-      if (tableNumber) {
-        sendCustomerNotification(orderId, tableNumber, total);
-      }
-
-      // Store the completed order data for potential rating
-      storeCompletedOrderData(data.data);
-    })
-    .catch((error) => {
-      console.error("Error completing order:", error);
-      showFixedNotification("خطأ", "حدث خطأ أثناء تحديث حالة الطلب", "error");
-
-      // Re-enable buttons
-      completeButton.disabled = false;
-      completeButton.innerHTML =
-        '<i class="fas fa-check-circle"></i><span>إنهاء الطلب وإصدار الفاتورة</span>';
-      cancelButton.disabled = false;
-
-      // Try localStorage fallback
-      try {
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const orderIndex = orders.findIndex((o) => o.id === orderId);
-
-          if (orderIndex !== -1) {
-            // Update order status
-            orders[orderIndex].status = "completed";
-            orders[orderIndex].completedDate = new Date().toISOString();
-
-            // Save updated orders
-            localStorage.setItem("orders", JSON.stringify(orders));
-
-            // Close the order modal
-            closeOrderModal();
-
-            // Display success notification
-            showFixedNotification(
-              "تم إنهاء الطلب (محلياً)",
-              `تم إنهاء الطلب #${orderId} محلياً بنجاح`,
-              "warning"
-            );
-
-            // Optional: Generate receipt
-            printReceipt(orderId);
-
-            // Update the orders list
-            loadActiveOrders();
-
-            // Update the recent activity list
-            loadRecentActivity();
-
-            // Notify the customer if applicable
-            if (orders[orderIndex].tableNumber) {
-              sendCustomerNotification(
-                orderId,
-                orders[orderIndex].tableNumber,
-                orders[orderIndex].total
-              );
-            }
-
-            // Store the completed order data for potential rating
-            storeCompletedOrderData(orders[orderIndex]);
-          }
-        }
-      } catch (localStorageError) {
-        console.error(
-          "Error updating order in localStorage:",
-          localStorageError
-        );
-      }
-    });
+    localStorage.setItem("orders", JSON.stringify(orders));
+    try {
+      localStorage.setItem(
+        "order_completed_for_rating",
+        JSON.stringify({
+          orderId,
+          tableNumber: orders[idx].tableNumber || "0",
+          total: orders[idx].total || 0,
+          timestamp: orders[idx].completedDate,
+        })
+      );
+    } catch (_) {}
+    closeOrderModal();
+    showFixedNotification("تم إنهاء الطلب", `تم إنهاء الطلب #${orderId} بنجاح`, "success");
+    printReceipt(orderId);
+    loadActiveOrders();
+    loadRecentActivity();
+    if (orders[idx].tableNumber) {
+      sendCustomerNotification(orderId, orders[idx].tableNumber, orders[idx].total || 0);
+    }
+    storeCompletedOrderData(orders[idx]);
+  } catch (error) {
+    showFixedNotification("خطأ", "حدث خطأ أثناء تحديث حالة الطلب", "error");
+    completeButton.disabled = false;
+    completeButton.innerHTML = '<i class="fas fa-check-circle"></i><span>إنهاء الطلب وإصدار الفاتورة</span>';
+    cancelButton.disabled = false;
+  }
 }
 
 // Store completed order data for rating
@@ -2246,282 +1983,80 @@ function printReceipt() {
     "info"
   );
 
-  // Fetch order details from the API
-  fetch(`${API_BASE_URL}/api/orders/${orderId}`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((result) => {
-      if (!result || !result.data) {
-        throw new Error("Invalid order data received");
-      }
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const formattedOrder = orders.find((o) => String(o.id) === String(orderId));
+    if (!formattedOrder) throw new Error("Order not found");
 
-      const order = result.data;
-
-      // Convert API order format to the expected format
-      const formattedOrder = {
-        id: order._id || order.orderId || order.orderNumber,
-        orderNumber: order.orderNumber,
-        date: order.date || order.createdAt,
-        tableNumber: order.tableNumber || "0",
-        items: order.items || [],
-        subtotal: order.subtotal,
-        tax: order.tax,
-        serviceTax: order.serviceTax,
-        discount: order.discount,
-        total: order.total || order.totalAmount,
-        status: order.status,
-      };
-
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        showFixedNotification(
-          isEnglish ? "Print Error" : "خطأ في الطباعة",
-          isEnglish
-            ? "Please allow pop-ups for printing"
-            : "يرجى السماح بالنوافذ المنبثقة للطباعة",
-          "error"
-        );
-        return;
-      }
-
-      // Create receipt content
-      const receiptContent = generateReceiptContent(formattedOrder);
-
-      // Set document direction and title based on language
-      const htmlDir = isEnglish ? "ltr" : "rtl";
-      const bodyDir = isEnglish ? "ltr" : "rtl";
-      const receiptTitle = isEnglish
-        ? `Order Receipt ${orderId}`
-        : `إيصال الطلب ${orderId}`;
-
-      // Write to print window
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html dir="${htmlDir}">
-          <head>
-            <title>${receiptTitle}</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                padding: 10px;
-                max-width: 400px;
-                margin: 0 auto;
-                direction: ${bodyDir};
-                background-color: #ffffff;
-                color: #333;
-                line-height: 1.4;
-              }
-              .receipt-header {
-                text-align: center;
-                margin-bottom: 15px;
-                border-bottom: 1px dashed #ccc;
-                padding-bottom: 10px;
-              }
-              .receipt-header h1 {
-                margin: 10px 0;
-                font-size: 24px;
-                color: #333;
-              }
-              .logo-container {
-                text-align: center;
-                margin-bottom: 8px;
-              }
-              .receipt-logo {
-                max-width: 120px;
-                max-height: 70px;
-              }
-              .restaurant-info {
-                font-size: 14px;
-                margin: 5px 0;
-                line-height: 1.3;
-              }
-              .restaurant-info p {
-                margin: 3px 0;
-              }
-              .restaurant-name {
-                font-weight: bold;
-                font-size: 16px;
-              }
-              .receipt-order-info {
-                background-color: #f9f9f9;
-                border-radius: 6px;
-                padding: 10px;
-                margin-bottom: 15px;
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                font-size: 14px;
-              }
-              .order-detail {
-                display: flex;
-                flex-direction: column;
-              }
-              .detail-label {
-                color: #777;
-                font-size: 12px;
-              }
-              .detail-value {
-                font-weight: bold;
-              }
-              .receipt-items-header {
-                display: flex;
-                justify-content: space-between;
-                border-bottom: 2px solid #333;
-                padding-bottom: 5px;
-                margin-bottom: 8px;
-                font-weight: bold;
-                font-size: 15px;
-              }
-              .items-header-pricing {
-                display: grid;
-                grid-template-columns: 50px 50px 60px;
-                text-align: center;
-                font-size: 13px;
-              }
-              .receipt-items {
-                margin: 10px 0 20px;
-              }
-              .receipt-item {
-                display: flex;
-                justify-content: space-between;
-                margin: 8px 0;
-                padding: 8px 0;
-                border-bottom: 1px dotted #eee;
-              }
-              .item-details {
-                display: flex;
-                flex-direction: column;
-                flex: 1;
-              }
-              .item-name {
-                font-weight: 600;
-              }
-              .item-notes {
-                font-size: 12px;
-                color: #777;
-                margin-top: 3px;
-              }
-              .item-pricing {
-                display: grid;
-                grid-template-columns: 50px 50px 60px;
-                text-align: center;
-                align-items: center;
-              }
-              .item-quantity {
-                font-weight: 600;
-              }
-              .receipt-totals {
-                margin-top: 15px;
-                border-top: 1px dashed #ccc;
-                padding-top: 10px;
-              }
-              .receipt-total-row {
-                display: flex;
-                justify-content: space-between;
-                margin: 5px 0;
-              }
-              .discount-row {
-                color: #2e7d32;
-              }
-              .receipt-grand-total {
-                font-weight: bold;
-                font-size: 18px;
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 2px solid #000;
-              }
-              .receipt-payment-method {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 10px;
-                padding: 8px;
-                background-color: #f5f5f5;
-                border-radius: 4px;
-                font-weight: 500;
-              }
-              .points-earned {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-                margin: 15px 0;
-                padding: 10px;
-                background-color: #fff9e6;
-                border-radius: 6px;
-                font-weight: 600;
-                color: #ff9800;
-                text-align: center;
-              }
-              .points-earned i {
-                color: #ffc107;
-              }
-              .receipt-footer {
-                text-align: center;
-                margin-top: 20px;
-                font-size: 14px;
-                border-top: 1px dashed #ccc;
-                padding-top: 15px;
-              }
-              .thank-you-message {
-                font-weight: bold;
-                font-size: 16px;
-                margin-bottom: 5px;
-              }
-              .footer-note, .footer-social {
-                margin: 5px 0;
-                color: #666;
-              }
-              .qr-code {
-                display: flex;
-                justify-content: center;
-                margin-top: 15px;
-              }
-              @media print {
-                body {
-                  margin: 0;
-                  padding: 5px;
-                }
-                .no-print {
-                  display: none;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            ${receiptContent}
-            <div class="no-print" style="margin-top: 20px; text-align: center;">
-              <button onclick="window.print()" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                ${isEnglish ? "Print Receipt" : "طباعة الإيصال"}
-              </button>
-              <button onclick="window.close()" style="padding: 10px 20px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold;">
-                ${isEnglish ? "Close" : "إغلاق"}
-              </button>
-            </div>
-            <script>
-              // Auto print after a short delay
-              setTimeout(() => {
-                window.print();
-              }, 500);
-            </script>
-          </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-    })
-    .catch((error) => {
-      console.error("Error printing receipt:", error);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
       showFixedNotification(
-        isEnglish ? "Error" : "خطأ",
-        isEnglish ? "Could not find the order" : "لم يتم العثور على الطلب",
+        isEnglish ? "Print Error" : "خطأ في الطباعة",
+        isEnglish ? "Please allow pop-ups for printing" : "يرجى السماح بالنوافذ المنبثقة للطباعة",
         "error"
       );
-    });
+      return;
+    }
+    const receiptContent = generateReceiptContent(formattedOrder);
+    const htmlDir = isEnglish ? "ltr" : "rtl";
+    const bodyDir = isEnglish ? "ltr" : "rtl";
+    const receiptTitle = isEnglish ? `Order Receipt ${orderId}` : `إيصال الطلب ${orderId}`;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="${htmlDir}">
+        <head>
+          <title>${receiptTitle}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 10px; max-width: 400px; margin: 0 auto; direction: ${bodyDir}; background-color: #ffffff; color: #333; line-height: 1.4; }
+            .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px; }
+            .receipt-header h1 { margin: 10px 0; font-size: 24px; color: #333; }
+            .logo-container { text-align: center; margin-bottom: 8px; }
+            .receipt-logo { max-width: 120px; max-height: 70px; }
+            .restaurant-info { font-size: 14px; margin: 5px 0; line-height: 1.3; }
+            .restaurant-info p { margin: 3px 0; }
+            .restaurant-name { font-weight: bold; font-size: 16px; }
+            .receipt-order-info { background-color: #f9f9f9; border-radius: 6px; padding: 10px; margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; }
+            .order-detail { display: flex; flex-direction: column; }
+            .detail-label { color: #777; font-size: 12px; }
+            .detail-value { font-weight: bold; }
+            .receipt-items-header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 8px; font-weight: bold; font-size: 15px; }
+            .items-header-pricing { display: grid; grid-template-columns: 50px 50px 60px; text-align: center; font-size: 13px; }
+            .receipt-items { margin: 10px 0 20px; }
+            .receipt-item { display: flex; justify-content: space-between; margin: 8px 0; padding: 8px 0; border-bottom: 1px dotted #eee; }
+            .item-details { display: flex; flex-direction: column; flex: 1; }
+            .item-name { font-weight: 600; }
+            .item-notes { font-size: 12px; color: #777; margin-top: 3px; }
+            .item-pricing { display: grid; grid-template-columns: 50px 50px 60px; text-align: center; align-items: center; }
+            .item-quantity { font-weight: 600; }
+            .receipt-totals { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px; }
+            .receipt-total-row { display: flex; justify-content: space-between; margin: 5px 0; }
+            .discount-row { color: #2e7d32; }
+            .receipt-grand-total { font-weight: bold; font-size: 18px; margin-top: 10px; padding-top: 10px; border-top: 2px solid #000; }
+            .receipt-payment-method { display: flex; justify-content: space-between; margin-top: 10px; padding: 8px; background-color: #f5f5f5; border-radius: 4px; font-weight: 500; }
+            .points-earned { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 15px 0; padding: 10px; background-color: #fff9e6; border-radius: 6px; font-weight: 600; color: #ff9800; text-align: center; }
+            .points-earned i { color: #ffc107; }
+            .receipt-footer { text-align: center; margin-top: 20px; font-size: 14px; border-top: 1px dashed #ccc; padding-top: 15px; }
+            .thank-you-message { font-weight: bold; font-size: 16px; margin-bottom: 5px; }
+            .footer-note, .footer-social { margin: 5px 0; color: #666; }
+            .qr-code { display: flex; justify-content: center; margin-top: 15px; }
+            @media print { body { margin: 0; padding: 5px; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          ${receiptContent}
+          <div class="no-print" style="margin-top: 20px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">${isEnglish ? "Print Receipt" : "طباعة الإيصال"}</button>
+            <button onclick="window.close()" style="padding: 10px 20px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold;">${isEnglish ? "Close" : "إغلاق"}</button>
+          </div>
+          <script>setTimeout(() => { window.print(); }, 500);</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  } catch (error) {
+    showFixedNotification(isEnglish ? "Error" : "خطأ", isEnglish ? "Could not find the order" : "لم يتم العثور على الطلب", "error");
+  }
 }
 
 // Function to generate receipt content
@@ -2820,87 +2355,50 @@ function loadReservationsForDate(dateStr) {
     noReservationsMessage.style.display = "none";
   }
 
-  // Fetch reservations from the API for the specified date
-  fetch(`${API_BASE_URL}/api/reservations/cashier?date=${dateStr}`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(
-          isEnglish
-            ? "Error loading reservations"
-            : "حدث خطأ أثناء تحميل الحجوزات"
-        );
-      }
-      return response.json();
-    })
-    .then((result) => {
-      // Clear the grid
-      reservationsGrid.innerHTML = "";
-
-      // Check if we have any reservations
-      if (!result.data || result.data.length === 0) {
-        if (noReservationsMessage) {
-          noReservationsMessage.style.display = "flex";
-        } else {
-          reservationsGrid.innerHTML = `
-            <div class="no-reservations-message">
-              <i class="fas fa-calendar-alt"></i>
-              <p>${
-                isEnglish
-                  ? "No reservations for the selected date"
-                  : "لا توجد حجوزات لليوم المحدد"
-              }</p>
-              <small>${
-                isEnglish
-                  ? "All available reservations for the selected date will appear here"
-                  : "ستظهر هنا جميع الحجوزات المتاحة في اليوم المحدد"
-              }</small>
-            </div>
-          `;
-        }
-        return;
-      }
-
-      // Group reservations by time slot for better organization
-      const reservationsByTime = {};
-      result.data.forEach((reservation) => {
-        const time =
-          reservation.time || (isEnglish ? "Not specified" : "غير محدد");
-        if (!reservationsByTime[time]) {
-          reservationsByTime[time] = [];
-        }
-        reservationsByTime[time].push(reservation);
-      });
-
-      // Sort time slots
-      const sortedTimes = Object.keys(reservationsByTime).sort();
-
-      // Display reservations grouped by time
-      sortedTimes.forEach((time) => {
-        const reservations = reservationsByTime[time];
-
-        // Create cards for each reservation
-        reservations.forEach((reservation) => {
-          const card = createReservationCard(reservation);
-          reservationsGrid.appendChild(card);
-        });
-      });
-    })
-    .catch((error) => {
-      console.error("Error loading reservations:", error);
-      reservationsGrid.innerHTML = `
-        <div class="error-message">
-          <i class="fas fa-exclamation-circle"></i>
-          <p>${
-            isEnglish
-              ? "Error loading reservations"
-              : "حدث خطأ أثناء تحميل الحجوزات"
-          }</p>
-          <button class="retry-button" onclick="loadReservationsForDate('${dateStr}')">${
-        isEnglish ? "Retry" : "إعادة المحاولة"
-      }</button>
-        </div>
-      `;
+  try {
+    const saved = localStorage.getItem("reservations");
+    const reservations = saved ? JSON.parse(saved) : [];
+    const filtered = reservations.filter((r) => {
+      const d = new Date(r.date);
+      const ymd = d.toISOString().split("T")[0];
+      return ymd === dateStr;
     });
+    reservationsGrid.innerHTML = "";
+    if (filtered.length === 0) {
+      if (noReservationsMessage) {
+        noReservationsMessage.style.display = "flex";
+      } else {
+        reservationsGrid.innerHTML = `
+          <div class="no-reservations-message">
+            <i class="fas fa-calendar-alt"></i>
+            <p>${isEnglish ? "No reservations for the selected date" : "لا توجد حجوزات لليوم المحدد"}</p>
+            <small>${isEnglish ? "All available reservations for the selected date will appear here" : "ستظهر هنا جميع الحجوزات المتاحة في اليوم المحدد"}</small>
+          </div>
+        `;
+      }
+      return;
+    }
+    const byTime = {};
+    filtered.forEach((res) => {
+      const t = res.time || (isEnglish ? "Not specified" : "غير محدد");
+      if (!byTime[t]) byTime[t] = [];
+      byTime[t].push(res);
+    });
+    const times = Object.keys(byTime).sort();
+    times.forEach((t) => {
+      byTime[t].forEach((reservation) => {
+        const card = createReservationCard(reservation);
+        reservationsGrid.appendChild(card);
+      });
+    });
+  } catch (e) {
+    reservationsGrid.innerHTML = `
+      <div class="error-message">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>${isEnglish ? "Error loading reservations" : "حدث خطأ أثناء تحميل الحجوزات"}</p>
+      </div>
+    `;
+  }
 }
 
 // Helper function to create a reservation card
@@ -2911,7 +2409,7 @@ function createReservationCard(reservation) {
 
   const card = document.createElement("div");
   card.className = `reservation-card status-${reservation.status || "pending"}`;
-  card.dataset.id = reservation._id;
+  card.dataset.id = reservation.id || reservation._id;
 
   // Format the date
   const reservationDate = new Date(reservation.date);
@@ -2989,8 +2487,8 @@ function createReservationCard(reservation) {
         reservation.status === "pending"
           ? `
         <button class="action-button confirm" data-id="${
-          reservation._id
-        }" onclick="confirmReservation('${reservation._id}')">
+          reservation.id || reservation._id
+        }" onclick="confirmReservation('${reservation.id || reservation._id}')">
           <i class="fas fa-check-circle"></i> ${isEnglish ? "Confirm" : "تأكيد"}
         </button>
       `
@@ -3000,15 +2498,15 @@ function createReservationCard(reservation) {
         reservation.status === "pending" || reservation.status === "confirmed"
           ? `
         <button class="action-button complete" data-id="${
-          reservation._id
-        }" onclick="completeReservation('${reservation._id}')">
+          reservation.id || reservation._id
+        }" onclick="completeReservation('${reservation.id || reservation._id}')">
           <i class="fas fa-calendar-check"></i> ${
             isEnglish ? "Complete" : "إكمال"
           }
         </button>
         <button class="action-button cancel" data-id="${
-          reservation._id
-        }" onclick="cancelReservation('${reservation._id}')">
+          reservation.id || reservation._id
+        }" onclick="cancelReservation('${reservation.id || reservation._id}')">
           <i class="fas fa-times-circle"></i> ${isEnglish ? "Cancel" : "إلغاء"}
         </button>
       `
@@ -3058,76 +2556,50 @@ function updateReservationStatus(id, action) {
     }`;
   }
 
-  // Update the reservation status
-  fetch(`${API_BASE_URL}/api/reservations/cashier/${id}/${action}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(
-          isEnglish ? "Error updating reservation" : "حدث خطأ أثناء تحديث الحجز"
-        );
+  try {
+    const saved = localStorage.getItem("reservations");
+    const reservations = saved ? JSON.parse(saved) : [];
+    const idx = reservations.findIndex((r) => String(r.id || r._id) === String(id));
+    if (idx === -1) throw new Error("Reservation not found");
+    const map = { confirm: "confirmed", complete: "completed", cancel: "cancelled" };
+    reservations[idx].status = map[action] || reservations[idx].status || "pending";
+    localStorage.setItem("reservations", JSON.stringify(reservations));
+    let actionText = isEnglish ? "Confirmed" : "تم تأكيد";
+    if (action === "complete") actionText = isEnglish ? "Completed" : "تم إكمال";
+    if (action === "cancel") actionText = isEnglish ? "Cancelled" : "تم إلغاء";
+    showFixedNotification(
+      isEnglish ? "Reservation Updated" : "تم تحديث الحجز",
+      isEnglish ? `Reservation ${actionText.toLowerCase()} successfully` : `${actionText} الحجز بنجاح`,
+      "success"
+    );
+    const dateInput = document.getElementById("reservation-date");
+    if (dateInput && dateInput.value) {
+      loadReservationsForDate(dateInput.value);
+    }
+    try {
+      localStorage.setItem("reservation_update", Date.now().toString());
+    } catch (_) {}
+  } catch (error) {
+    showFixedNotification(
+      isEnglish ? "Error" : "خطأ",
+      isEnglish ? "Error updating reservation" : "حدث خطأ أثناء تحديث الحجز",
+      "error"
+    );
+    if (button) {
+      let actionText = isEnglish ? "Confirm" : "تأكيد";
+      let iconClass = "check-circle";
+      if (action === "complete") {
+        actionText = isEnglish ? "Complete" : "إكمال";
+        iconClass = "calendar-check";
       }
-      return response.json();
-    })
-    .then((result) => {
-      // Show success notification
-      let actionText = isEnglish ? "Confirmed" : "تم تأكيد";
-      if (action === "complete")
-        actionText = isEnglish ? "Completed" : "تم إكمال";
-      if (action === "cancel")
-        actionText = isEnglish ? "Cancelled" : "تم إلغاء";
-
-      showFixedNotification(
-        isEnglish ? "Reservation Updated" : "تم تحديث الحجز",
-        isEnglish
-          ? `Reservation ${actionText.toLowerCase()} successfully`
-          : `${actionText} الحجز بنجاح`,
-        "success"
-      );
-
-      // Refresh the reservations
-      const dateInput = document.getElementById("reservation-date");
-      if (dateInput && dateInput.value) {
-        loadReservationsForDate(dateInput.value);
+      if (action === "cancel") {
+        actionText = isEnglish ? "Cancel" : "إلغاء";
+        iconClass = "times-circle";
       }
-
-      // Update local storage for cross-tab communication
-      try {
-        localStorage.setItem("reservation_update", Date.now().toString());
-      } catch (e) {
-        console.error("Error updating localStorage:", e);
-      }
-    })
-    .catch((error) => {
-      console.error("Error updating reservation:", error);
-      showFixedNotification(
-        isEnglish ? "Error" : "خطأ",
-        isEnglish ? "Error updating reservation" : "حدث خطأ أثناء تحديث الحجز",
-        "error"
-      );
-
-      // Re-enable the button
-      if (button) {
-        let actionText = isEnglish ? "Confirm" : "تأكيد";
-        let iconClass = "check-circle";
-
-        if (action === "complete") {
-          actionText = isEnglish ? "Complete" : "إكمال";
-          iconClass = "calendar-check";
-        }
-        if (action === "cancel") {
-          actionText = isEnglish ? "Cancel" : "إلغاء";
-          iconClass = "times-circle";
-        }
-
-        button.disabled = false;
-        button.innerHTML = `<i class="fas fa-${iconClass}"></i> ${actionText}`;
-      }
-    });
+      button.disabled = false;
+      button.innerHTML = `<i class="fas fa-${iconClass}"></i> ${actionText}`;
+    }
+  }
 }
 
 // Function to check for new orders and notify the user
@@ -3136,70 +2608,40 @@ function checkForNewOrders() {
   const lastNotificationTime =
     localStorage.getItem("lastOrderNotificationTime") || 0;
 
-  // Fetch recent orders from the API
-  fetch(`${API_BASE_URL}/api/orders?status=pending`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Error fetching new orders");
-      }
-      return response.json();
-    })
-    .then((result) => {
-      if (!result.data || !result.data.length) return;
-
-      // Get the current timestamp
-      const currentTime = Date.now();
-
-      // Filter orders that were created after the last notification
-      const newOrders = result.data.filter((order) => {
-        const orderTime = new Date(order.date || order.createdAt).getTime();
-        return orderTime > lastNotificationTime;
-      });
-
-      // If there are new orders, notify the user
-      if (newOrders.length > 0) {
-        // Update the last notification time
-        localStorage.setItem(
-          "lastOrderNotificationTime",
-          currentTime.toString()
-        );
-
-        // Play notification sound if enabled
-        playNotificationSound();
-
-        // Show notification for each new order (up to 3)
-        const ordersToNotify = newOrders.slice(0, 3);
-
-        ordersToNotify.forEach((order, index) => {
-          // Add a slight delay for each notification to avoid overlap
-          setTimeout(() => {
-            showFixedNotification(
-              "طلب جديد!",
-              `تم استلام طلب جديد للطاولة رقم ${
-                order.tableNumber || "0"
-              } بقيمة ${parseFloat(order.total).toFixed(2)} جنية`,
-              "success",
-              true
-            );
-          }, index * 1500);
-        });
-
-        // If there are more than 3 new orders, show a summary notification
-        if (newOrders.length > 3) {
-          setTimeout(() => {
-            showFixedNotification(
-              "طلبات جديدة",
-              `هناك ${newOrders.length - 3} طلبات جديدة إضافية`,
-              "info",
-              true
-            );
-          }, 4500);
-        }
-      }
-    })
-    .catch((error) => {
-      console.error("Error checking for new orders:", error);
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const currentTime = Date.now();
+    const newOrders = orders.filter((order) => {
+      const orderTime = new Date(order.date).getTime();
+      return order.status === "pending" && orderTime > lastNotificationTime;
     });
+    if (newOrders.length > 0) {
+      localStorage.setItem("lastOrderNotificationTime", currentTime.toString());
+      playNotificationSound();
+      const ordersToNotify = newOrders.slice(0, 3);
+      ordersToNotify.forEach((order, index) => {
+        setTimeout(() => {
+          showFixedNotification(
+            "طلب جديد!",
+            `تم استلام طلب جديد للطاولة رقم ${order.tableNumber || "0"} بقيمة ${parseFloat(order.total || 0).toFixed(2)} جنية`,
+            "success",
+            true
+          );
+        }, index * 1500);
+      });
+      if (newOrders.length > 3) {
+        setTimeout(() => {
+          showFixedNotification(
+            "طلبات جديدة",
+            `هناك ${newOrders.length - 3} طلبات جديدة إضافية`,
+            "info",
+            true
+          );
+        }, 4500);
+      }
+    }
+  } catch (_) {}
 }
 
 // Start auto-refresh for orders
@@ -3258,89 +2700,25 @@ function cancelOrder() {
     '<i class="fas fa-spinner fa-spin"></i> جاري الإلغاء...';
   completeButton.disabled = true;
 
-  // Update order status using the API
-  fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      status: "cancelled",
-      cancelledDate: new Date().toISOString(),
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Close the order modal
-      closeOrderModal();
-
-      // Display success notification
-      showFixedNotification(
-        "تم إلغاء الطلب",
-        `تم إلغاء الطلب #${orderId} بنجاح`,
-        "success"
-      );
-
-      // Update the orders list
-      loadActiveOrders();
-
-      // Update the recent activity list
-      loadRecentActivity();
-    })
-    .catch((error) => {
-      console.error("Error cancelling order:", error);
-      showFixedNotification("خطأ", "حدث خطأ أثناء إلغاء الطلب", "error");
-
-      // Re-enable buttons
-      cancelButton.disabled = false;
-      cancelButton.innerHTML =
-        '<i class="fas fa-times-circle"></i><span>إلغاء الطلب</span>';
-      completeButton.disabled = false;
-
-      // Try localStorage fallback
-      try {
-        const savedOrders = localStorage.getItem("orders");
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const orderIndex = orders.findIndex((o) => o.id === orderId);
-
-          if (orderIndex !== -1) {
-            // Update order status
-            orders[orderIndex].status = "cancelled";
-            orders[orderIndex].cancelledDate = new Date().toISOString();
-
-            // Save updated orders
-            localStorage.setItem("orders", JSON.stringify(orders));
-
-            // Close the order modal
-            closeOrderModal();
-
-            // Display success notification
-            showFixedNotification(
-              "تم إلغاء الطلب (محلياً)",
-              `تم إلغاء الطلب #${orderId} محلياً بنجاح`,
-              "warning"
-            );
-
-            // Update the orders list
-            loadActiveOrders();
-
-            // Update the recent activity list
-            loadRecentActivity();
-          }
-        }
-      } catch (localStorageError) {
-        console.error(
-          "Error updating order in localStorage:",
-          localStorageError
-        );
-      }
-    });
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const idx = orders.findIndex((o) => String(o.id) === String(orderId));
+    if (idx === -1) throw new Error("Order not found");
+    orders[idx].status = "cancelled";
+    orders[idx].cancelledDate = new Date().toISOString();
+    reservePointsForCancelledOrder(orders[idx]);
+    localStorage.setItem("orders", JSON.stringify(orders));
+    closeOrderModal();
+    showFixedNotification("تم إلغاء الطلب", `تم إلغاء الطلب #${orderId} بنجاح`, "success");
+    loadActiveOrders();
+    loadRecentActivity();
+  } catch (error) {
+    showFixedNotification("خطأ", "حدث خطأ أثناء إلغاء الطلب", "error");
+    cancelButton.disabled = false;
+    cancelButton.innerHTML = '<i class="fas fa-times-circle"></i><span>إلغاء الطلب</span>';
+    completeButton.disabled = false;
+  }
 }
 
 // Initialize WebSocket connection for real-time notifications
@@ -3522,270 +2900,95 @@ function printKitchenReceipt(kitchenReceiptButton) {
     "info"
   );
 
-  // First update the order status to "processing" (preparing)
-  fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      status: "processing", // Update status to processing (preparing)
-      processingDate: new Date().toISOString(),
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((statusUpdateResult) => {
-      // After status update, proceed with fetching order details and printing
-      return fetch(`${API_BASE_URL}/api/orders/${orderId}`);
-    })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((result) => {
-      if (!result || !result.data) {
-        throw new Error("Invalid order data received");
-      }
+  try {
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const idx = orders.findIndex((o) => String(o.id) === String(orderId));
+    if (idx === -1) throw new Error("Order not found");
+    orders[idx].status = "processing";
+    orders[idx].processingDate = new Date().toISOString();
+    localStorage.setItem("orders", JSON.stringify(orders));
 
-      const order = result.data;
+    const order = orders[idx];
+    const formattedOrder = {
+      id: order.id,
+      orderNumber: order.orderNumber || order.id,
+      date: order.date,
+      tableNumber: order.tableNumber || "0",
+      items: order.items || [],
+      notes: order.notes || "",
+      status: order.status,
+    };
 
-      // Convert API order format to the expected format
-      const formattedOrder = {
-        id: order._id || order.orderId || order.orderNumber,
-        orderNumber: order.orderNumber,
-        date: order.date || order.createdAt,
-        tableNumber: order.tableNumber || "0",
-        items: order.items || [],
-        notes: order.notes || "",
-        status: order.status,
-      };
-
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        showFixedNotification(
-          isEnglish ? "Print Error" : "خطأ في الطباعة",
-          isEnglish
-            ? "Please allow pop-ups for printing"
-            : "يرجى السماح بالنوافذ المنبثقة للطباعة",
-          "error"
-        );
-        return;
-      }
-
-      // Create kitchen receipt content
-      const kitchenReceiptContent =
-        generateKitchenReceiptContent(formattedOrder);
-
-      // Set document direction and title based on language
-      const htmlDir = isEnglish ? "ltr" : "rtl";
-      const bodyDir = isEnglish ? "ltr" : "rtl";
-      const receiptTitle = isEnglish
-        ? `Kitchen Receipt for Order ${orderId}`
-        : `إيصال المطبخ للطلب ${orderId}`;
-      const printButtonText = isEnglish
-        ? "Print Kitchen Receipt"
-        : "طباعة إيصال المطبخ";
-
-      // Write to print window
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html dir="${htmlDir}">
-          <head>
-            <title>${receiptTitle}</title>
-            <style>
-              @media print {
-                body {
-                  margin: 0;
-                  padding: 0;
-                }
-                .no-print {
-                  display: none;
-                }
-              }
-              
-              body {
-                font-family: 'Courier New', monospace;
-                padding: 0;
-                max-width: 100%;
-                margin: 0 auto;
-                direction: ${bodyDir};
-                background-color: #f8f9fa;
-              }
-              
-              .receipt-container {
-                max-width: 400px;
-                margin: 0 auto;
-                padding: 10px;
-                background-color: white;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-              }
-              
-              .receipt-header {
-                text-align: center;
-                border-bottom: 2px dashed #333;
-                padding-bottom: 15px;
-                margin-bottom: 10px;
-              }
-              
-              .receipt-header h1 {
-                margin: 5px 0;
-                font-size: 24px;
-                text-transform: uppercase;
-                color: #333;
-              }
-              
-              .receipt-header p {
-                margin: 5px 0;
-                font-size: 14px;
-              }
-              
-              .order-info {
-                background-color: #f1f1f1;
-                padding: 15px;
-                border-radius: 5px;
-                margin-bottom: 20px;
-                display: flex;
-                justify-content: space-between;
-                font-size: 16px;
-                font-weight: bold;
-                border-left: 4px solid #333;
-              }
-              
-              .receipt-items {
-                margin: 20px 0;
-              }
-              
-              .receipt-item {
-                margin: 0 0 15px 0;
-                padding: 15px;
-                border-bottom: 1px solid #eee;
-                position: relative;
-              }
-              
-              .receipt-item:last-child {
-                border-bottom: 2px dashed #333;
-              }
-              
-              .item-quantity {
-                font-weight: bold;
-                font-size: 24px;
-                margin-left: 8px;
-                background-color: #333;
-                color: white;
-                padding: 2px 8px;
-                border-radius: 5px;
-                display: inline-block;
-                min-width: 20px;
-                text-align: center;
-              }
-              
-              .item-name {
-                font-weight: bold;
-                font-size: 18px;
-                display: inline-block;
-                margin-right: 5px;
-              }
-              
-              .item-notes {
-                margin-top: 8px;
-                color: #666;
-              }
-              
-              .order-notes {
-                margin: 20px 0;
-                padding: 15px;
-                background-color: #fff9e6;
-                border: 1px dashed #ffd700;
-                border-radius: 5px;
-              }
-              
-              .order-notes-title {
-                font-weight: bold;
-                margin-bottom: 10px;
-              }
-              
-              .receipt-footer {
-                text-align: center;
-                margin-top: 30px;
-                padding-top: 10px;
-                border-top: 2px dashed #333;
-                font-size: 12px;
-                font-style: italic;
-              }
-              
-              .print-btn {
-                display: block;
-                width: 80%;
-                max-width: 300px;
-                margin: 20px auto;
-                padding: 15px;
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 16px;
-                cursor: pointer;
-                transition: background-color 0.3s;
-              }
-              
-              .print-btn:hover {
-                background-color: #3e8e41;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="receipt-container">
-              ${kitchenReceiptContent}
-              <div class="no-print" style="text-align: center; margin-top: 20px;">
-                <button class="print-btn" onclick="window.print()">${printButtonText}</button>
-                <button class="print-btn" onclick="window.close()" style="background-color: #f44336; margin-top: 10px;">
-                  ${isEnglish ? "Close" : "إغلاق"}
-                </button>
-              </div>
-            </div>
-            <script>
-              // Auto print after a short delay
-              setTimeout(() => {
-                window.print();
-              }, 500);
-            </script>
-          </body>
-        </html>
-      `);
-
-      // Close the document for writing
-      printWindow.document.close();
-
-      // After successful printing, update the UI to reflect the new status
-      loadActiveOrders();
-    })
-    .catch((error) => {
-      console.error("Error fetching order for kitchen receipt:", error);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
       showFixedNotification(
-        isEnglish ? "Error" : "خطأ",
-        isEnglish
-          ? "An error occurred while preparing the kitchen receipt"
-          : "حدث خطأ أثناء تحضير إيصال المطبخ",
+        isEnglish ? "Print Error" : "خطأ في الطباعة",
+        isEnglish ? "Please allow pop-ups for printing" : "يرجى السماح بالنوافذ المنبثقة للطباعة",
         "error"
       );
+      return;
+    }
 
-      // Reset button appearance if there was an error
-      kitchenReceiptButton.style.backgroundColor = "#7b68ee";
-      kitchenReceiptButton.style.boxShadow = "";
-      const buttonText = isEnglish
-        ? "Print Kitchen Receipt"
-        : "طباعة إيصال المطبخ";
-      kitchenReceiptButton.innerHTML = `<i class="fas fa-utensils"></i> <span>${buttonText}</span>`;
-      kitchenReceiptButton.disabled = false;
-    });
+    const kitchenReceiptContent = generateKitchenReceiptContent(formattedOrder);
+    const htmlDir = isEnglish ? "ltr" : "rtl";
+    const bodyDir = isEnglish ? "ltr" : "rtl";
+    const receiptTitle = isEnglish
+      ? `Kitchen Receipt for Order ${orderId}`
+      : `إيصال المطبخ للطلب ${orderId}`;
+    const printButtonText = isEnglish ? "Print Kitchen Receipt" : "طباعة إيصال المطبخ";
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="${htmlDir}">
+        <head>
+          <title>${receiptTitle}</title>
+          <style>
+            @media print { body { margin: 0; padding: 0; } .no-print { display: none; } }
+            body { font-family: 'Courier New', monospace; padding: 0; max-width: 100%; margin: 0 auto; direction: ${bodyDir}; background-color: #f8f9fa; }
+            .receipt-container { max-width: 400px; margin: 0 auto; padding: 10px; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .receipt-header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 15px; margin-bottom: 10px; }
+            .receipt-header h1 { margin: 5px 0; font-size: 24px; text-transform: uppercase; color: #333; }
+            .order-info { background-color: #f1f1f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; border-left: 4px solid #333; }
+            .receipt-items { margin: 20px 0; }
+            .receipt-item { margin: 0 0 15px 0; padding: 15px; border-bottom: 1px solid #eee; position: relative; }
+            .receipt-item:last-child { border-bottom: 2px dashed #333; }
+            .item-quantity { font-weight: bold; font-size: 24px; margin-left: 8px; background-color: #333; color: white; padding: 2px 8px; border-radius: 5px; display: inline-block; min-width: 20px; text-align: center; }
+            .item-name { font-weight: bold; font-size: 18px; display: inline-block; margin-right: 5px; }
+            .item-notes { margin-top: 8px; color: #666; }
+            .order-notes { margin: 20px 0; padding: 15px; background-color: #fff9e6; border: 1px dashed #ffd700; border-radius: 5px; }
+            .order-notes-title { font-weight: bold; margin-bottom: 10px; }
+            .receipt-footer { text-align: center; margin-top: 30px; padding-top: 10px; border-top: 2px dashed #333; font-size: 12px; font-style: italic; }
+            .print-btn { display: block; width: 80%; max-width: 300px; margin: 20px auto; padding: 15px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; }
+            .print-btn:hover { background-color: #3e8e41; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            ${kitchenReceiptContent}
+            <div class="no-print" style="text-align: center; margin-top: 20px;">
+              <button class="print-btn" onclick="window.print()">${printButtonText}</button>
+              <button class="print-btn" onclick="window.close()" style="background-color: #f44336; margin-top: 10px;">${isEnglish ? "Close" : "إغلاق"}</button>
+            </div>
+          </div>
+          <script>setTimeout(() => { window.print(); }, 500);</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    loadActiveOrders();
+  } catch (error) {
+    showFixedNotification(
+      isEnglish ? "Error" : "خطأ",
+      isEnglish ? "An error occurred while preparing the kitchen receipt" : "حدث خطأ أثناء تحضير إيصال المطبخ",
+      "error"
+    );
+    kitchenReceiptButton.style.backgroundColor = "#7b68ee";
+    kitchenReceiptButton.style.boxShadow = "";
+    const buttonText = isEnglish ? "Print Kitchen Receipt" : "طباعة إيصال المطبخ";
+    kitchenReceiptButton.innerHTML = `<i class="fas fa-utensils"></i> <span>${buttonText}</span>`;
+    kitchenReceiptButton.disabled = false;
+  }
 }
 
 // Generate content for kitchen receipt
@@ -4084,27 +3287,14 @@ async function loadProductsForOrder() {
   productsGrid.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><span>${loadingText}</span></div>`;
 
   try {
-    // Fetch products
-    const productsResponse = await fetch(`${API_BASE_URL}/api/products`);
-    const productsData = await productsResponse.json();
-    allProducts = productsData.data || [];
-
-    // Fetch categories
-    const categoriesResponse = await fetch(
-      `${API_BASE_URL}/api/categories`
-    );
-    const categoriesData = await categoriesResponse.json();
-    allCategories = categoriesData.data || [];
-
-    // Display category filters
+    const savedProducts = localStorage.getItem("products");
+    const savedCategories = localStorage.getItem("categories");
+    allProducts = savedProducts ? JSON.parse(savedProducts) : [];
+    allCategories = savedCategories ? JSON.parse(savedCategories) : [];
     displayCategoryFilters();
-
-    // Display products
     displayProducts(allProducts);
   } catch (error) {
-    console.error("Error loading products:", error);
-    const errorText =
-      currentLang === "ar" ? "خطأ في تحميل المنتجات" : "Error loading products";
+    const errorText = currentLang === "ar" ? "خطأ في تحميل المنتجات" : "Error loading products";
     productsGrid.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i><p>${errorText}</p></div>`;
   }
 }
@@ -4121,20 +3311,11 @@ async function loadOffersForOrder() {
   offersGrid.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><span>${loadingText}</span></div>`;
 
   try {
-    // Fetch active offers
-    const offersResponse = await fetch(
-      `${API_BASE_URL}/api/offers?active=true`
-    );
-    const offersData = await offersResponse.json();
-    allOffers = offersData.data || [];
-
-    // Display offers
+    const savedOffers = localStorage.getItem("offers");
+    allOffers = savedOffers ? JSON.parse(savedOffers) : [];
     displayOffers(allOffers);
   } catch (error) {
-    console.error("Error loading offers:", error);
-    const errorText =
-      getTranslation("errorLoadingOffers") ||
-      (currentLang === "ar" ? "خطأ في تحميل العروض" : "Error loading offers");
+    const errorText = getTranslation("errorLoadingOffers") || (currentLang === "ar" ? "خطأ في تحميل العروض" : "Error loading offers");
     offersGrid.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i><p>${errorText}</p></div>`;
   }
 }
@@ -4289,9 +3470,18 @@ function filterByCategory(categoryValue, clickedBtn) {
 // Display products
 function displayProducts(products) {
   const productsGrid = document.getElementById("new-order-products-grid");
-  const currentLang = getCurrentLanguage();
+  if (!productsGrid) {
+    return;
+  }
 
-  if (products.length === 0) {
+  const currentLang = getCurrentLanguage();
+  const productList = Array.isArray(products)
+    ? products
+    : Array.isArray(allProducts)
+    ? allProducts
+    : [];
+
+  if (productList.length === 0) {
     const noProductsText =
       currentLang === "ar" ? "لا توجد منتجات" : "No products available";
     productsGrid.innerHTML = `<div class="empty-message"><i class="fas fa-box-open"></i><p>${noProductsText}</p></div>`;
@@ -4306,7 +3496,7 @@ function displayProducts(products) {
       ? "جنيه"
       : "EGP";
 
-  products.forEach((product) => {
+  productList.forEach((product) => {
     const productCard = document.createElement("div");
     productCard.className = "product-card";
     const productName =
@@ -4875,22 +4065,17 @@ function updateOrderSummary() {
 // Load tax settings
 async function loadTaxSettings() {
   try {
-    const base = (function () {
-      const { hostname, origin } = window.location;
-      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-      return isLocal ? "http://localhost:5000" : origin;
-    })();
-    const response = await fetch(`${base}/api/tax-settings`);
-    const data = await response.json();
-
-    if (data.success && data.data) {
+    const saved = localStorage.getItem("taxSettings");
+    if (saved) {
+      const s = JSON.parse(saved);
       taxSettings = {
-        rate: parseFloat(data.data.rate) || 0,
-        serviceRate: parseFloat(data.data.serviceRate) || 0,
+        rate: parseFloat(s.rate) || 0,
+        serviceRate: parseFloat(s.serviceRate) || 0,
       };
+    } else {
+      taxSettings = { rate: 0, serviceRate: 0 };
     }
   } catch (error) {
-    console.error("Error loading tax settings:", error);
     taxSettings = { rate: 0, serviceRate: 0 };
   }
 
@@ -4995,90 +4180,46 @@ async function submitNewOrder() {
   };
 
   try {
-
-    let created = false;
-    let lastErrorMessage = "";
-
-    // Try authenticated route first (cashier is logged in)
-    try {
-      let token = null;
-      if (typeof refreshToken === "function") {
-        try { token = await refreshToken(); } catch (_) { token = null; }
-      }
-      if (!token && typeof getToken === "function") {
-        token = getToken();
-      }
-
-      if (token) {
-        const authRes = await fetch(`${API_BASE_URL}/api/orders`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "X-Staff-Override": "cashier",
-          },
-          body: JSON.stringify(orderData),
-        });
-        const authDataText = await authRes.text();
-        const authData = authDataText ? JSON.parse(authDataText) : {};
-        if (authRes.ok && authData && authData.success) {
-          created = true;
-        } else {
-          lastErrorMessage = authData.message || `HTTP ${authRes.status}`;
-        }
-      }
-    } catch (e) {
-      lastErrorMessage = e.message || "Auth route error";
-    }
-
-    // Fallback to guest route if auth failed
-    if (!created) {
-      const response = await fetch(`${API_BASE_URL}/api/orders/guest`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Staff-Override": "cashier",
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      const resultText = await response.text();
-      const result = resultText ? JSON.parse(resultText) : {};
-
-      if (response.ok && result && result.success) {
-        created = true;
-      } else {
-        lastErrorMessage = result.message || `HTTP ${response.status}`;
-      }
-    }
-
-    if (created) {
-      const successTitle = currentLang === "ar" ? "نجح" : "Success";
-      const successMsg =
-        currentLang === "ar" ? "تم إنشاء الطلب بنجاح" : "Order created successfully";
-      showFixedNotification(successTitle, successMsg, "success");
-      closeNewOrderModal();
-      loadActiveOrders();
-    } else {
-      throw new Error(lastErrorMessage || (currentLang === "ar" ? "فشل في إنشاء الطلب" : "Failed to create order"));
-    }
+    const savedOrders = localStorage.getItem("orders");
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const newId = `ORD-${Date.now()}`;
+    const order = {
+      id: newId,
+      orderNumber: newId,
+      date: orderData.date,
+      tableNumber: String(orderData.tableNumber),
+      items: orderData.items,
+      subtotal: orderData.subtotal,
+      tax: orderData.tax,
+      serviceTax: orderData.serviceTax,
+      discount: orderData.discount || null,
+      loyaltyDiscount: orderData.loyaltyDiscount || null,
+      total: orderData.total,
+      status: "pending",
+      customerName: orderData.customerInfo?.name || "",
+      customerPhone: orderData.customerInfo?.phone || "",
+      paymentMethod: orderData.paymentMethod || "Cash",
+      notes: orderData.notes || "",
+    };
+    orders.push(order);
+    localStorage.setItem("orders", JSON.stringify(orders));
+    const successTitle = currentLang === "ar" ? "نجح" : "Success";
+    const successMsg = currentLang === "ar" ? "تم إنشاء الطلب بنجاح" : "Order created successfully";
+    showFixedNotification(successTitle, successMsg, "success");
+    closeNewOrderModal();
+    loadActiveOrders();
+    const event = new CustomEvent("newOrderCreated", {
+      detail: { orderId: newId, tableNumber: order.tableNumber, total: order.total },
+    });
+    window.dispatchEvent(event);
   } catch (error) {
-    console.error("Error submitting order:", error);
     const errorTitle = currentLang === "ar" ? "خطأ" : "Error";
-    const errorMsg = (function(){
-      const msg = String(error && error.message || "");
-      if (msg.includes("Order session required") || msg.includes("QR validation required") || msg.includes("403")) {
-        return currentLang === "ar" 
-          ? "تم رفض الطلب من الخادم. كاشير يمكنه إنشاء الطلب بدون QR، تأكد من إعدادات الخادم للسماح بذلك"
-          : "Order rejected by server. Cashier should be allowed to create orders without QR; check server settings";
-      }
-      return currentLang === "ar" ? "حدث خطأ أثناء إنشاء الطلب" : "Error creating order";
-    })();
-    showFixedNotification(errorTitle, error.message || errorMsg, "error");
+    const errorMsg = currentLang === "ar" ? "حدث خطأ أثناء إنشاء الطلب" : "Error creating order";
+    showFixedNotification(errorTitle, errorMsg, "error");
   } finally {
     submitBtn.disabled = false;
     const submitText = currentLang === "ar" ? "تأكيد الطلب" : "Submit Order";
-    submitBtn.innerHTML = `<i class="fas fa-check-circle"></i><span>${submitText}</span>`;
+    submitBtn.innerHTML = `<i class=\"fas fa-check-circle\"></i><span>${submitText}</span>`;
   }
 }
 

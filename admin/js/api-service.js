@@ -932,84 +932,135 @@ class ApiService {
 
   // Customer accounts methods
   async getCustomerAccounts(page = 1, limit = 10, search = "", filters = {}) {
-    let endpoint = `customer/accounts?page=${page}&limit=${limit}`;
-    if (search) {
-      endpoint += `&search=${encodeURIComponent(search)}`;
-    }
-    // Append optional filters if provided
     try {
-      if (filters && typeof filters === "object") {
-        const { status, roleId, role, dateFrom, dateTo } = filters;
-        if (status && status !== "all") {
-          endpoint += `&status=${encodeURIComponent(status)}`;
-        }
-        if (roleId && String(roleId).trim() !== "") {
-          endpoint += `&roleId=${encodeURIComponent(String(roleId))}`;
-        }
-        if (role && role.trim() !== "") {
-          endpoint += `&role=${encodeURIComponent(role)}`;
-        }
-        if (dateFrom && dateFrom.trim() !== "") {
-          endpoint += `&dateFrom=${encodeURIComponent(dateFrom)}`;
-        }
-        if (dateTo && dateTo.trim() !== "") {
-          endpoint += `&dateTo=${encodeURIComponent(dateTo)}`;
+      const raw = localStorage.getItem("customerAccounts");
+      let accounts = [];
+
+      if (raw) {
+        accounts = JSON.parse(raw) || [];
+        if (!Array.isArray(accounts)) {
+          accounts = [];
         }
       }
-    } catch (_) {}
 
-    try {
-      // Add timeout to prevent hanging indefinitely
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (increased)
+      const normalizedFilters = filters && typeof filters === "object" ? filters : {};
 
-      console.log(`API Request: GET ${this.apiUrl}/${endpoint}`);
-      const response = await this.request(endpoint, "GET", null, {
-        signal: controller.signal,
+      let filteredAccounts = accounts.map((account, index) => ({
+        id: account.id || account._id || `local-${index + 1}`,
+        name: account.name || account.fullName || account.displayName || account.username || account.email || "",
+        email: account.email || "",
+        phone: account.phone || account.contact || account.contactNumber || "",
+        status: account.status || "active",
+        role: account.role || account.roleId || "customer",
+        roleId: account.roleId || null,
+        createdAt: account.createdAt || account.registeredAt || new Date().toISOString(),
+        lastLogin: account.lastLogin || null,
+        permissions: account.permissions || [],
+        points: Number.isFinite(account.points) ? Number(account.points) : 0,
+        loyaltyPoints: Number.isFinite(account.loyaltyPoints)
+          ? Number(account.loyaltyPoints)
+          : Number.isFinite(account.points)
+          ? Number(account.points)
+          : 0,
+        ordersCount: Number.isFinite(account.ordersCount) ? Number(account.ordersCount) : 0,
+        totalSpent: Number.isFinite(account.totalSpent) ? Number(account.totalSpent) : 0,
+      }));
+
+      if (search && search.trim()) {
+        const lowerSearch = search.trim().toLowerCase();
+        filteredAccounts = filteredAccounts.filter((account) => {
+          return [
+            account.name,
+            account.email,
+            account.phone,
+            account.role,
+            account.id,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(lowerSearch));
+        });
+      }
+
+      if (normalizedFilters.status && normalizedFilters.status !== "all") {
+        filteredAccounts = filteredAccounts.filter(
+          (account) => account.status === normalizedFilters.status
+        );
+      }
+
+      if (
+        normalizedFilters.roleId &&
+        String(normalizedFilters.roleId).trim() !== ""
+      ) {
+        filteredAccounts = filteredAccounts.filter((account) => {
+          if (account.roleId) {
+            return String(account.roleId) === String(normalizedFilters.roleId);
+          }
+          return String(account.role) === String(normalizedFilters.roleId);
+        });
+      } else if (normalizedFilters.role && normalizedFilters.role.trim() !== "") {
+        const targetRole = normalizedFilters.role.trim().toLowerCase();
+        filteredAccounts = filteredAccounts.filter((account) =>
+          String(account.role).trim().toLowerCase().includes(targetRole)
+        );
+      }
+
+      if (normalizedFilters.dateFrom || normalizedFilters.dateTo) {
+        const fromTime = normalizedFilters.dateFrom
+          ? new Date(normalizedFilters.dateFrom).getTime()
+          : null;
+        const toTime = normalizedFilters.dateTo
+          ? new Date(normalizedFilters.dateTo).getTime()
+          : null;
+
+        filteredAccounts = filteredAccounts.filter((account) => {
+          const createdTime = account.createdAt
+            ? new Date(account.createdAt).getTime()
+            : null;
+          if (!createdTime || Number.isNaN(createdTime)) {
+            return false;
+          }
+
+          if (fromTime && createdTime < fromTime) {
+            return false;
+          }
+          if (toTime && createdTime > toTime) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      filteredAccounts.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
       });
 
-      clearTimeout(timeoutId);
-      console.log("Raw customer accounts response:", response);
-
-      // If response has customers property but no data property, move it
-      if (
-        response &&
-        response.success &&
-        response.customers &&
-        !response.data
-      ) {
-        console.log(
-          "Found customers in response but no data property, restructuring response"
-        );
-        response.data = response.customers;
-      }
-
-      return response;
-    } catch (error) {
-      console.error("Error fetching customer accounts:", error);
-
-      // Provide more specific error messages
-      if (error.name === "AbortError") {
-        return {
-          success: false,
-          message: "تجاوز وقت الاتصال بالخادم. يرجى المحاولة مرة أخرى.",
-          error: "timeout",
-        };
-      }
-
-      if (!navigator.onLine) {
-        return {
-          success: false,
-          message:
-            "لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
-          error: "offline",
-        };
-      }
+      const totalItems = filteredAccounts.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+      const currentPageSafe = Math.max(1, Math.min(page, totalPages));
+      const startIndex = (currentPageSafe - 1) * limit;
+      const paginatedItems = filteredAccounts.slice(startIndex, startIndex + limit);
 
       return {
+        success: true,
+        data: paginatedItems,
+        pagination: {
+          currentPage: currentPageSafe,
+          totalPages,
+          totalItems,
+          pageSize: limit,
+        },
+      };
+    } catch (error) {
+      console.error("Error loading customer accounts from localStorage:", error);
+      return {
         success: false,
-        message: error.message || "حدث خطأ أثناء جلب بيانات العملاء",
-        error: error.name || "unknown",
+        message:
+          error && error.message
+            ? error.message
+            : "Failed to load customer accounts from localStorage",
+        error: error && error.name ? error.name : "local_storage_error",
       };
     }
   }
@@ -1028,12 +1079,227 @@ class ApiService {
     });
   }
 
+  updateLocalCustomerStatus(customerId, status) {
+    try {
+      const normalizedCustomerId =
+        customerId && customerId.toString
+          ? customerId.toString()
+          : String(customerId || "");
+      const newStatus = status || "active";
+      const timestamp = new Date().toISOString();
+
+      let accounts = [];
+      try {
+        const rawAccounts = localStorage.getItem("customerAccounts");
+        accounts = rawAccounts ? JSON.parse(rawAccounts) : [];
+        if (!Array.isArray(accounts)) {
+          accounts = [];
+        }
+      } catch (parseError) {
+        console.warn(
+          "Failed to parse customerAccounts from localStorage:",
+          parseError
+        );
+        accounts = [];
+      }
+
+      const findAccountIndex = (list) =>
+        list.findIndex((account) => {
+          if (!account) return false;
+          const accountId =
+            account.id && account.id.toString
+              ? account.id.toString()
+              : account.id;
+          const accountObjectId =
+            account._id && account._id.toString
+              ? account._id.toString()
+              : account._id;
+          const accountEmail =
+            account.email && typeof account.email === "string"
+              ? account.email.toLowerCase()
+              : null;
+
+          return (
+            (accountId && accountId === normalizedCustomerId) ||
+            (accountObjectId && accountObjectId === normalizedCustomerId) ||
+            (accountEmail && accountEmail === normalizedCustomerId.toLowerCase())
+          );
+        });
+
+      let accountIndex = findAccountIndex(accounts);
+
+      if (accountIndex === -1) {
+        const newAccount = {
+          id: normalizedCustomerId,
+          _id: normalizedCustomerId,
+          status: newStatus,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+        accounts.push(newAccount);
+        accountIndex = accounts.length - 1;
+      }
+
+      const existingAccount = accounts[accountIndex] || {};
+      const updatedAccount = {
+        ...existingAccount,
+        status: newStatus,
+        updatedAt: timestamp,
+      };
+      accounts[accountIndex] = updatedAccount;
+
+      try {
+        localStorage.setItem("customerAccounts", JSON.stringify(accounts));
+      } catch (saveError) {
+        console.error(
+          "Failed to persist updated customerAccounts to localStorage:",
+          saveError
+        );
+      }
+
+      try {
+        const rawLocalAccounts = localStorage.getItem("localAccounts");
+        let localAccounts = rawLocalAccounts ? JSON.parse(rawLocalAccounts) : [];
+        if (!Array.isArray(localAccounts)) {
+          localAccounts = [];
+        }
+
+        const normalizedEmail =
+          updatedAccount.email && typeof updatedAccount.email === "string"
+            ? updatedAccount.email.toLowerCase()
+            : null;
+
+        const localIndex = findAccountIndex(localAccounts);
+
+        if (localIndex !== -1) {
+          localAccounts[localIndex] = {
+            ...localAccounts[localIndex],
+            status: newStatus,
+            updatedAt: timestamp,
+          };
+
+          localStorage.setItem("localAccounts", JSON.stringify(localAccounts));
+        } else if (normalizedEmail || normalizedCustomerId) {
+          localAccounts.push({
+            id: normalizedCustomerId,
+            _id: normalizedCustomerId,
+            email: normalizedEmail || updatedAccount.email || "",
+            status: newStatus,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          });
+
+          localStorage.setItem("localAccounts", JSON.stringify(localAccounts));
+        }
+      } catch (localError) {
+        console.warn("Failed to update localAccounts cache:", localError);
+      }
+
+      return {
+        success: true,
+        account: updatedAccount,
+      };
+    } catch (error) {
+      console.error("Failed to update local customer status:", error);
+      return {
+        success: false,
+        message: error?.message || "Unable to update local customer status",
+      };
+    }
+  }
+
   async suspendCustomerAccount(customerId) {
-    return this.request(`customer/accounts/${customerId}/suspend`, "PUT");
+    const normalizedCustomerId =
+      customerId && customerId.toString
+        ? customerId.toString()
+        : String(customerId || "");
+    const isMongoObjectId = /^[a-f\d]{24}$/i.test(normalizedCustomerId);
+
+    if (isMongoObjectId) {
+      const response = await this.request(
+        `customer/accounts/${normalizedCustomerId}/suspend`,
+        "PUT"
+      );
+
+      if (response && response.success) {
+        this.updateLocalCustomerStatus(normalizedCustomerId, "suspended");
+        return response;
+      }
+
+      console.warn(
+        "MongoDB suspend failed or unavailable, falling back to localStorage",
+        response
+      );
+    } else {
+      console.log(
+        `Skipping MongoDB suspend for ${normalizedCustomerId} (not an ObjectId), using localStorage`
+      );
+    }
+
+    const result = this.updateLocalCustomerStatus(
+      normalizedCustomerId,
+      "suspended"
+    );
+
+    if (result.success) {
+      return {
+        success: true,
+        message: "Customer suspended locally",
+        data: result.account,
+      };
+    }
+
+    return {
+      success: false,
+      message: result.message || "Failed to suspend customer locally",
+    };
   }
 
   async activateCustomerAccount(customerId) {
-    return this.request(`customer/accounts/${customerId}/activate`, "PUT");
+    const normalizedCustomerId =
+      customerId && customerId.toString
+        ? customerId.toString()
+        : String(customerId || "");
+    const isMongoObjectId = /^[a-f\d]{24}$/i.test(normalizedCustomerId);
+
+    if (isMongoObjectId) {
+      const response = await this.request(
+        `customer/accounts/${normalizedCustomerId}/activate`,
+        "PUT"
+      );
+
+      if (response && response.success) {
+        this.updateLocalCustomerStatus(normalizedCustomerId, "active");
+        return response;
+      }
+
+      console.warn(
+        "MongoDB activate failed or unavailable, falling back to localStorage",
+        response
+      );
+    } else {
+      console.log(
+        `Skipping MongoDB activate for ${normalizedCustomerId} (not an ObjectId), using localStorage`
+      );
+    }
+
+    const result = this.updateLocalCustomerStatus(
+      normalizedCustomerId,
+      "active"
+    );
+
+    if (result.success) {
+      return {
+        success: true,
+        message: "Customer activated locally",
+        data: result.account,
+      };
+    }
+
+    return {
+      success: false,
+      message: result.message || "Failed to activate customer locally",
+    };
   }
 
   async deleteCustomerAccount(customerId) {
@@ -1292,81 +1558,143 @@ class ApiService {
     }
   }
 
+  // Role management helpers
+  getLocalRolesFromStorage() {
+    try {
+      const raw = localStorage.getItem("roles");
+      if (!raw) {
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Failed to parse roles from localStorage:", error);
+      return [];
+    }
+  }
+
+  saveLocalRolesToStorage(roles = []) {
+    try {
+      localStorage.setItem("roles", JSON.stringify(Array.isArray(roles) ? roles : []));
+    } catch (error) {
+      console.error("Failed to save roles to localStorage:", error);
+    }
+  }
+
+  ensureLocalRolesSeeded() {
+    const seedTimestamp = "2025-10-22T08:15:42.657Z";
+    const roles = [
+      {
+        _id: "68f892ae44b61e6b4a3c9c8f",
+        id: "68f892ae44b61e6b4a3c9c8f",
+        name: "مستخدم",
+        nameEn: "User",
+        color: "#42d158",
+        icon: "fas fa-user",
+        permissions: {
+          adminPanel: false,
+          cashier: false,
+          stats: false,
+          productsView: false,
+          productsEdit: false,
+          vouchersView: false,
+          vouchersEdit: false,
+          reservations: false,
+          tax: false,
+          points: false,
+          accounts: false,
+          qr: false,
+        },
+        createdAt: seedTimestamp,
+        updatedAt: "2025-10-22T08:42:22.154Z",
+        __v: 0,
+      },
+      {
+        _id: "68f892ae44b61e6b4a3c9c8d",
+        id: "68f892ae44b61e6b4a3c9c8d",
+        name: "مدير",
+        nameEn: "Administrator",
+        color: "#ff3b30",
+        icon: "fas fa-crown",
+        permissions: {
+          adminPanel: true,
+          cashier: true,
+          stats: true,
+          productsView: true,
+          productsEdit: true,
+          vouchersView: true,
+          vouchersEdit: true,
+          reservations: true,
+          tax: true,
+          points: true,
+          accounts: true,
+          qr: true,
+        },
+        createdAt: seedTimestamp,
+        updatedAt: "2025-10-22T08:29:16.296Z",
+        __v: 0,
+      },
+      {
+        _id: "68f892ae44b61e6b4a3c9c8e",
+        id: "68f892ae44b61e6b4a3c9c8e",
+        name: "كاشير",
+        nameEn: "Cashier",
+        color: "#8e44ad",
+        icon: "fas fa-cash-register",
+        permissions: {
+          adminPanel: false,
+          cashier: true,
+          stats: false,
+          productsView: true,
+          productsEdit: false,
+          vouchersView: true,
+          vouchersEdit: false,
+          reservations: false,
+          tax: false,
+          points: false,
+          accounts: false,
+          qr: false,
+        },
+        createdAt: seedTimestamp,
+        updatedAt: "2025-10-22T08:42:11.597Z",
+        __v: 0,
+      },
+    ];
+
+    this.saveLocalRolesToStorage(roles);
+    return roles;
+  }
+
   // Role management methods
   async getRoles() {
     try {
-      // Make the API request
-      const response = await this.request("roles", "GET");
-
-      // If successful, return the response
-      if (response.success) {
-        return response;
-      }
-
-      // Fallback to localStorage if API fails
-      console.log("API call failed, falling back to localStorage for roles");
-
-      // Get roles from localStorage or initialize with defaults
-      let roles = [];
-      const savedRoles = localStorage.getItem("roles");
-
-      if (savedRoles) {
-        roles = JSON.parse(savedRoles);
-      }
-
-      // Return success response with roles data
+      const roles = this.ensureLocalRolesSeeded();
       return { success: true, data: roles };
     } catch (error) {
       console.error("Error in getRoles:", error);
-
-      // Fallback to localStorage in case of any error
-      try {
-        const savedRoles = localStorage.getItem("roles");
-        const roles = savedRoles ? JSON.parse(savedRoles) : [];
-        return { success: true, data: roles };
-      } catch (localStorageError) {
-        console.error("Error reading from localStorage:", localStorageError);
-        return { success: false, message: "Failed to get roles" };
-      }
+      return { success: false, message: "Failed to get roles" };
     }
   }
 
   async createRole(roleData) {
     try {
-      // Make the API request
-      const response = await this.request("roles", "POST", roleData);
+      const roles = this.ensureLocalRolesSeeded();
+      const roleId =
+        roleData.id || roleData._id || `role_${Math.random().toString(36).slice(2, 10)}`;
+      const now = new Date().toISOString();
 
-      // If successful, return the response
-      if (response.success) {
-        return response;
-      }
-
-      // Fallback to localStorage if API fails
-      console.log(
-        "API call failed, falling back to localStorage for creating role"
-      );
-
-      // Get current roles
-      let roles = [];
-      const savedRoles = localStorage.getItem("roles");
-
-      if (savedRoles) {
-        roles = JSON.parse(savedRoles);
-      }
-
-      // Generate ID if not provided
       const newRole = {
         ...roleData,
-        id: roleData.id || "role_" + Math.random().toString(36).substr(2, 9),
+        id: roleId,
+        _id: roleId,
+        createdAt: roleData.createdAt || now,
+        updatedAt: now,
       };
 
-      // Add new role
       roles.push(newRole);
+      this.saveLocalRolesToStorage(roles);
 
-      // Save to localStorage
-      localStorage.setItem("roles", JSON.stringify(roles));
-
-      // Return success response
       return { success: true, data: newRole };
     } catch (error) {
       console.error("Error in createRole:", error);
@@ -1376,56 +1704,34 @@ class ApiService {
 
   async updateRole(roleId, roleData) {
     try {
-      // Make the API request
-      const response = await this.request(`roles/${roleId}`, "PUT", roleData);
+      const roles = this.ensureLocalRolesSeeded();
+      const targetIndex = roles.findIndex((role) => {
+        if (!role) return false;
+        const idMatches =
+          (role.id && role.id.toString() === roleId.toString()) ||
+          (role._id && role._id.toString() === roleId.toString());
+        return idMatches;
+      });
 
-      // If successful, return the response
-      if (response.success) {
-        return response;
-      }
-
-      // Fallback to localStorage if API fails
-      console.log(
-        "API call failed, falling back to localStorage for updating role"
-      );
-
-      // Get current roles
-      let roles = [];
-      const savedRoles = localStorage.getItem("roles");
-
-      if (savedRoles) {
-        roles = JSON.parse(savedRoles);
-      }
-
-      // Find role index with safer comparison
-      const roleIndex = roles.findIndex(
-        (r) =>
-          (r.id && r.id.toString() === roleId.toString()) ||
-          (r._id && r._id.toString() === roleId.toString())
-      );
-
-      if (roleIndex === -1) {
-        console.error(
-          `Role with ID ${roleId} not found in roles array:`,
-          roles
-        );
+      if (targetIndex === -1) {
         return { success: false, message: "Role not found" };
       }
 
-      // Update role
-      roles[roleIndex] = {
-        ...roles[roleIndex],
+      const now = new Date().toISOString();
+      const existingRole = roles[targetIndex];
+      const updatedRole = {
+        ...existingRole,
         ...roleData,
-        // Preserve IDs - keep both for compatibility
-        id: roles[roleIndex].id || roleId,
-        _id: roles[roleIndex]._id || roleId,
+        id: existingRole.id || existingRole._id || roleId,
+        _id: existingRole._id || existingRole.id || roleId,
+        createdAt: existingRole.createdAt || now,
+        updatedAt: now,
       };
 
-      // Save to localStorage
-      localStorage.setItem("roles", JSON.stringify(roles));
+      roles[targetIndex] = updatedRole;
+      this.saveLocalRolesToStorage(roles);
 
-      // Return success response
-      return { success: true, data: roles[roleIndex] };
+      return { success: true, data: updatedRole };
     } catch (error) {
       console.error("Error in updateRole:", error);
       return { success: false, message: "Failed to update role" };
@@ -1434,55 +1740,20 @@ class ApiService {
 
   async deleteRole(roleId) {
     try {
-      // Make the API request
-      const response = await this.request(`roles/${roleId}`, "DELETE");
+      const roles = this.ensureLocalRolesSeeded();
+      const filteredRoles = roles.filter((role) => {
+        if (!role) return false;
+        const idMatches =
+          (role.id && role.id.toString() === roleId.toString()) ||
+          (role._id && role._id.toString() === roleId.toString());
+        return !idMatches;
+      });
 
-      // If successful, return the response
-      if (response.success) {
-        return response;
-      }
-
-      // Fallback to localStorage if API fails
-      console.log(
-        "API call failed, falling back to localStorage for deleting role"
-      );
-
-      // Get current roles
-      let roles = [];
-      const savedRoles = localStorage.getItem("roles");
-
-      if (savedRoles) {
-        roles = JSON.parse(savedRoles);
-      }
-
-      // Check if the role exists before trying to delete
-      const roleExists = roles.some(
-        (r) =>
-          (r.id && r.id.toString() === roleId.toString()) ||
-          (r._id && r._id.toString() === roleId.toString())
-      );
-
-      if (!roleExists) {
-        console.error(
-          `Role with ID ${roleId} not found in roles array:`,
-          roles
-        );
+      if (filteredRoles.length === roles.length) {
         return { success: false, message: "Role not found" };
       }
 
-      // Filter out the role to delete with safer comparison
-      const filteredRoles = roles.filter(
-        (r) =>
-          !(
-            (r.id && r.id.toString() === roleId.toString()) ||
-            (r._id && r._id.toString() === roleId.toString())
-          )
-      );
-
-      // Save to localStorage
-      localStorage.setItem("roles", JSON.stringify(filteredRoles));
-
-      // Return success response
+      this.saveLocalRolesToStorage(filteredRoles);
       return { success: true, message: "Role deleted successfully" };
     } catch (error) {
       console.error("Error in deleteRole:", error);
@@ -1492,104 +1763,140 @@ class ApiService {
 
   async assignRoleToUser(userId, roleId) {
     try {
-      // First try to make the API request to MongoDB
-      // We'll keep this active (not commented out) to attempt MongoDB updates first
-      try {
-        console.log(
-          `Attempting to assign role ${roleId} to user ${userId} in MongoDB...`
+      const roles = this.ensureLocalRolesSeeded();
+      const role = roles.find((item) => {
+        if (!item) return false;
+        return (
+          (item.id && item.id.toString() === roleId.toString()) ||
+          (item._id && item._id.toString() === roleId.toString())
         );
-        const response = await this.request(
-          `customer/accounts/${userId}/role`,
-          "PUT",
-          { roleId }
-        );
-
-        // If successful, return the response
-        if (response && response.success) {
-          console.log("Role assigned successfully in MongoDB");
-
-          // Also update localStorage to keep it in sync
-          this.syncUserRoleToLocalStorage(userId, roleId);
-
-          return response;
-        } else {
-          console.warn(
-            "MongoDB role assignment failed, falling back to localStorage"
-          );
-        }
-      } catch (apiError) {
-        console.warn("API error when assigning role:", apiError);
-        // Continue to localStorage fallback
-      }
-
-      console.log(
-        "Using localStorage for assigning role (MongoDB update failed or API not available)"
-      );
-
-      // Get customer accounts
-      let accounts = [];
-      const savedAccounts = localStorage.getItem("customerAccounts");
-
-      if (savedAccounts) {
-        accounts = JSON.parse(savedAccounts);
-      }
-
-      // Get roles
-      let roles = [];
-      const savedRoles = localStorage.getItem("roles");
-
-      if (savedRoles) {
-        roles = JSON.parse(savedRoles);
-      }
-
-      // Find role
-      const role = roles.find((r) => r.id === roleId || r._id === roleId);
+      });
 
       if (!role) {
         return { success: false, message: "Role not found" };
       }
 
-      // Find account index
-      const accountIndex = accounts.findIndex(
-        (a) => a.id === userId || a._id === userId
-      );
+      // Update customer accounts
+      let customerAccounts = [];
+      try {
+        const rawAccounts = localStorage.getItem("customerAccounts");
+        customerAccounts = rawAccounts ? JSON.parse(rawAccounts) : [];
+        if (!Array.isArray(customerAccounts)) {
+          customerAccounts = [];
+        }
+      } catch (error) {
+        console.warn("Failed to parse customer accounts:", error);
+        customerAccounts = [];
+      }
 
-      if (accountIndex === -1) {
-        // If account not in localStorage, create a minimal entry for it
+      const normalizedUserId = userId && userId.toString ? userId.toString() : String(userId || "");
+      let targetIndex = customerAccounts.findIndex((account) => {
+        if (!account) return false;
+        const accountId = account.id && account.id.toString();
+        const accountObjectId = account._id && account._id.toString();
+        const accountEmail =
+          account.email && typeof account.email === "string"
+            ? account.email.toLowerCase()
+            : "";
+        return (
+          accountId === normalizedUserId ||
+          accountObjectId === normalizedUserId ||
+          accountEmail === normalizedUserId.toLowerCase()
+        );
+      });
+
+      if (targetIndex === -1) {
         const newAccount = {
-          id: userId,
-          _id: userId, // Store both formats for compatibility
+          id: normalizedUserId,
+          _id: normalizedUserId,
           roleId: role.id || role._id,
           roleName: role.name,
           role: { name: role.name, id: role.id || role._id },
           permissions: role.permissions,
+          status: "active",
+          createdAt: new Date().toISOString(),
         };
 
-        accounts.push(newAccount);
-        localStorage.setItem("customerAccounts", JSON.stringify(accounts));
-
-        return {
-          success: true,
-          message: "Role assigned successfully to new account in localStorage",
+        customerAccounts.push(newAccount);
+        targetIndex = customerAccounts.length - 1;
+      } else {
+        const existing = customerAccounts[targetIndex];
+        customerAccounts[targetIndex] = {
+          ...existing,
+          roleId: role.id || role._id,
+          roleName: role.name,
+          role: { name: role.name, id: role.id || role._id },
+          permissions: role.permissions,
+          updatedAt: new Date().toISOString(),
         };
       }
 
-      // Update account with role info
-      accounts[accountIndex] = {
-        ...accounts[accountIndex],
-        roleId: role.id || role._id,
-        roleName: role.name,
-        role: { name: role.name, id: role.id || role._id },
-        permissions: role.permissions,
-      };
+      try {
+        localStorage.setItem(
+          "customerAccounts",
+          JSON.stringify(customerAccounts)
+        );
+      } catch (error) {
+        console.error("Failed to save customer accounts:", error);
+      }
 
-      // Save to localStorage
-      localStorage.setItem("customerAccounts", JSON.stringify(accounts));
+      // Update localAccounts entry if present
+      try {
+        const rawLocal = localStorage.getItem("localAccounts");
+        let localAccounts = rawLocal ? JSON.parse(rawLocal) : [];
+        if (!Array.isArray(localAccounts)) {
+          localAccounts = [];
+        }
 
-      // Flag this change for future sync with MongoDB when API becomes available
-      this.markForSync(userId, "role_update", { roleId });
+        const normalizedEmail = normalizedUserId.includes("@")
+          ? normalizedUserId.toLowerCase()
+          : null;
 
-      // Return success response
+        let localIndex = localAccounts.findIndex((entry) => {
+          if (!entry) return false;
+          const entryId = entry.id && entry.id.toString();
+          const entryEmail =
+            entry.email && typeof entry.email === "string"
+              ? entry.email.toLowerCase()
+              : "";
+          return (
+            entryId === normalizedUserId ||
+            (normalizedEmail && entryEmail === normalizedEmail)
+          );
+        });
+
+        const permissionsCopy = role.permissions
+          ? { ...role.permissions }
+          : {};
+
+        if (localIndex === -1) {
+          localAccounts.push({
+            id: normalizedUserId,
+            email: normalizedEmail || "",
+            password: "",
+            role: role.name,
+            permissions: permissionsCopy,
+            name: customerAccounts[targetIndex]?.name || "",
+            username: customerAccounts[targetIndex]?.username || "",
+            status: customerAccounts[targetIndex]?.status || "active",
+            createdAt:
+              customerAccounts[targetIndex]?.createdAt ||
+              new Date().toISOString(),
+          });
+        } else {
+          localAccounts[localIndex] = {
+            ...localAccounts[localIndex],
+            role: role.name,
+            permissions: permissionsCopy,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+
+        localStorage.setItem("localAccounts", JSON.stringify(localAccounts));
+      } catch (error) {
+        console.warn("Failed to update localAccounts with role info:", error);
+      }
+
       return {
         success: true,
         message: "Role assigned successfully in localStorage",
@@ -1687,34 +1994,46 @@ class ApiService {
 
   async getUserRole(userId) {
     try {
-      // First try to get the role from MongoDB
-      try {
-        console.log(
-          `Attempting to get role for user ${userId} from MongoDB...`
-        );
-        const response = await this.request(
-          `customer/accounts/${userId}/role`,
-          "GET"
-        );
+      const normalizedUserId =
+        userId && userId.toString ? userId.toString() : String(userId || "");
+      const isMongoObjectId = /^[a-f\d]{24}$/i.test(normalizedUserId);
 
-        // If successful, return the response
-        if (response && response.success) {
-          console.log("Got user role successfully from MongoDB");
-
-          // Also update localStorage to keep it in sync
-          if (response.data && response.data.roleId) {
-            this.syncUserRoleToLocalStorage(userId, response.data.roleId);
-          }
-
-          return response;
-        } else {
-          console.warn(
-            "MongoDB role fetch failed, falling back to localStorage"
+      if (isMongoObjectId) {
+        try {
+          console.log(
+            `Attempting to get role for user ${normalizedUserId} from MongoDB...`
           );
+          const response = await this.request(
+            `customer/accounts/${normalizedUserId}/role`,
+            "GET"
+          );
+
+          // If successful, return the response
+          if (response && response.success) {
+            console.log("Got user role successfully from MongoDB");
+
+            // Also update localStorage to keep it in sync
+            if (response.data && response.data.roleId) {
+              this.syncUserRoleToLocalStorage(
+                normalizedUserId,
+                response.data.roleId
+              );
+            }
+
+            return response;
+          } else {
+            console.warn(
+              "MongoDB role fetch failed, falling back to localStorage"
+            );
+          }
+        } catch (apiError) {
+          console.warn("API error when getting user role:", apiError);
+          // Continue to localStorage fallback
         }
-      } catch (apiError) {
-        console.warn("API error when getting user role:", apiError);
-        // Continue to localStorage fallback
+      } else {
+        console.log(
+          `Skipping MongoDB role fetch for ${normalizedUserId} (not an ObjectId), using localStorage`
+        );
       }
 
       console.log(
@@ -1730,19 +2049,127 @@ class ApiService {
       }
 
       // Find account
-      const account = accounts.find((a) => a.id === userId || a._id === userId);
+      const account = accounts.find((a) => {
+        if (!a) return false;
+        const accountId = a.id && a.id.toString ? a.id.toString() : a.id;
+        const accountObjectId =
+          a._id && a._id.toString ? a._id.toString() : a._id;
+        return (
+          (accountId && accountId === normalizedUserId) ||
+          (accountObjectId && accountObjectId === normalizedUserId)
+        );
+      });
 
       if (!account) {
         return { success: false, message: "User not found" };
       }
 
-      // Return role info
+      const accountRole =
+        account.role && typeof account.role === "object" ? account.role : null;
+      const accountPermissions =
+        account.permissions && typeof account.permissions === "object"
+          ? account.permissions
+          : {};
+
+      const resolvedRoleId =
+        account.roleId ||
+        (accountRole && (accountRole.id || accountRole._id)) ||
+        account.roleIdString ||
+        null;
+
+      let roleName =
+        account.roleName ||
+        (accountRole && (accountRole.name || accountRole.nameEn)) ||
+        null;
+
+      let roleDetails = null;
+
+      if (accountRole) {
+        roleDetails = {
+          id: accountRole.id || accountRole._id || resolvedRoleId,
+          name: accountRole.name || null,
+          nameEn: accountRole.nameEn || null,
+          color: accountRole.color || null,
+          icon: accountRole.icon || null,
+          permissions:
+            accountRole.permissions &&
+            typeof accountRole.permissions === "object"
+              ? accountRole.permissions
+              : null,
+        };
+      }
+
+      const localRoles = this.ensureLocalRolesSeeded();
+      let matchedRole = null;
+
+      if (resolvedRoleId) {
+        matchedRole = localRoles.find((role) => {
+          if (!role) return false;
+          const roleId = role.id || role._id;
+          return roleId && roleId.toString() === resolvedRoleId.toString();
+        });
+      }
+
+      if (matchedRole) {
+        roleDetails = {
+          id: matchedRole.id || matchedRole._id || resolvedRoleId,
+          name: matchedRole.name || roleDetails?.name || null,
+          nameEn: matchedRole.nameEn || roleDetails?.nameEn || null,
+          color: matchedRole.color || roleDetails?.color || null,
+          icon: matchedRole.icon || roleDetails?.icon || null,
+          permissions: matchedRole.permissions || roleDetails?.permissions || null,
+        };
+      }
+
+      let permissionsToUse =
+        (roleDetails && roleDetails.permissions) || accountPermissions || null;
+
+      if (permissionsToUse && matchedRole && matchedRole.permissions) {
+        permissionsToUse = {
+          ...matchedRole.permissions,
+          ...permissionsToUse,
+        };
+      }
+
+      if (!permissionsToUse && matchedRole && matchedRole.permissions) {
+        permissionsToUse = { ...matchedRole.permissions };
+      }
+
+      if (!permissionsToUse && accountRole && accountRole.permissions) {
+        permissionsToUse = { ...accountRole.permissions };
+      }
+
+      if (!permissionsToUse && accountPermissions) {
+        permissionsToUse = { ...accountPermissions };
+      }
+
+      if (roleDetails) {
+        roleDetails = {
+          ...roleDetails,
+          permissions: permissionsToUse || {},
+        };
+      } else if (resolvedRoleId || roleName || permissionsToUse) {
+        roleDetails = {
+          id: resolvedRoleId,
+          name: roleName,
+          permissions: permissionsToUse || {},
+        };
+      }
+
+      if (!roleName) {
+        roleName =
+          roleDetails?.name ||
+          roleDetails?.nameEn ||
+          (matchedRole && (matchedRole.name || matchedRole.nameEn)) ||
+          null;
+      }
+
       return {
         success: true,
         data: {
-          roleId: account.roleId || (account.role && account.role.id) || null,
-          roleName:
-            account.roleName || (account.role && account.role.name) || null,
+          roleId: resolvedRoleId,
+          roleName,
+          role: roleDetails,
         },
       };
     } catch (error) {

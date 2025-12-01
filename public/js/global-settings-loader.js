@@ -8,6 +8,8 @@
     const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
     return isLocal ? "http://localhost:5000/api" : `${origin}/api`;
   })();
+  const DEFAULT_HERO_BANNER_IMAGE =
+    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800";
 
   // Global settings object that will be populated from the API
   window.globalSettings = {
@@ -26,8 +28,46 @@
     socialFacebook: "",
     socialInstagram: "",
     socialTwitter: "",
+    heroBannerImage: DEFAULT_HERO_BANNER_IMAGE,
     loaded: false,
   };
+
+  function applyDefaultLanguageToLocalStorage(settings) {
+    if (!settings) {
+      return false;
+    }
+
+    const defaultLang = settings.defaultLanguage || "ar";
+
+    try {
+      const storedLang = localStorage.getItem("public-language");
+      const languageSource = localStorage.getItem("public-language-source");
+
+      if (languageSource === "user") {
+        return false;
+      }
+
+      const needsUpdate =
+        !storedLang ||
+        storedLang !== defaultLang ||
+        languageSource !== "default";
+
+      if (needsUpdate) {
+        localStorage.setItem("public-language", defaultLang);
+        localStorage.setItem("public-language-source", "default");
+        window.dispatchEvent(
+          new CustomEvent("public-language-updated", {
+            detail: { language: defaultLang, source: "default" },
+          })
+        );
+        return true;
+      }
+    } catch (error) {
+      console.warn("Failed to persist default language:", error);
+    }
+
+    return false;
+  }
 
   // Currency translation mapping
   const currencyTranslations = {
@@ -109,56 +149,77 @@
     return "";
   };
 
-  // Function to load global settings from the API
   async function loadGlobalSettings() {
     try {
-      const response = await fetch(`${API_BASE_URL}/global-settings`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // Update global settings with data from API
-        Object.assign(window.globalSettings, result.data);
-        // Ensure currency is available for both language modes
-        if (result.data.currency) {
-          window.globalSettings.currency = result.data.currency;
+      const saved = localStorage.getItem("globalSettings");
+      if (saved) {
+        let data = {};
+        try {
+          data = JSON.parse(saved) || {};
+        } catch (_) {
+          data = {};
         }
+
+        Object.assign(window.globalSettings, data);
+
+        if (!window.globalSettings.heroBannerImage) {
+          window.globalSettings.heroBannerImage = DEFAULT_HERO_BANNER_IMAGE;
+          try {
+            localStorage.setItem(
+              "globalSettings",
+              JSON.stringify(window.globalSettings)
+            );
+          } catch (error) {
+            console.warn("Failed to persist hero banner image default:", error);
+          }
+        }
+
+        if (data.currency) {
+          window.globalSettings.currency = data.currency;
+        }
+
+        applyDefaultLanguageToLocalStorage(window.globalSettings);
+
         window.globalSettings.loaded = true;
 
-        // Dispatch event to notify other scripts that settings are loaded
         window.dispatchEvent(
           new CustomEvent("global-settings-loaded", {
             detail: window.globalSettings,
           })
         );
 
-        console.log("Global settings loaded successfully:", window.globalSettings);
+        if (typeof refreshAllCurrencyDisplays === "function") {
+          refreshAllCurrencyDisplays();
+        }
         return window.globalSettings;
-      } else {
-        throw new Error(result.message || "Failed to load settings");
       }
     } catch (error) {
-      console.warn("Error loading global settings, using defaults:", error);
-      window.globalSettings.loaded = false;
-      
-      // Dispatch event even on error so other scripts know loading is complete
-      window.dispatchEvent(
-        new CustomEvent("global-settings-loaded", {
-          detail: window.globalSettings,
-        })
-      );
-      
-      return window.globalSettings;
+      console.warn("Failed to load saved global settings:", error);
     }
+
+    window.globalSettings.heroBannerImage = DEFAULT_HERO_BANNER_IMAGE;
+    window.globalSettings.loaded = true;
+    try {
+      localStorage.setItem(
+        "globalSettings",
+        JSON.stringify(window.globalSettings)
+      );
+    } catch (persistError) {
+      console.warn("Failed to persist default global settings:", persistError);
+    }
+
+    applyDefaultLanguageToLocalStorage(window.globalSettings);
+
+    window.dispatchEvent(
+      new CustomEvent("global-settings-loaded", {
+        detail: window.globalSettings,
+      })
+    );
+
+    if (typeof refreshAllCurrencyDisplays === "function") {
+      refreshAllCurrencyDisplays();
+    }
+    return window.globalSettings;
   }
 
   // Function to reload global settings (useful after admin updates)
@@ -178,6 +239,8 @@
         }
         window.globalSettings.loaded = true;
         
+        applyDefaultLanguageToLocalStorage(window.globalSettings);
+
         // Dispatch event to notify other scripts
         window.dispatchEvent(
           new CustomEvent("global-settings-changed", {
@@ -186,53 +249,12 @@
         );
         
         // Refresh all currency displays
-        refreshAllCurrencyDisplays();
+        if (typeof refreshAllCurrencyDisplays === "function") {
+          refreshAllCurrencyDisplays();
+        }
       }
     });
   }
-
-  // Function to refresh all currency displays on the page
-  function refreshAllCurrencyDisplays() {
-    console.log("Refreshing all currency displays with new settings");
-    
-    // Trigger cart recalculation if on cart page
-    if (typeof calculateTotals === "function") {
-      calculateTotals();
-    }
-    
-    // Trigger product display refresh if on menu page
-    if (typeof displayProducts === "function") {
-      displayProducts();
-    }
-    
-    // Refresh cashier displays if on cashier page
-    if (typeof updateOrderSummary === "function") {
-      updateOrderSummary();
-    }
-    
-    if (typeof updateCartDisplay === "function") {
-      updateCartDisplay();
-    }
-    
-    // Refresh any visible price elements
-    refreshPriceElements();
-  }
-
-  // Function to refresh individual price elements
-  function refreshPriceElements() {
-    // Find all elements with price data and update them
-    const priceElements = document.querySelectorAll('[data-price]');
-    priceElements.forEach(element => {
-      const price = parseFloat(element.getAttribute('data-price'));
-      if (!isNaN(price)) {
-        const currencyText = getCurrencyText();
-        element.textContent = `${price.toFixed(2)} ${currencyText}`;
-      }
-    });
-  }
-
-  // Export refresh function
-  window.refreshAllCurrencyDisplays = refreshAllCurrencyDisplays;
 
   // Listen for BroadcastChannel updates from admin panel
   if (typeof BroadcastChannel !== 'undefined') {
@@ -246,7 +268,9 @@
           window.globalSettings.currency = event.data.data.currency;
         }
         window.globalSettings.loaded = true;
-        
+
+        applyDefaultLanguageToLocalStorage(window.globalSettings);
+
         // Dispatch event to notify other scripts
         window.dispatchEvent(
           new CustomEvent("global-settings-changed", {
@@ -255,7 +279,9 @@
         );
         
         // Refresh all currency displays
-        refreshAllCurrencyDisplays();
+        if (typeof refreshAllCurrencyDisplays === "function") {
+          refreshAllCurrencyDisplays();
+        }
       }
     };
   }
@@ -273,7 +299,9 @@
             window.globalSettings.currency = update.settings.currency;
           }
           window.globalSettings.loaded = true;
-          
+
+          applyDefaultLanguageToLocalStorage(window.globalSettings);
+
           // Dispatch event to notify other scripts
           window.dispatchEvent(
             new CustomEvent("global-settings-changed", {
@@ -282,7 +310,9 @@
           );
           
           // Refresh all currency displays
-          refreshAllCurrencyDisplays();
+          if (typeof refreshAllCurrencyDisplays === "function") {
+            refreshAllCurrencyDisplays();
+          }
         }
       } catch (error) {
         console.error('Error parsing settings update:', error);
@@ -290,32 +320,12 @@
     }
   });
 
-  // Auto-load settings when DOM is ready
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", loadGlobalSettings);
   } else {
-    // DOM is already ready, load immediately
     loadGlobalSettings();
   }
 
   // Export the load function for manual calls
   window.loadGlobalSettings = loadGlobalSettings;
 })();
-        // Apply default language if user has no preference saved
-        if (result.data.defaultLanguage) {
-          window.globalSettings.defaultLanguage = result.data.defaultLanguage;
-          const savedLang = localStorage.getItem("public-language");
-          if (!savedLang) {
-            localStorage.setItem("public-language", result.data.defaultLanguage);
-            if (typeof switchLanguage === "function") {
-              try {
-                if (typeof getCurrentLanguage === "function") {
-                  const cur = getCurrentLanguage();
-                  if (cur !== result.data.defaultLanguage) {
-                    switchLanguage();
-                  }
-                }
-              } catch (_) {}
-            }
-          }
-        }

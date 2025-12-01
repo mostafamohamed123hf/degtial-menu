@@ -4,6 +4,156 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
+function createLocalJwt(payload = {}) {
+  const header = { alg: "HS256", typ: "JWT" };
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30; // 30 days
+  const fullPayload = { ...payload, exp };
+  const encode = (obj) => btoa(JSON.stringify(obj));
+  return `${encode(header)}.${encode(fullPayload)}.localtoken`;
+}
+
+function ensureDefaultAccountsSeeded() {
+  const defaults = [
+    {
+      id: "admin-default",
+      name: "Administrator",
+      username: "admin",
+      email: "admin@gmail.com",
+      password: "admin123",
+      role: "admin",
+      status: "active",
+      permissions: {
+        adminPanel: true,
+        cashier: true,
+        stats: true,
+        reservations: true,
+        kitchen: true,
+        productsView: true,
+        productsEdit: true,
+        vouchersView: true,
+        vouchersEdit: true,
+      },
+    },
+    {
+      id: "customer-default",
+      name: "Guest User",
+      username: "user",
+      email: "user@gmail.com",
+      password: "user123",
+      role: "user",
+      status: "active",
+      permissions: {
+        adminPanel: false,
+        cashier: false,
+        stats: false,
+        reservations: false,
+        kitchen: false,
+        productsView: true,
+        productsEdit: false,
+        vouchersView: true,
+        vouchersEdit: false,
+      },
+    },
+  ];
+
+  let localAccounts = [];
+  try {
+    const stored = localStorage.getItem("localAccounts");
+    localAccounts = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(localAccounts)) localAccounts = [];
+  } catch (_) {
+    localAccounts = [];
+  }
+
+  let customerAccounts = [];
+  try {
+    const storedCustomers = localStorage.getItem("customerAccounts");
+    customerAccounts = storedCustomers ? JSON.parse(storedCustomers) : [];
+    if (!Array.isArray(customerAccounts)) customerAccounts = [];
+  } catch (_) {
+    customerAccounts = [];
+  }
+
+  let updatedLocal = false;
+  defaults.forEach((account) => {
+    const index = localAccounts.findIndex(
+      (item) =>
+        item &&
+        typeof item.email === "string" &&
+        item.email.toLowerCase() === account.email.toLowerCase()
+    );
+
+    const newEntry = {
+      id: account.id,
+      name: account.name,
+      username: account.username,
+      email: account.email,
+      password: account.password,
+      role: account.role,
+      status: account.status,
+      permissions: account.permissions,
+      createdAt: new Date().toISOString(),
+      loyaltyPoints: account.loyaltyPoints || 0,
+      pointsHistory: account.pointsHistory || [],
+    };
+
+    if (index === -1) {
+      localAccounts.push(newEntry);
+      updatedLocal = true;
+    } else {
+      localAccounts[index] = {
+        ...localAccounts[index],
+        ...newEntry,
+      };
+      updatedLocal = true;
+    }
+  });
+
+  if (updatedLocal) {
+    localStorage.setItem("localAccounts", JSON.stringify(localAccounts));
+  }
+
+  let updatedCustomers = false;
+  defaults.forEach((account) => {
+    const index = customerAccounts.findIndex(
+      (item) =>
+        item &&
+        typeof item.email === "string" &&
+        item.email.toLowerCase() === account.email.toLowerCase()
+    );
+
+    const newEntry = {
+      id: account.id,
+      name: account.name,
+      email: account.email,
+      username: account.username,
+      status: account.status,
+      role: account.role,
+      roleId: account.role,
+      createdAt: new Date().toISOString(),
+      ordersCount: 0,
+      totalSpent: 0,
+      loyaltyPoints: account.role === "admin" ? 500 : 100,
+      permissions: account.permissions,
+    };
+
+    if (index === -1) {
+      customerAccounts.push(newEntry);
+      updatedCustomers = true;
+    } else {
+      customerAccounts[index] = {
+        ...customerAccounts[index],
+        ...newEntry,
+      };
+      updatedCustomers = true;
+    }
+  });
+
+  if (updatedCustomers) {
+    localStorage.setItem("customerAccounts", JSON.stringify(customerAccounts));
+  }
+}
+
 // Username validation function
 function isValidUsername(username) {
   const usernameRegex = /^[a-zA-Z0-9_\-.]{3,30}$/;
@@ -29,6 +179,82 @@ const togglePasswordFunctionality = (toggleId, passwordId) => {
     }
   });
 };
+
+function deriveUserDisplayName(user) {
+  if (!user || typeof user !== "object") return "";
+  if (typeof user.name === "string" && user.name.trim()) return user.name.trim();
+  if (typeof user.fullName === "string" && user.fullName.trim())
+    return user.fullName.trim();
+  if (typeof user.displayName === "string" && user.displayName.trim())
+    return user.displayName.trim();
+  const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
+  const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
+  const combined = `${firstName} ${lastName}`.trim();
+  if (combined) return combined;
+  if (typeof user.username === "string" && user.username.trim())
+    return user.username.trim();
+  if (typeof user.email === "string" && user.email.trim())
+    return user.email.split("@")[0];
+  return "";
+}
+
+function persistCustomerProfile(user) {
+  if (!user || typeof user !== "object") return;
+
+  let existing = {};
+  try {
+    const raw = localStorage.getItem("userData");
+    if (raw) {
+      existing = JSON.parse(raw) || {};
+    }
+  } catch (error) {
+    console.warn("Unable to parse existing user data:", error);
+  }
+
+  const name = deriveUserDisplayName(user) || existing.name || "";
+  const emailCandidate =
+    typeof user.email === "string" && user.email.includes("@")
+      ? user.email
+      : existing.email || "";
+  const phoneCandidate =
+    user.phone ||
+    user.phoneNumber ||
+    user.contactNumber ||
+    user.mobile ||
+    existing.phone ||
+    "";
+
+  const loyaltyPoints = Number.isFinite(user.loyaltyPoints)
+    ? Number(user.loyaltyPoints)
+    : Number.isFinite(existing.loyaltyPoints)
+    ? Number(existing.loyaltyPoints)
+    : 0;
+
+  const mergedUserData = {
+    ...existing,
+    name: name || existing.name || "",
+    email: emailCandidate,
+    phone: phoneCandidate,
+    username: user.username || existing.username,
+    loyaltyPoints,
+    points: loyaltyPoints,
+    profilePhoto: user.profilePhoto || user.avatar || existing.profilePhoto || "",
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (Array.isArray(user.pointsHistory) && user.pointsHistory.length > 0) {
+    mergedUserData.pointsHistory = user.pointsHistory;
+  }
+
+  try {
+    localStorage.setItem("userData", JSON.stringify(mergedUserData));
+    if (mergedUserData.email) {
+      localStorage.setItem("userEmail", mergedUserData.email);
+    }
+  } catch (error) {
+    console.error("Failed to persist user profile:", error);
+  }
+}
 
 // Toast notification function
 function showToast(message, type = "success", duration = 3000, title = "") {
@@ -100,6 +326,11 @@ function showToast(message, type = "success", duration = 3000, title = "") {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  try {
+    ensureDefaultAccountsSeeded();
+  } catch (seedError) {
+    console.error("Failed to seed default accounts:", seedError);
+  }
   // Check if i18n functions are available
   const i18nAvailable =
     typeof window.i18n === "object" &&
@@ -292,73 +523,95 @@ document.addEventListener("DOMContentLoaded", () => {
           : "جاري إنشاء الحساب...");
       submitButton.disabled = true;
 
-      // Prepare data for server
       const registerData = {
         name,
         username,
         email: contact,
         password,
         termsAccepted,
+        createdAt: new Date().toISOString(),
+        role: "user",
       };
 
-      // Send data to the server
-      fetch("/api/customer/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(registerData),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            // Store the token in localStorage
-            if (data.token && typeof data.token === "string") {
-              localStorage.setItem("token", data.token);
-              // console.log("Token stored successfully");
-            } else {
-              // console.error("Invalid token received from server");
-            }
+      let existingAccounts = [];
+      try {
+        existingAccounts = JSON.parse(
+          localStorage.getItem("localAccounts") || "[]"
+        );
+        if (!Array.isArray(existingAccounts)) {
+          existingAccounts = [];
+        }
+      } catch (storageError) {
+        console.warn("Failed to parse existing accounts:", storageError);
+        existingAccounts = [];
+      }
 
-            // Show success message
-            showToast(
-              i18nAvailable
-                ? window.i18n.getTranslation("registerSuccessMessage")
-                : "يمكنك الآن تسجيل الدخول والاستفادة من جميع المزايا",
-              "success",
-              3000,
-              i18nAvailable
-                ? window.i18n.getTranslation("registerSuccess")
-                : "تم إنشاء الحساب بنجاح!"
-            );
+      const emailExists = existingAccounts.some(
+        (account) =>
+          account &&
+          typeof account.email === "string" &&
+          account.email.toLowerCase() === registerData.email.toLowerCase()
+      );
 
-            // Go back to login form
-            document.body.classList.remove("show-register");
+      if (emailExists) {
+        errorText.textContent = i18nAvailable
+          ? window.i18n.getTranslation("emailAlreadyRegistered") ||
+            "هذا البريد الإلكتروني مسجل مسبقاً"
+          : "هذا البريد الإلكتروني مسجل مسبقاً";
+        errorMessage.classList.add("show");
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+        return;
+      }
 
-            // Reset the form
-            this.reset();
+      existingAccounts.push(registerData);
 
-            // Dispatch auth state changed event
-            if (typeof dispatchAuthStateChanged === "function") {
-              dispatchAuthStateChanged();
-            }
-          } else {
-            // Show error message
-            errorText.textContent =
-              data.message || "حدث خطأ أثناء إنشاء الحساب";
-            errorMessage.classList.add("show");
-          }
-        })
-        .catch((error) => {
-          // console.error("Error:", error);
-          errorText.textContent = "حدث خطأ في الاتصال بالخادم";
-          errorMessage.classList.add("show");
-        })
-        .finally(() => {
-          // Restore button state
-          submitButton.innerHTML = originalText;
-          submitButton.disabled = false;
-        });
+      try {
+        localStorage.setItem("localAccounts", JSON.stringify(existingAccounts));
+      } catch (storageSetError) {
+        console.error("Failed to persist local accounts:", storageSetError);
+        errorText.textContent =
+          i18nAvailable
+            ? window.i18n.getTranslation("errorSavingAccount") ||
+              "تعذر حفظ الحساب محلياً"
+            : "تعذر حفظ الحساب محلياً";
+        errorMessage.classList.add("show");
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+        return;
+      }
+
+      const profilePayload = {
+        name,
+        username,
+        email: contact,
+        loyaltyPoints: 0,
+        pointsHistory: [],
+      };
+
+      persistCustomerProfile(profilePayload);
+
+      showToast(
+        i18nAvailable
+          ? window.i18n.getTranslation("registerSuccessMessage")
+          : "يمكنك الآن تسجيل الدخول والاستفادة من جميع المزايا",
+        "success",
+        3000,
+        i18nAvailable
+          ? window.i18n.getTranslation("registerSuccess")
+          : "تم إنشاء الحساب بنجاح!"
+      );
+
+      document.body.classList.remove("show-register");
+
+      this.reset();
+
+      if (typeof dispatchAuthStateChanged === "function") {
+        dispatchAuthStateChanged();
+      }
+
+      submitButton.innerHTML = originalText;
+      submitButton.disabled = false;
     });
 
   // Login form submission
@@ -409,51 +662,125 @@ document.addEventListener("DOMContentLoaded", () => {
         password: password,
       };
 
-      // Send data to the server
+      let authenticated = false;
+
+      try {
+        const localAccounts = JSON.parse(
+          localStorage.getItem("localAccounts") || "[]"
+        );
+        if (Array.isArray(localAccounts)) {
+          const matchedAccount = localAccounts.find(
+            (account) =>
+              account &&
+              typeof account.email === "string" &&
+              account.email.toLowerCase() === email.toLowerCase()
+          );
+
+          if (matchedAccount && matchedAccount.password === password) {
+            const token = createLocalJwt({
+              email: matchedAccount.email,
+              role: matchedAccount.role,
+            });
+
+            setToken(token);
+            if (matchedAccount.permissions) {
+              setUserPermissions(matchedAccount.permissions);
+            }
+
+            persistCustomerProfile({
+              name: matchedAccount.name,
+              username: matchedAccount.username,
+              email: matchedAccount.email,
+              loyaltyPoints: matchedAccount.loyaltyPoints || 0,
+              pointsHistory: matchedAccount.pointsHistory || [],
+            });
+
+            authenticated = true;
+          }
+        }
+      } catch (parseError) {
+        console.warn("Failed to read local accounts:", parseError);
+      }
+
+      if (authenticated) {
+        showToast(
+          i18nAvailable
+            ? window.i18n.getTranslation("redirectingToHome")
+            : "جاري تحويلك إلى الصفحة الرئيسية...",
+          "success",
+          1500,
+          i18nAvailable
+            ? window.i18n.getTranslation("loginSuccess")
+            : "تم تسجيل الدخول بنجاح!"
+        );
+
+        if (typeof dispatchAuthStateChanged === "function") {
+          dispatchAuthStateChanged();
+        }
+
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1500);
+
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+        return;
+      }
+
+      // Fallback to server authentication if local match not found
       fetch("/api/customer/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(loginData),
-        credentials: "include", // Include cookies in the request
+        credentials: "include",
       })
         .then((response) => {
-          // Always parse the JSON regardless of status code
           return response.json().then((data) => {
             return { status: response.status, data };
           });
         })
         .then((result) => {
           if (result.status === 200 && result.data.success) {
-            // Login successful
-            // Store the token using our setToken function
             if (typeof setToken === "function") {
               setToken(result.data.token);
             } else {
-              // Fallback if setToken is not available
               localStorage.setItem("token", result.data.token);
             }
 
-            // Store user permissions if available
-            if (result.data.user && result.data.user.permissions) {
-              if (typeof setUserPermissions === "function") {
-                setUserPermissions(result.data.user.permissions);
-              } else {
-                // Fallback if setUserPermissions is not available
-                localStorage.setItem(
-                  "userPermissions",
-                  JSON.stringify(result.data.user.permissions)
-                );
-              }
+            const profilePayload =
+              result.data.user && typeof result.data.user === "object"
+                ? { ...result.data.user }
+                : {
+                    email,
+                    username: result.data.username || "",
+                    name: result.data.name || "",
+                  };
+
+            if (!profilePayload.email && email) {
+              profilePayload.email = email;
             }
 
-            // Dispatch auth state changed event if available
+            if (!profilePayload.name && profilePayload.fullName) {
+              profilePayload.name = profilePayload.fullName;
+            }
+
+            const derivedName = deriveUserDisplayName(profilePayload);
+            if (derivedName) {
+              profilePayload.name = derivedName;
+            }
+
+            persistCustomerProfile(profilePayload);
+
+            if (result.data.user && result.data.user.permissions) {
+              setUserPermissions(result.data.user.permissions);
+            }
+
             if (typeof dispatchAuthStateChanged === "function") {
               dispatchAuthStateChanged();
             }
 
-            // Show success message
             showToast(
               i18nAvailable
                 ? window.i18n.getTranslation("redirectingToHome")
@@ -465,24 +792,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 : "تم تسجيل الدخول بنجاح!"
             );
 
-            // Redirect to index page after a delay
             setTimeout(() => {
               window.location.href = "index.html";
             }, 1500);
           } else {
-            // Login failed
             const message = result.data.message || "بيانات الدخول غير صحيحة";
-
             errorText.textContent = message;
             errorMessage.classList.add("show");
           }
         })
-        .catch((error) => {
+        .catch(() => {
           errorText.textContent = "حدث خطأ في الاتصال بالخادم";
           errorMessage.classList.add("show");
         })
         .finally(() => {
-          // Restore button state
           submitButton.innerHTML = originalText;
           submitButton.disabled = false;
         });

@@ -7,6 +7,175 @@ window.API_BASE_URL = window.API_BASE_URL || (function () {
   return isLocal ? "http://localhost:5000" : origin;
 })();
 
+function seedDefaultAdminAccount() {
+  try {
+    const defaultAdmin = {
+      username: "admin",
+      email: "admin@gmail.com",
+      password: "admin123",
+      displayName: "Administrator",
+      permissions: {
+        adminPanel: true,
+        stats: true,
+        productsView: true,
+        productsEdit: true,
+        vouchersView: true,
+        vouchersEdit: true,
+        tax: true,
+        qr: true,
+        reservations: true,
+        loyaltyPoints: true,
+        users: true,
+        kitchen: true,
+      },
+    };
+
+    let storedCredentials = null;
+    try {
+      const rawCreds = localStorage.getItem("adminCredentials");
+      storedCredentials = rawCreds ? JSON.parse(rawCreds) : null;
+    } catch (_) {
+      storedCredentials = null;
+    }
+
+    const normalizedDefaultUsername = defaultAdmin.username.trim().toLowerCase();
+    const normalizedDefaultPassword = defaultAdmin.password.trim();
+
+    let shouldUpdateCredentials = true;
+
+    if (storedCredentials && storedCredentials.username && storedCredentials.password) {
+      const storedRawUsername = String(storedCredentials.username);
+      const storedNormalizedUsername = storedRawUsername.trim().toLowerCase();
+      const storedPassword = String(storedCredentials.password).trim();
+
+      if (
+        storedNormalizedUsername === normalizedDefaultUsername &&
+        storedPassword === normalizedDefaultPassword &&
+        storedRawUsername === storedRawUsername.trim()
+      ) {
+        shouldUpdateCredentials = false;
+      }
+    }
+
+    if (shouldUpdateCredentials) {
+      const updatedCredentials = {
+        username: defaultAdmin.username,
+        email: defaultAdmin.email,
+        password: defaultAdmin.password,
+        displayName: defaultAdmin.displayName,
+        permissions: defaultAdmin.permissions,
+      };
+
+      localStorage.setItem("adminCredentials", JSON.stringify(updatedCredentials));
+      storedCredentials = updatedCredentials;
+    }
+
+    let localAccounts = [];
+    try {
+      const rawLocalAccounts = localStorage.getItem("localAccounts");
+      localAccounts = rawLocalAccounts ? JSON.parse(rawLocalAccounts) : [];
+      if (!Array.isArray(localAccounts)) localAccounts = [];
+    } catch (_) {
+      localAccounts = [];
+    }
+
+    const adminAccountExists = localAccounts.some(
+      (account) =>
+        account &&
+        typeof account.email === "string" &&
+        account.email.toLowerCase() === defaultAdmin.email.toLowerCase()
+    );
+
+    if (!adminAccountExists) {
+      localAccounts.push({
+        id: "admin-default",
+        name: defaultAdmin.displayName,
+        username: defaultAdmin.username,
+        email: defaultAdmin.email,
+        password: defaultAdmin.password,
+        role: "admin",
+        status: "active",
+        permissions: defaultAdmin.permissions,
+        createdAt: new Date().toISOString(),
+        loyaltyPoints: 0,
+        pointsHistory: [],
+      });
+    } else {
+      localAccounts = localAccounts.map((account) => {
+        if (
+          account &&
+          typeof account.email === "string" &&
+          account.email.toLowerCase() === defaultAdmin.email.toLowerCase()
+        ) {
+          return {
+            ...account,
+            username: defaultAdmin.username,
+            password: defaultAdmin.password,
+            permissions: defaultAdmin.permissions,
+          };
+        }
+        return account;
+      });
+    }
+
+    localStorage.setItem("localAccounts", JSON.stringify(localAccounts));
+
+    let customerAccounts = [];
+    try {
+      const rawCustomers = localStorage.getItem("customerAccounts");
+      customerAccounts = rawCustomers ? JSON.parse(rawCustomers) : [];
+      if (!Array.isArray(customerAccounts)) customerAccounts = [];
+    } catch (_) {
+      customerAccounts = [];
+    }
+
+    const adminCustomerExists = customerAccounts.some(
+      (account) =>
+        account &&
+        typeof account.email === "string" &&
+        account.email.toLowerCase() === defaultAdmin.email.toLowerCase()
+    );
+
+    if (!adminCustomerExists) {
+      customerAccounts.push({
+        id: "admin-default",
+        name: defaultAdmin.displayName,
+        email: defaultAdmin.email,
+        username: defaultAdmin.username,
+        status: "active",
+        role: "admin",
+        roleId: "admin",
+        createdAt: new Date().toISOString(),
+        ordersCount: 0,
+        totalSpent: 0,
+        loyaltyPoints: 0,
+        permissions: defaultAdmin.permissions,
+      });
+    } else {
+      customerAccounts = customerAccounts.map((account) => {
+        if (
+          account &&
+          typeof account.email === "string" &&
+          account.email.toLowerCase() === defaultAdmin.email.toLowerCase()
+        ) {
+          return {
+            ...account,
+            username: defaultAdmin.username,
+            role: "admin",
+            roleId: "admin",
+            permissions: defaultAdmin.permissions,
+          };
+        }
+        return account;
+      });
+    }
+
+    localStorage.setItem("customerAccounts", JSON.stringify(customerAccounts));
+  } catch (error) {
+    console.error("Failed to seed default admin account:", error);
+  }
+}
+
 function isAuthenticated() {
   try {
     // Get session from localStorage
@@ -36,6 +205,7 @@ function isAuthenticated() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  seedDefaultAdminAccount();
   // If we're on the admin login page, set up the login form
   if (window.location.pathname.includes("admin-login.html")) {
     setupLoginPage();
@@ -355,7 +525,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Check if credentials match
       if (
-        credentials.username === username &&
+        credentials.username &&
+        credentials.username.toLowerCase() === username.toLowerCase() &&
         credentials.password === password
       ) {
         return true;

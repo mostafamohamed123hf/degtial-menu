@@ -18,6 +18,140 @@ let currentAccountFilters = {
 };
 let accountsFilterModal = null;
 
+function seedDefaultCustomerAccounts() {
+  const defaults = [
+    {
+      id: "admin-default",
+      name: "Administrator",
+      username: "admin",
+      email: "admin@gmail.com",
+      status: "active",
+      role: {
+        id: "68f892ae44b61e6b4a3c9c8d",
+        _id: "68f892ae44b61e6b4a3c9c8d",
+        name: "مدير",
+        nameEn: "Administrator",
+        color: "#ff3b30",
+        icon: "fas fa-crown",
+        permissions: {
+          adminPanel: true,
+          cashier: true,
+          stats: true,
+          productsView: true,
+          productsEdit: true,
+          vouchersView: true,
+          vouchersEdit: true,
+          reservations: true,
+          tax: true,
+          points: true,
+          accounts: true,
+          qr: true,
+        },
+      },
+      roleId: "68f892ae44b61e6b4a3c9c8d",
+      roleIdString: "68f892ae44b61e6b4a3c9c8d",
+      roleName: "مدير",
+      roleNameEn: "Administrator",
+      createdAt: new Date().toISOString(),
+      ordersCount: 0,
+      totalSpent: 0,
+      loyaltyPoints: 0,
+      permissions: {
+        adminPanel: true,
+        stats: true,
+        productsView: true,
+        productsEdit: true,
+        vouchersView: true,
+        vouchersEdit: true,
+        tax: true,
+        qr: true,
+        reservations: true,
+        loyaltyPoints: true,
+        users: true,
+      },
+    },
+    {
+      id: "customer-default",
+      name: " User",
+      username: "user",
+      email: "user@gmail.com",
+      status: "active",
+      role: {
+        id: "68f892ae44b61e6b4a3c9c8f",
+        _id: "68f892ae44b61e6b4a3c9c8f",
+        name: "مستخدم",
+        nameEn: "User",
+        color: "#42d158",
+        icon: "fas fa-user",
+        permissions: {
+          adminPanel: false,
+          cashier: false,
+          stats: false,
+          productsView: false,
+          productsEdit: false,
+          vouchersView: false,
+          vouchersEdit: false,
+          reservations: false,
+          tax: false,
+          points: false,
+          accounts: false,
+          qr: false,
+        },
+      },
+      roleId: "68f892ae44b61e6b4a3c9c8f",
+      roleIdString: "68f892ae44b61e6b4a3c9c8f",
+      roleName: "مستخدم",
+      roleNameEn: "User",
+      createdAt: new Date().toISOString(),
+      ordersCount: 0,
+      totalSpent: 0,
+      loyaltyPoints: 0,
+      permissions: {
+        adminPanel: false,
+        stats: false,
+        productsView: true,
+        productsEdit: false,
+        vouchersView: true,
+        vouchersEdit: false,
+        tax: false,
+        qr: false,
+        reservations: false,
+        loyaltyPoints: true,
+        users: false,
+        kitchen: false,
+      },
+    },
+  ];
+
+  let customerAccounts = [];
+  try {
+    const stored = localStorage.getItem("customerAccounts");
+    customerAccounts = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(customerAccounts)) customerAccounts = [];
+  } catch (_) {
+    customerAccounts = [];
+  }
+
+  let updated = false;
+  defaults.forEach((account) => {
+    const exists = customerAccounts.some(
+      (entry) =>
+        entry &&
+        typeof entry.email === "string" &&
+        entry.email.toLowerCase() === account.email.toLowerCase()
+    );
+
+    if (!exists) {
+      customerAccounts.push(account);
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    localStorage.setItem("customerAccounts", JSON.stringify(customerAccounts));
+  }
+}
+
 function escapeHtml(input) {
   if (input === null || input === undefined) {
     return "";
@@ -113,6 +247,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Initialize customer accounts management
 function initCustomerAccounts() {
+  seedDefaultCustomerAccounts();
   // Load customer accounts
   loadCustomerAccounts();
 
@@ -451,10 +586,9 @@ async function loadAllCustomersForDropdowns() {
   }
 }
 
-// Load products for free items dropdown
+// Load products for free items dropdown (localStorage-only)
 async function loadProductsForFreeItems() {
   try {
-    // Get current language
     const currentLang = localStorage.getItem("admin-language") || "ar";
     const isEnglish = currentLang === "en";
 
@@ -463,53 +597,47 @@ async function loadProductsForFreeItems() {
       isEnglish ? "Loading products..." : "جاري تحميل المنتجات..."
     }</option>`;
 
-    // Get products
-    const response = await apiService.getProducts();
-
-    if (response.success) {
-      freeItemProduct.innerHTML = `<option value="">${
-        isEnglish ? "Select Product" : "اختر منتج"
-      }</option>`;
-
-      // Get list of product IDs that are already added as free items
-      const addedProductIds = freeItems.map(item => item.productId);
-
-      // Add products to dropdown (excluding already added ones)
-      response.data.forEach((product) => {
-        // Skip if this product is already added as a free item
-        if (addedProductIds.includes(product._id)) {
-          return;
-        }
-
-        const option = document.createElement("option");
-        option.value = product._id;
-        option.dataset.name = product.name;
-        option.dataset.nameEn = product.nameEn || "";
-        option.dataset.image = product.image;
-
-        // Determine which name to display based on current language
-        let displayName;
-        if (isEnglish && product.nameEn && product.nameEn.trim() !== "") {
-          // Use English name if language is English and English name exists
-          displayName = product.nameEn;
-        } else {
-          // Use Arabic name as fallback or when language is Arabic
-          displayName = product.name;
-        }
-
-        option.textContent = displayName;
-        freeItemProduct.appendChild(option);
-      });
-    } else {
-      freeItemProduct.innerHTML = `<option value="">${
-        isEnglish ? "Failed to load products" : "فشل تحميل المنتجات"
-      }</option>`;
+    // Read products from localStorage
+    let products = [];
+    const saved = localStorage.getItem("products");
+    if (saved) {
+      try {
+        products = JSON.parse(saved);
+      } catch (_) {
+        products = [];
+      }
     }
+
+    // Initialize dropdown header
+    freeItemProduct.innerHTML = `<option value="">${
+      isEnglish ? "Select Product" : "اختر منتج"
+    }</option>`;
+
+    // Exclude already added free items
+    const addedProductIds = freeItems.map((item) => item.productId);
+
+    products.forEach((product) => {
+      const productId = product.id || product._id;
+      if (!productId) return;
+      if (addedProductIds.includes(productId)) return;
+
+      const option = document.createElement("option");
+      option.value = productId;
+      option.dataset.name = product.name || "";
+      option.dataset.nameEn = product.nameEn || "";
+      option.dataset.image = product.image || "";
+
+      const displayName =
+        isEnglish && product.nameEn && product.nameEn.trim() !== ""
+          ? product.nameEn
+          : product.name || "";
+
+      option.textContent = displayName || (isEnglish ? "Unnamed" : "بدون اسم");
+      freeItemProduct.appendChild(option);
+    });
   } catch (error) {
-    // Get current language
     const currentLang = localStorage.getItem("admin-language") || "ar";
     const isEnglish = currentLang === "en";
-
     console.error("Error loading products for free items:", error);
     freeItemProduct.innerHTML = `<option value="">${
       isEnglish ? "Failed to load products" : "فشل تحميل المنتجات"
@@ -693,26 +821,14 @@ async function saveLoyaltyDiscountSettings() {
     '<i class="fas fa-spinner fa-spin"></i> ' + savingText;
 
   try {
-    // Save settings
     const settings = {
       discountPerPoint,
       minPointsForDiscount,
       maxDiscountValue,
       isEnabled,
     };
-
-    // Call API to update settings
-    const response = await apiService.updateLoyaltyDiscountSettings(settings);
-
-    if (response.success) {
-      // Store in localStorage as backup
-      localStorage.setItem("loyaltyDiscountSettings", JSON.stringify(settings));
-
-      // Show success notification
-      showPointsNotification(getTranslation("discountSettingsSaved"), "success");
-    } else {
-      throw new Error(response.message || "Failed to save settings");
-    }
+    localStorage.setItem("loyaltyDiscountSettings", JSON.stringify(settings));
+    showPointsNotification(getTranslation("discountSettingsSaved"), "success");
   } catch (error) {
     console.error("Error saving loyalty discount settings:", error);
     showPointsNotification(getTranslation("errorSavingSettings"), "error");
@@ -737,41 +853,19 @@ async function loadLoyaltySettings() {
     enableCustomDiscount.disabled = true;
     document.getElementById("max-discount-value").disabled = true;
 
-    // Try to get settings from API
-    const response = await apiService.getLoyaltyDiscountSettings();
-
-    if (response.success && response.data) {
-      // Apply settings to form
-      discountPerPointInput.value = response.data.discountPerPoint || 0.5;
-      minPointsForDiscountInput.value =
-        response.data.minPointsForDiscount || 10;
-      enableCustomDiscount.checked = response.data.isEnabled !== false;
+    const settingsJson = localStorage.getItem("loyaltyDiscountSettings");
+    if (settingsJson) {
+      const settings = JSON.parse(settingsJson);
+      discountPerPointInput.value = settings.discountPerPoint || 0.5;
+      minPointsForDiscountInput.value = settings.minPointsForDiscount || 10;
+      enableCustomDiscount.checked = settings.isEnabled !== false;
       document.getElementById("max-discount-value").value =
-        response.data.maxDiscountValue || 50;
-
-      // Store in localStorage as backup
-      localStorage.setItem(
-        "loyaltyDiscountSettings",
-        JSON.stringify(response.data)
-      );
+        settings.maxDiscountValue || 50;
     } else {
-      // If API fails, try to load from localStorage
-      console.warn("API response failed, falling back to localStorage");
-      const settingsJson = localStorage.getItem("loyaltyDiscountSettings");
-      if (settingsJson) {
-        const settings = JSON.parse(settingsJson);
-        discountPerPointInput.value = settings.discountPerPoint || 0.5;
-        minPointsForDiscountInput.value = settings.minPointsForDiscount || 10;
-        enableCustomDiscount.checked = settings.isEnabled !== false;
-        document.getElementById("max-discount-value").value =
-          settings.maxDiscountValue || 50;
-      } else {
-        // Use defaults if no saved settings
-        discountPerPointInput.value = 0.5;
-        minPointsForDiscountInput.value = 10;
-        enableCustomDiscount.checked = true;
-        document.getElementById("max-discount-value").value = 50;
-      }
+      discountPerPointInput.value = 0.5;
+      minPointsForDiscountInput.value = 10;
+      enableCustomDiscount.checked = true;
+      document.getElementById("max-discount-value").value = 50;
     }
 
     // Update max discount display
@@ -812,32 +906,14 @@ async function loadLoyaltyPointsSettings() {
     pointsExchangeRateInput.disabled = true;
     pointsExpiryDaysInput.disabled = true;
 
-    // Try to get settings from API
-    const response = await apiService.getLoyaltyPointsSettings();
-
-    if (response.success && response.data) {
-      // Apply settings to form
-      pointsExchangeRateInput.value = response.data.exchangeRate || 10;
-      pointsExpiryDaysInput.value = response.data.expiryDays || 365;
-
-      // Store in localStorage as backup
-      localStorage.setItem(
-        "loyaltyPointsSettings",
-        JSON.stringify(response.data)
-      );
+    const settingsJson = localStorage.getItem("loyaltyPointsSettings");
+    if (settingsJson) {
+      const settings = JSON.parse(settingsJson);
+      pointsExchangeRateInput.value = settings.exchangeRate || 10;
+      pointsExpiryDaysInput.value = settings.expiryDays || 365;
     } else {
-      // If API fails, try to load from localStorage
-      console.warn("API response failed, falling back to localStorage");
-      const settingsJson = localStorage.getItem("loyaltyPointsSettings");
-      if (settingsJson) {
-        const settings = JSON.parse(settingsJson);
-        pointsExchangeRateInput.value = settings.exchangeRate || 10;
-        pointsExpiryDaysInput.value = settings.expiryDays || 365;
-      } else {
-        // Use defaults if no saved settings
-        pointsExchangeRateInput.value = 10;
-        pointsExpiryDaysInput.value = 365;
-      }
+      pointsExchangeRateInput.value = 10;
+      pointsExpiryDaysInput.value = 365;
     }
   } catch (error) {
     console.error("Error loading loyalty points settings:", error);
@@ -958,56 +1034,29 @@ function deleteFreeItem(itemId) {
 
 // Save free items to storage
 function saveFreeItems() {
-  // Store in localStorage for UI purposes
-  localStorage.setItem("freeItems", JSON.stringify(freeItems));
-
-  // Save to database via API
-  apiService
-    .updateFreeItems(freeItems)
-    .then((response) => {
-      if (!response.success) {
-        console.error("Error saving free items to database:", response.message);
-      }
-    })
-    .catch((error) => {
-      console.error("Failed to save free items to database:", error);
-    });
+  // Persist to localStorage only
+  try {
+    localStorage.setItem("freeItems", JSON.stringify(freeItems));
+  } catch (error) {
+    console.error("Failed to save free items to localStorage:", error);
+  }
 }
 
 // Load free items from storage
 function loadFreeItems() {
   try {
-    // First try to get from API
-    apiService
-      .getFreeItems()
-      .then((response) => {
-        if (response.success && Array.isArray(response.data)) {
-          freeItems = response.data;
-          // Update localStorage for backup
-          localStorage.setItem("freeItems", JSON.stringify(freeItems));
-          renderFreeItems();
-        } else {
-          // Fallback to localStorage if API fails
-          const freeItemsJson = localStorage.getItem("freeItems");
-          if (freeItemsJson) {
-            freeItems = JSON.parse(freeItemsJson);
-          } else {
-            freeItems = [];
-          }
-          renderFreeItems();
-        }
-      })
-      .catch((error) => {
-        console.error("Error loading free items from API:", error);
-        // Fallback to localStorage
-        const freeItemsJson = localStorage.getItem("freeItems");
-        if (freeItemsJson) {
-          freeItems = JSON.parse(freeItemsJson);
-        } else {
-          freeItems = [];
-        }
-        renderFreeItems();
-      });
+    const freeItemsJson = localStorage.getItem("freeItems");
+    if (freeItemsJson) {
+      try {
+        const parsed = JSON.parse(freeItemsJson);
+        freeItems = Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        freeItems = [];
+      }
+    } else {
+      freeItems = [];
+    }
+    renderFreeItems();
   } catch (error) {
     console.error("Error loading free items:", error);
     freeItems = [];
@@ -1091,35 +1140,12 @@ function handleSearch() {
 async function loadCustomerAccounts() {
   try {
     showLoading(customerAccountsTable);
-    console.log("Loading customer accounts...");
+    console.log("Loading customer accounts from localStorage...");
 
     // Get current language
     const currentLang = localStorage.getItem("admin-language") || "ar";
     const isEnglish = currentLang === "en";
 
-    // Check if we're online before making the API call
-    if (!navigator.onLine) {
-      const offlineMessage = isEnglish
-        ? "No internet connection. Please check your connection and try again."
-        : "لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى";
-      addRetryButton(customerAccountsTable, offlineMessage);
-
-      // Hide pagination when offline
-      if (accountsPagination) {
-        accountsPagination.innerHTML = "";
-      }
-
-      showNotification(
-        isEnglish ? "No internet connection" : "لا يوجد اتصال بالإنترنت",
-        "warning"
-      );
-      return;
-    }
-
-    console.log(
-      `Fetching customer accounts: page=${currentPage}, search=${currentSearch}`
-    );
-    // Ensure filters are loaded before request so server-side filtering works
     try {
       if (!currentAccountFilters || typeof currentAccountFilters !== "object") {
         const saved = localStorage.getItem("accountsFilters");
@@ -1138,13 +1164,12 @@ async function loadCustomerAccounts() {
       currentAccountFilters
     );
 
-    console.log("API Response:", response);
+    console.log("Local customer accounts response:", response);
 
     // Check for the specific "Customer not found" message with success:true
     if (response.success && response.message === "Customer not found") {
-      console.log("API returned success but with 'Customer not found' message");
+      console.log("Local store returned success but with 'Customer not found' message");
 
-      // Display empty state with appropriate message
       customerAccountsTable.innerHTML = `
         <tr>
           <td colspan="7" class="empty-table-message">
@@ -1177,25 +1202,9 @@ async function loadCustomerAccounts() {
         totalPages: 1,
       };
 
-      // Check various possible locations for customer data
       if (Array.isArray(response.data)) {
-        console.log("Found customers in response.data array");
         customersData = response.data;
-      } else if (response.data && Array.isArray(response.data.customers)) {
-        console.log("Found customers in response.data.customers array");
-        customersData = response.data.customers;
-        // Also check for pagination in this structure
-        if (response.data.pagination) {
-          paginationData = response.data.pagination;
-        }
-      } else if (Array.isArray(response.customers)) {
-        console.log("Found customers in response.customers array");
-        customersData = response.customers;
-      } else if (response.users && Array.isArray(response.users)) {
-        console.log("Found customers in response.users array");
-        customersData = response.users;
       } else {
-        console.warn("Could not find customers array in response:", response);
         customersData = [];
       }
 
@@ -1229,13 +1238,6 @@ async function loadCustomerAccounts() {
         };
       }
 
-      if (hasActiveAccountFilters(currentAccountFilters)) {
-        customersData = applyClientCustomerFilters(
-          customersData,
-          currentAccountFilters
-        );
-      }
-
       // If we have an empty array, display a nice empty state
       if (!customersData || customersData.length === 0) {
         customerAccountsTable.innerHTML = `
@@ -1265,121 +1267,64 @@ async function loadCustomerAccounts() {
       await renderCustomerAccounts(customersData);
       renderPagination(paginationData);
     } else {
-      // Check if this is an unauthorized error
-      if (response.unauthorized) {
-        console.warn("Unauthorized access to customer accounts");
-
-        // Create a container for unauthorized message
-        const unauthorizedContainer = document.createElement("div");
-        unauthorizedContainer.className = "unauthorized-section";
-
-        // Set custom message using i18n
-        const unauthorizedMessage = getTranslation("unauthorizedAccessMessage");
-        if (unauthorizedMessage) {
-          unauthorizedContainer.setAttribute(
-            "data-unauthorized-message",
-            unauthorizedMessage
-          );
-        }
-
-        // Create table with empty message
-        const emptyTable = `
-          <table class="accounts-table">
-            <thead>
-              <tr>
-                <th>${isEnglish ? "Name" : "الاسم"}</th>
-                <th>${isEnglish ? "Email" : "البريد الإلكتروني"}</th>
-                <th>${isEnglish ? "Phone" : "الهاتف"}</th>
-                <th>${isEnglish ? "Registration Date" : "تاريخ التسجيل"}</th>
-                <th>${isEnglish ? "Actions" : "الإجراءات"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="5" class="empty-message">
-                  <i class="fas fa-lock"></i>
-                  <p>${
-                    getTranslation("unauthorizedAccessToCustomerAccounts") ||
-                    "غير مصرح بالوصول لإدارة حسابات العملاء"
-                  }</p>
-                  <p class="empty-message-sub">${
-                    getTranslation("contactAdministratorForPermissions") ||
-                    "يرجى التواصل مع المسؤول للحصول على الصلاحيات اللازمة"
-                  }</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-
-        // Set the HTML content
-        unauthorizedContainer.innerHTML = emptyTable;
-
-        // Replace the table with our unauthorized container
-        customerAccountsTable.parentNode.replaceChild(
-          unauthorizedContainer,
-          customerAccountsTable
-        );
-
-        // Hide pagination
-        if (accountsPagination) {
-          accountsPagination.innerHTML = "";
-        }
-
-        // Show notification
-        showNotification(
-          isEnglish
-            ? "Unauthorized access to customer accounts management"
-            : "غير مصرح بالوصول لإدارة حسابات العملاء",
-          "warning",
-          5000
-        );
-
-        return;
-      }
-
-      // Handle server error with specific message
-      const errorMessage =
-        response.message ||
+      const errorMessage = response.message ||
         (isEnglish
           ? "Failed to load customer accounts"
           : "فشل في تحميل حسابات العملاء");
-      console.error("Error loading customer accounts:", errorMessage);
-      showNotification(errorMessage, "error");
+      customerAccountsTable.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-table-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>${errorMessage}</p>
+            <button class="retry-button" id="retry-load-accounts">
+              ${isEnglish ? "Retry" : "إعادة المحاولة"}
+            </button>
+          </td>
+        </tr>
+      `;
 
-      // Use the addRetryButton function instead of direct HTML
-      addRetryButton(customerAccountsTable, errorMessage);
+      if (accountsPagination) {
+        accountsPagination.innerHTML = "";
+      }
+
+      const retryButton = document.getElementById("retry-load-accounts");
+      if (retryButton) {
+        retryButton.addEventListener("click", () => {
+          loadCustomerAccounts();
+        });
+      }
     }
   } catch (error) {
     console.error("Error loading customer accounts:", error);
 
-    // Get current language
     const currentLang = localStorage.getItem("admin-language") || "ar";
     const isEnglish = currentLang === "en";
 
-    // Check if it's a network error
-    const isNetworkError =
-      error.message &&
-      (error.message.includes("Failed to fetch") ||
-        error.message.includes("NetworkError") ||
-        error.message.includes("Network request failed"));
-
-    const errorMessage = isNetworkError
-      ? isEnglish
-        ? "Could not connect to the server. Please check your internet connection."
-        : "تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت."
-      : isEnglish
+    const errorMessage = isEnglish
       ? "An error occurred while loading customer accounts"
       : "حدث خطأ أثناء تحميل حسابات العملاء";
 
-    showNotification(errorMessage, "error");
+    customerAccountsTable.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-table-message">
+          <i class="fas fa-exclamation-circle"></i>
+          <p>${errorMessage}</p>
+          <button class="retry-button" id="retry-load-accounts">
+            ${isEnglish ? "Retry" : "إعادة المحاولة"}
+          </button>
+        </td>
+      </tr>
+    `;
 
-    // Use the addRetryButton function
-    addRetryButton(customerAccountsTable, errorMessage);
-
-    // Hide pagination on error
     if (accountsPagination) {
       accountsPagination.innerHTML = "";
+    }
+
+    const retryButton = document.getElementById("retry-load-accounts");
+    if (retryButton) {
+      retryButton.addEventListener("click", () => {
+        loadCustomerAccounts();
+      });
     }
   }
 }
@@ -1485,7 +1430,30 @@ async function renderCustomerAccounts(customers) {
     const row = document.createElement("tr");
 
     // Get values with fallbacks
-    const username = customer.username || "";
+    const baseUsername =
+      customer.username ||
+      customer.userName ||
+      customer.user_name ||
+      customer.displayName ||
+      customer.name ||
+      (customer.email && typeof customer.email === "string"
+        ? customer.email.split("@")[0]
+        : "");
+    const normalizedEmail =
+      customer.email && typeof customer.email === "string"
+        ? customer.email.toLowerCase()
+        : "";
+    let displayUsername = baseUsername;
+
+    if (normalizedEmail === "admin@gmail.com") {
+      displayUsername = " admin ";
+    } else if (normalizedEmail === "user@gmail.com") {
+      displayUsername = "user";
+    }
+
+    if (!displayUsername) {
+      displayUsername = "";
+    }
     const registrationDate = formatDate(
       customer.createdAt || customer.registrationDate || new Date()
     );
@@ -1509,7 +1477,7 @@ async function renderCustomerAccounts(customers) {
         }</div>
       </td>
       <td>${escapeHtml(customer.email || undefinedText)}</td>
-      <td>${escapeHtml(username || undefinedText)}</td>
+      <td>${escapeHtml(displayUsername || undefinedText)}</td>
       <td>
         <div class="role-badge" data-userid="${escapeHtml(customerId)}" data-role-id="${escapeHtml(roleId || '')}">
           <i class="fas fa-user"></i>
@@ -1538,7 +1506,7 @@ async function renderCustomerAccounts(customers) {
             <i class="fas fa-trash-alt"></i> <span data-i18n="delete" data-i18n-en="Delete">${deleteText}</span>
           </button>
           <button class="account-action-btn action-assign-role assign-role-btn" title="${assignRoleTitle}" data-i18n-title="assignRole" data-i18n-en-title="Assign Role" data-id="${customerId}" data-name="${
-      customer.displayName || customer.name || username || ""
+      customer.displayName || customer.name || displayUsername || ""
     }">
             <i class="fas fa-user-tag"></i> <span data-i18n="assignRole" data-i18n-en="Assign Role">${assignRoleText}</span>
           </button>
@@ -1634,7 +1602,8 @@ async function loadDynamicRoleBadges(language) {
       } else if (roleId) {
         // Handle legacy role IDs or string-based roles
         const legacyRoleNames = {
-          "admin": { ar: "مدير", en: "Administrator", color: "#42d158", icon: "fas fa-crown" },
+          "admin": { ar: "مدير", en: "Administrator", color: "#ff3b30", icon: "fas fa-crown" },
+          "administrator": { ar: "مدير", en: "Administrator", color: "#ff3b30", icon: "fas fa-crown" },
           "editor": { ar: "محرر", en: "Editor", color: "#5b7cff", icon: "fas fa-edit" },
           "viewer": { ar: "مشاهد", en: "Viewer", color: "#6c757d", icon: "fas fa-eye" },
           "cashier": { ar: "كاشير", en: "Cashier", color: "#ff9500", icon: "fas fa-cash-register" },
@@ -2491,6 +2460,8 @@ function handleCustomerAction(event) {
 
 // Suspend account
 async function suspendAccount(customerId, buttonElement) {
+  let originalHTML = buttonElement.innerHTML;
+
   try {
     // Get current language
     const currentLang = localStorage.getItem("admin-language") || "ar";
@@ -2506,7 +2477,7 @@ async function suspendAccount(customerId, buttonElement) {
     }
 
     // Set loading state
-    const originalHTML = buttonElement.innerHTML;
+    originalHTML = buttonElement.innerHTML;
     buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     buttonElement.disabled = true;
 
@@ -3149,37 +3120,20 @@ async function saveLoyaltyPointsSettings() {
     '<i class="fas fa-spinner fa-spin"></i> ' + savingText;
 
   try {
-    // Save settings to API
     const settings = {
       exchangeRate,
       expiryDays,
     };
-
-    // Call API to update settings
-    const response = await apiService.updateLoyaltyPointsSettings(settings);
-
-    if (response.success) {
-      // Store in localStorage as backup
-      localStorage.setItem("loyaltyPointsSettings", JSON.stringify(settings));
-
-      // Broadcast the change to other parts of the application
-      // This will trigger a storage event in other tabs/windows
-      localStorage.setItem(
-        "loyalty_points_settings_updated",
-        Date.now().toString()
-      );
-
-      // Dispatch a custom event for the current window
-      const updateEvent = new CustomEvent("loyalty_points_settings_updated", {
-        detail: settings,
-      });
-      window.dispatchEvent(updateEvent);
-
-      // Show success notification
-      showNotification(getTranslation("pointsSettingsSaved"), "success");
-    } else {
-      throw new Error(response.message || "Failed to save settings");
-    }
+    localStorage.setItem("loyaltyPointsSettings", JSON.stringify(settings));
+    localStorage.setItem(
+      "loyalty_points_settings_updated",
+      Date.now().toString()
+    );
+    const updateEvent = new CustomEvent("loyalty_points_settings_updated", {
+      detail: settings,
+    });
+    window.dispatchEvent(updateEvent);
+    showNotification(getTranslation("pointsSettingsSaved"), "success");
   } catch (error) {
     console.error("Error saving loyalty points settings:", error);
     showNotification(getTranslation("errorSavingSettings"), "error");
