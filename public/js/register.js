@@ -523,7 +523,9 @@ document.addEventListener("DOMContentLoaded", () => {
           : "جاري إنشاء الحساب...");
       submitButton.disabled = true;
 
+      const generatedCustomerId = `local_user_${Date.now()}`;
       const registerData = {
+        id: generatedCustomerId,
         name,
         username,
         email: contact,
@@ -531,6 +533,9 @@ document.addEventListener("DOMContentLoaded", () => {
         termsAccepted,
         createdAt: new Date().toISOString(),
         role: "user",
+        status: "active",
+        loyaltyPoints: 0,
+        pointsHistory: [],
       };
 
       let existingAccounts = [];
@@ -579,6 +584,122 @@ document.addEventListener("DOMContentLoaded", () => {
         submitButton.innerHTML = originalText;
         submitButton.disabled = false;
         return;
+      }
+
+      // Sync with admin customer accounts list
+      try {
+        let customerAccounts = JSON.parse(
+          localStorage.getItem("customerAccounts") || "[]"
+        );
+        if (!Array.isArray(customerAccounts)) {
+          customerAccounts = [];
+        }
+
+        const customerExists = customerAccounts.some(
+          (account) =>
+            account &&
+            typeof account.email === "string" &&
+            account.email.toLowerCase() === registerData.email.toLowerCase()
+        );
+
+        if (!customerExists) {
+          const defaultUserTemplate = customerAccounts.find(
+            (account) =>
+              account &&
+              typeof account.email === "string" &&
+              account.email.toLowerCase() === "user@gmail.com"
+          );
+
+          const fallbackRole = {
+            id: "68f892ae44b61e6b4a3c9c8f",
+            _id: "68f892ae44b61e6b4a3c9c8f",
+            name: "مستخدم",
+            nameEn: "User",
+            color: "#42d158",
+            icon: "fas fa-user",
+            permissions: {
+              adminPanel: false,
+              cashier: false,
+              stats: false,
+              productsView: false,
+              productsEdit: false,
+              vouchersView: false,
+              vouchersEdit: false,
+              reservations: false,
+              tax: false,
+              points: false,
+              accounts: false,
+              qr: false,
+            },
+          };
+
+          const fallbackAccountPermissions = {
+            adminPanel: false,
+            stats: false,
+            productsView: true,
+            productsEdit: false,
+            vouchersView: true,
+            vouchersEdit: false,
+            tax: false,
+            qr: false,
+            reservations: false,
+            loyaltyPoints: true,
+            users: false,
+            kitchen: false,
+          };
+
+          const resolvedRole = defaultUserTemplate?.role || fallbackRole;
+          const resolvedRoleId =
+            defaultUserTemplate?.roleId ||
+            defaultUserTemplate?.roleIdString ||
+            resolvedRole.id ||
+            resolvedRole._id ||
+            "role_user_local";
+          const resolvedRoleName =
+            defaultUserTemplate?.roleName || resolvedRole.name || "مستخدم";
+          const resolvedRoleNameEn =
+            defaultUserTemplate?.roleNameEn || resolvedRole.nameEn || "User";
+          const resolvedPermissions =
+            defaultUserTemplate?.permissions ||
+            fallbackAccountPermissions;
+
+          registerData.role = resolvedRoleNameEn || registerData.role;
+
+          const customerEntry = {
+            id: registerData.id,
+            name,
+            username,
+            email: registerData.email,
+            status: "active",
+            roleId: resolvedRoleId,
+            roleIdString: resolvedRoleId,
+            roleName: resolvedRoleName,
+            roleNameEn: resolvedRoleNameEn,
+            role: {
+              ...resolvedRole,
+              id: resolvedRole.id || resolvedRoleId,
+              _id: resolvedRole._id || resolvedRoleId,
+              permissions: resolvedRole.permissions || fallbackRole.permissions,
+            },
+            createdAt: registerData.createdAt,
+            loyaltyPoints: 0,
+            pointsHistory: [],
+            ordersCount: 0,
+            totalSpent: 0,
+            permissions: resolvedPermissions,
+          };
+
+          customerAccounts.push(customerEntry);
+          localStorage.setItem(
+            "customerAccounts",
+            JSON.stringify(customerAccounts)
+          );
+        }
+      } catch (customerSyncError) {
+        console.warn(
+          "Failed to sync new account to customerAccounts:",
+          customerSyncError
+        );
       }
 
       const profilePayload = {

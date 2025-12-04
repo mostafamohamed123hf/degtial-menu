@@ -6,11 +6,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  background-color: rgba(5, 8, 15, 0.75);
+  backdrop-filter: blur(6px);
   z-index: 1100;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
   opacity: 0;
   visibility: hidden;
 }
@@ -22,15 +24,14 @@
 }
 
 .role-details-modal-content {
-  background-color: #fff;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: slideIn 0.3s ease forwards;
-  border: 1px solid #e0e0e0;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  box-shadow: 0 25px 65px rgba(15, 23, 42, 0.35);
+  width: min(520px, 94%);
+  max-height: 92vh;
+  overflow: hidden;
+  animation: slideIn 0.35s ease forwards;
+  border: 1px solid rgba(66, 209, 88, 0.15);
 }
 
 @keyframes slideIn {
@@ -48,52 +49,86 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(120deg, rgba(66, 209, 88, 0.12), rgba(66, 209, 88, 0.03));
 }
 
 .role-details-header h3 {
   margin: 0;
-  font-size: 1.2rem;
-  color: #333;
-  font-weight: 600;
+  font-size: 1.25rem;
+  color: #1f2937;
+  font-weight: 700;
 }
 
 .role-details-header .close-modal {
-  font-size: 1.5rem;
+  width: 34px;
+  height: 34px;
+  top: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
   cursor: pointer;
-  color: #333;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
+  color: #1f2937;
+  opacity: 0.8;
+  background-color: rgba(15, 23, 42, 0.05);
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+html[lang="en"] .role-details-header .close-modal {
+  right : 18px ;
+  left: auto;
 }
 
 .role-details-header .close-modal:hover {
   opacity: 1;
+  transform: scale(1.08);
+  background-color: rgba(15, 23, 42, 0.12);
 }
 
 .role-details-body {
-  padding: 20px;
+  padding: 22px 24px 26px;
+  background: #fff;
 }
 
 .role-permissions-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
 }
 
 .permission-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.permission-item.allowed {
+  background: rgba(66, 209, 88, 0.08);
+  border-color: rgba(66, 209, 88, 0.35);
+}
+
+.permission-item.denied {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.permission-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
 }
 
 .permission-name {
-  font-size: 0.9rem;
-  color: #333;
+  font-size: 0.92rem;
+  color: #0f172a;
+  font-weight: 600;
 }
 
 .permission-value {
@@ -101,19 +136,24 @@
   align-items: center;
 }
 
+.permission-value .fa-check,
+.permission-value .fa-times {
+  font-size: 1rem;
+}
+
 .permission-value .fa-check {
-  color: #34c759;
+  color: #22c55e;
 }
 
 .permission-value .fa-times {
-  color: #ff3b30;
+  color: #ef4444;
 }
 
 .no-permissions {
   text-align: center;
-  padding: 30px 0;
-  color: #666;
-  opacity: 0.7;
+  padding: 32px 0;
+  color: #64748b;
+  opacity: 0.85;
 }
 
 /* Dark mode styles */
@@ -122,12 +162,13 @@ body:not(.light-mode) #role-details-modal {
 }
 
 body:not(.light-mode) .role-details-modal-content {
-  background-color: #121212;
-  border-color: #333;
+  background: linear-gradient(160deg, #151922 0%, #0f1117 100%);
+  border-color: rgba(66, 209, 88, 0.3);
 }
 
 body:not(.light-mode) .role-details-header {
-  border-color: #333;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(120deg, rgba(66, 209, 88, 0.16), rgba(66, 209, 88, 0.05));
 }
 
 body:not(.light-mode) .role-details-header h3 {
@@ -136,11 +177,16 @@ body:not(.light-mode) .role-details-header h3 {
 
 body:not(.light-mode) .role-details-header .close-modal {
   color: #f8f9fa;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+body:not(.light-mode) .role-details-body {
+  background: transparent;
 }
 
 body:not(.light-mode) .permission-item {
-  background-color: #2a2a2a;
-  border-color: #333;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
 }
 
 body:not(.light-mode) .permission-name {
@@ -148,7 +194,7 @@ body:not(.light-mode) .permission-name {
 }
 
 body:not(.light-mode) .no-permissions {
-  color: #b0b0b0;
+  color: #cbd5f5;
 }
 
 /* Responsive styles for role details modal */
@@ -158,6 +204,12 @@ body:not(.light-mode) .no-permissions {
   }
 
   .role-details-modal-content {
-    width: 95%;
+    width: 100%;
+    max-height: 88vh;
+    border-radius: 16px;
+  }
+
+  .role-details-body {
+    padding: 20px;
   }
 }

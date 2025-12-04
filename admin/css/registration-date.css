@@ -75,7 +75,7 @@ html[lang="en"] .role-badge.كاشير {
 
 html[lang="en"] .role-badge.user,
 html[lang="en"] .role-badge.مستخدم {
-  border-left-color: #6c757d;
+  border-left-color: #42d158;
 }
 
 /* Different role colors */
@@ -109,9 +109,9 @@ html[lang="en"] .role-badge.مستخدم {
 
 .role-badge.user,
 .role-badge.مستخدم {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: #6c757d;
-  border-right-color: #6c757d;
+  background-color: rgba(66, 209, 88, 0.15);
+  color: #42d158;
+  border-right-color: #42d158;
 }
 
 /* Make the role column centered */

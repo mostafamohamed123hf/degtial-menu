@@ -6408,9 +6408,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Show notification
         if (typeof showToast === "function") {
+          const currentLang = localStorage.getItem("admin-language") || "ar";
           const message = newMode
-            ? "Submenu mode enabled"
-            : "Submenu mode disabled";
+            ? currentLang === "en"
+              ? "Submenu mode enabled"
+              : "تم تفعيل وضع القوائم الفرعية"
+            : currentLang === "en"
+            ? "Submenu mode disabled"
+            : "تم تعطيل وضع القوائم الفرعية";
           showToast(message, "success");
         }
       });
