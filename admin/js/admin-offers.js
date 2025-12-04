@@ -564,7 +564,7 @@ const OffersManager = {
                       <div class="image-tab-content active" id="offer-url-tab">
                         <div class="image-input-container">
                           <input
-                            type="url"
+                            type="text"
                             id="offer-image"
                             name="offer-image-url"
                             value="${offer?.image || ""}"
