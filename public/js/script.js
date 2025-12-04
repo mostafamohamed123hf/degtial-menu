@@ -1530,18 +1530,108 @@ async function loadCategories() {
   const categoryFiltersContainer = document.getElementById("category-filters");
   if (!categoryFiltersContainer) return;
 
+  const localCategories = readCategoriesFromLocalStorage();
+  if (localCategories.length) {
+    renderCategoryFilters(localCategories);
+  } else {
+    renderCategoryFilters([]);
+  }
+
+  try {
+    const categoriesFromApi = await fetchCategoriesFromApi();
+    if (categoriesFromApi.length) {
+      saveCategoriesToLocalStorage(categoriesFromApi);
+      renderCategoryFilters(categoriesFromApi);
+    }
+  } catch (error) {
+    console.error("Error loading categories from API:", error);
+  }
+}
+
+function readCategoriesFromLocalStorage() {
   try {
     const savedCategories = localStorage.getItem("categories");
-    if (savedCategories) {
-      const categories = JSON.parse(savedCategories);
-      if (Array.isArray(categories) && categories.length > 0) {
-        renderCategoryFilters(categories);
-        return;
-      }
-    }
-  } catch (_) {}
+    if (!savedCategories) return [];
+    const categories = JSON.parse(savedCategories);
+    return Array.isArray(categories) ? categories : [];
+  } catch (error) {
+    console.warn("Failed to parse categories from localStorage:", error);
+    return [];
+  }
+}
 
-  renderCategoryFilters([]);
+function saveCategoriesToLocalStorage(categories) {
+  try {
+    localStorage.setItem("categories", JSON.stringify(categories));
+    localStorage.setItem("categories_last_source", "api");
+    localStorage.setItem("categories_last_updated", Date.now().toString());
+  } catch (error) {
+    console.warn("Failed to persist categories to localStorage:", error);
+  }
+}
+
+function getPublicApiBaseUrl() {
+  const base = window.API_BASE_URL || window.location.origin || "";
+  return base.replace(/\/$/, "");
+}
+
+async function fetchCategoriesFromApi() {
+  const endpoint = `${getPublicApiBaseUrl()}/api/categories`;
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-cache",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result || !result.success || !Array.isArray(result.data)) {
+      return [];
+    }
+
+    const normalized = result.data
+      .map(normalizeCategoryPayload)
+      .filter(Boolean)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    return normalized;
+  } catch (error) {
+    console.warn("Failed to fetch categories from API:", error);
+    throw error;
+  }
+}
+
+function normalizeCategoryPayload(category) {
+  if (!category || typeof category !== "object") {
+    return null;
+  }
+
+  const id = category.id || category._id || category.value || category.name;
+  const value = category.value || id;
+
+  if (!value) {
+    return null;
+  }
+
+  return {
+    id: id || value,
+    value,
+    name: category.name || category.nameAr || category.title || value,
+    nameEn: category.nameEn || category.name_en || category.titleEn || category.name || value,
+    icon: category.icon || "fa-solid fa-utensils",
+    sortOrder:
+      typeof category.sortOrder === "number"
+        ? category.sortOrder
+        : typeof category.sort_order === "number"
+        ? category.sort_order
+        : 0,
+  };
 }
 
 // Function to render category filters
