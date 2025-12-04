@@ -117,6 +117,23 @@ function getTranslation(key) {
   return fallbackTranslations[key] || key;
 }
 
+function getGlobalDiscountData() {
+  try {
+    const stored = localStorage.getItem("globalDiscountData");
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") return null;
+    const percentage = parseFloat(parsed.percentage);
+    return {
+      active: Boolean(parsed.active) && !Number.isNaN(percentage) && percentage > 0,
+      percentage: !Number.isNaN(percentage) ? percentage : 0,
+    };
+  } catch (error) {
+    console.warn("Failed to read global discount data:", error);
+    return null;
+  }
+}
+
 // Function to add item to cart
 function addToCart(id, name, price, image) {
   console.log(`Adding to cart: ${name}, Price: ${price}`);
@@ -2979,13 +2996,24 @@ document.addEventListener("DOMContentLoaded", async function () {
         ? `<img src="${imageUrl}" alt="${displayName}" />`
         : `<img src="${imageUrl}" alt="${displayName}" onerror="this.onerror=null; this.src='/public/images/placeholder.svg';" />`;
 
-      const hasDiscount =
-        typeof product.discountPercentage === "number" &&
-        product.discountPercentage > 0;
+      const globalDiscountData = getGlobalDiscountData();
+      const productDiscountPercentage =
+        typeof product.discountPercentage === "number"
+          ? product.discountPercentage
+          : 0;
+      const globalDiscountPercentage =
+        globalDiscountData && globalDiscountData.active
+          ? globalDiscountData.percentage
+          : 0;
+      const effectiveDiscountPercentage =
+        productDiscountPercentage > 0
+          ? productDiscountPercentage
+          : globalDiscountPercentage;
+      const hasDiscount = effectiveDiscountPercentage > 0;
       const discountLabel = hasDiscount
         ? `<span class="discount-badge ${
-            product.discountPercentage >= 30 ? "high-discount" : ""
-          }">-${product.discountPercentage}%</span>`
+            effectiveDiscountPercentage >= 30 ? "high-discount" : ""
+          }">-${effectiveDiscountPercentage}%</span>`
         : "";
 
       // Check if this product is a free item and user has enough points
@@ -3023,12 +3051,24 @@ document.addEventListener("DOMContentLoaded", async function () {
           typeof product.price === "string"
             ? parseFloat(product.price.toString().replace(/[^\d.]/g, ""))
             : parseFloat(product.price);
-        const numericOriginalPrice =
+        let numericOriginalPrice =
           typeof product.originalPrice === "string"
             ? parseFloat(
                 product.originalPrice.toString().replace(/[^\d.]/g, "")
               )
             : parseFloat(product.originalPrice);
+
+        if (
+          (Number.isNaN(numericOriginalPrice) || numericOriginalPrice <= 0) &&
+          hasDiscount &&
+          effectiveDiscountPercentage > 0
+        ) {
+          const estimatedOriginal =
+            numericPrice / (1 - effectiveDiscountPercentage / 100);
+          numericOriginalPrice = Number.isFinite(estimatedOriginal)
+            ? estimatedOriginal
+            : numericPrice;
+        }
 
         priceHtml = hasDiscount
           ? `<div class="price discounted-price">

@@ -55,33 +55,88 @@ async function loadAdminGlobalSettings() {
     const result = await response.json();
 
     if (result.success && result.data) {
-      window.globalSettings = {
-        ...result.data,
-        currencyCode: result.data.currency, // Ensure currencyCode is set for English display
-        loaded: true,
-      };
-      console.log("Admin global settings loaded:", window.globalSettings);
+      const localSettings = readLocalAdminGlobalSettings();
+      if (
+        localSettings &&
+        localSettings.currency &&
+        localSettings.currency !== result.data.currency
+      ) {
+        result.data.currency = localSettings.currency;
+      }
 
-      try {
-        localStorage.setItem(
-          "admin-currency-code",
-          window.globalSettings.currency
-        );
-      } catch (_) {}
+      const appliedSettings = applyAdminGlobalSettings(result.data);
+      console.log("Admin global settings loaded:", appliedSettings);
 
-      // Dispatch event to notify other scripts
-      window.dispatchEvent(
-        new CustomEvent("admin-global-settings-loaded", {
-          detail: window.globalSettings,
-        })
-      );
-
-      return window.globalSettings;
+      return appliedSettings;
     }
   } catch (error) {
     console.error("Error loading admin global settings:", error);
   }
-  return null;
+  return loadAdminGlobalSettingsFromLocalStorage();
+}
+
+function readLocalAdminGlobalSettings() {
+  try {
+    const savedSettings = localStorage.getItem("globalSettings");
+    if (!savedSettings) {
+      return null;
+    }
+    return JSON.parse(savedSettings) || {};
+  } catch (error) {
+    console.error(
+      "Error reading admin global settings from localStorage:",
+      error
+    );
+    return null;
+  }
+}
+
+function applyAdminGlobalSettings(settings, options = {}) {
+  if (!settings || typeof settings !== "object") {
+    return null;
+  }
+
+  const { silent = false } = options;
+
+  if (!window.globalSettings) {
+    window.globalSettings = { loaded: false };
+  }
+
+  const currencyFromSettings = settings.currency || settings.currencyCode;
+
+  const mergedSettings = {
+    ...window.globalSettings,
+    ...settings,
+    currency: currencyFromSettings || window.globalSettings.currency,
+    currencyCode: currencyFromSettings || window.globalSettings.currencyCode,
+    loaded: true,
+  };
+
+  window.globalSettings = mergedSettings;
+
+  if (mergedSettings.currency) {
+    try {
+      localStorage.setItem("admin-currency-code", mergedSettings.currency);
+    } catch (_) {}
+  }
+
+  if (!silent) {
+    window.dispatchEvent(
+      new CustomEvent("admin-global-settings-loaded", {
+        detail: window.globalSettings,
+      })
+    );
+  }
+
+  return window.globalSettings;
+}
+
+function loadAdminGlobalSettingsFromLocalStorage(options = {}) {
+  const localSettings = readLocalAdminGlobalSettings();
+  if (!localSettings) {
+    return null;
+  }
+  return applyAdminGlobalSettings(localSettings, options);
 }
 
 // Load settings on page load
@@ -1378,11 +1433,20 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem("admin-currency-code", event.detail.currency);
       }
     } catch (_) {}
-    // Reload global settings
-    loadAdminGlobalSettings().then(() => {
-      // Refresh all displays
-      refreshAdminDisplays();
-    });
+
+    const localApplied = loadAdminGlobalSettingsFromLocalStorage();
+    if (!localApplied) {
+      loadAdminGlobalSettings();
+    }
+  });
+
+  window.addEventListener("storage", function (event) {
+    if (
+      event.key === "globalSettings" ||
+      event.key === "global-settings-update"
+    ) {
+      loadAdminGlobalSettingsFromLocalStorage();
+    }
   });
 
   // Listen for admin global settings loaded
@@ -3858,6 +3922,19 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Dispatch custom event for automatic refresh across all pages
+      try {
+        localStorage.setItem(
+          "globalDiscountData",
+          JSON.stringify({
+            active: true,
+            percentage: discountPercentage,
+            appliedAt: Date.now(),
+          })
+        );
+      } catch (storageError) {
+        console.warn("Unable to cache global discount locally:", storageError);
+      }
+
       dispatchDiscountChangeEvent();
     } catch (error) {
       console.error("Error applying discount:", error);
@@ -3906,6 +3983,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Dispatch custom event for automatic refresh across all pages
+      try {
+        localStorage.removeItem("globalDiscountData");
+      } catch (storageError) {
+        console.warn("Unable to clear cached global discount:", storageError);
+      }
+
       dispatchDiscountChangeEvent();
     } catch (error) {
       console.error("Error resetting discount:", error);
@@ -3929,6 +4012,12 @@ document.addEventListener("DOMContentLoaded", function () {
     );
     window.dispatchEvent(discountChangeEvent);
     console.log("Discount change event dispatched");
+
+    try {
+      localStorage.setItem("discount_change_event", Date.now().toString());
+    } catch (storageError) {
+      console.warn("Unable to broadcast discount change via localStorage:", storageError);
+    }
   }
 
   // Initialize the service worker
